@@ -80,11 +80,18 @@ async function pathExists(targetPath) {
 export async function resolveProjectWikiRoot(projectPath) {
   const normalized = await normalizeProjectPath(projectPath);
   const pilotHome = resolvePilotHome();
+  if (isGeneralProjectPath(normalized, pilotHome)) {
+    throw new Error('ProjectWiki is not available in general chat.');
+  }
   const configuredRoot = resolveConfiguredProjectWikiRoot(normalized, pilotHome);
   return {
     projectPath: normalized,
     rootDir: configuredRoot ?? getPilotProjectWikiRootDir(normalized, pilotHome),
   };
+}
+
+function isGeneralProjectPath(projectPath, pilotHome) {
+  return path.resolve(projectPath) === path.resolve(pilotHome);
 }
 
 function resolveConfiguredProjectWikiRoot(projectPath, pilotHome) {

@@ -66,6 +66,7 @@ router.post('/refresh', async (req, res) => {
     if (typeof projectPath !== 'string' || !projectPath.trim()) {
       throw new Error('projectPath is required');
     }
+    const resolved = await resolveProjectWikiRoot(projectPath);
     const gateway = await getPilotDeckGateway();
     if (typeof gateway.projectWikiRefresh !== 'function') {
       res.status(501).json({
@@ -76,7 +77,7 @@ router.post('/refresh', async (req, res) => {
       return;
     }
     const result = await gateway.projectWikiRefresh({
-      projectKey: projectPath,
+      projectKey: resolved.projectPath,
       reason: 'dashboard_refresh',
       maxHistoricalTurns: normalizeRefreshMaxHistoricalTurns(
         req.body?.maxHistoricalTurns ?? req.query.maxHistoricalTurns,

@@ -2675,14 +2675,19 @@ test("legacy memory dashboard becomes a ProjectWiki bridge when ProjectWiki is e
   assert.ok(html.includes("window.location.replace('/');"));
 });
 
-test("ProjectWiki dashboard resolves project names such as general to canonical workspace roots", async () => {
+test("ProjectWiki dashboard resolves real project names and rejects general chat", async () => {
   const root = await mkdtemp(join(tmpdir(), "pilotdeck-project-wiki-project-name-root-"));
   const previousConfigPath = process.env.PILOTDECK_CONFIG_PATH;
   const previousPilotHome = process.env.PILOT_HOME;
 
   try {
     process.env.PILOTDECK_CONFIG_PATH = join(root, "missing-pilotdeck.yaml");
-    process.env.PILOT_HOME = join(root, "pilot-home");
+    const pilotHome = join(root, "pilot-home");
+    process.env.PILOT_HOME = pilotHome;
+    const projectRoot = join(root, "workspace", "demo");
+    await mkdir(projectRoot, { recursive: true });
+    await mkdir(join(pilotHome, "projects", "demo-project"), { recursive: true });
+    await writeFile(join(pilotHome, "projects", "demo-project", ".cwd"), projectRoot, "utf8");
     const serviceModule = await import(pathToFileURL(join(process.cwd(), "ui/server/services/projectWikiService.js")).href) as {
       resolveProjectWikiRoot: (projectPath: string) => Promise<{ projectPath: string; rootDir: string }>;
     };
@@ -2690,9 +2695,13 @@ test("ProjectWiki dashboard resolves project names such as general to canonical 
       getPilotProjectWikiRootDir: (projectPath: string, pilotHome?: string) => string;
     };
 
-    const resolved = await serviceModule.resolveProjectWikiRoot("general");
-    assert.equal(resolved.projectPath, process.env.PILOT_HOME);
-    assert.equal(resolved.rootDir, pathsModule.getPilotProjectWikiRootDir(process.env.PILOT_HOME, process.env.PILOT_HOME));
+    const resolved = await serviceModule.resolveProjectWikiRoot("demo-project");
+    assert.equal(resolved.projectPath, projectRoot);
+    assert.equal(resolved.rootDir, pathsModule.getPilotProjectWikiRootDir(projectRoot, pilotHome));
+    await assert.rejects(
+      () => serviceModule.resolveProjectWikiRoot("general"),
+      /ProjectWiki is not available in general chat/,
+    );
   } finally {
     if (previousConfigPath === undefined) {
       delete process.env.PILOTDECK_CONFIG_PATH;

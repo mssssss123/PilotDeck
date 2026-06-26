@@ -641,17 +641,20 @@ class ProjectRuntimeRegistry {
       tools.register(tool);
     }
 
-    const projectWiki = createProjectWikiServiceFromConfig({
-      config: snapshot.config.projectWiki,
-      modelRuntime: model,
-      agentModel: {
-        provider: snapshot.config.agent.model.provider,
-        model: snapshot.config.agent.model.model,
-      },
-      projectRoot,
-      pilotHome: this.options.pilotHome,
-      now: this.options.now,
-    });
+    const isGeneralChatRoot = isGeneralProjectRoot(projectRoot, this.options.pilotHome);
+    const projectWiki = isGeneralChatRoot
+      ? undefined
+      : createProjectWikiServiceFromConfig({
+        config: snapshot.config.projectWiki,
+        modelRuntime: model,
+        agentModel: {
+          provider: snapshot.config.agent.model.provider,
+          model: snapshot.config.agent.model.model,
+        },
+        projectRoot,
+        pilotHome: this.options.pilotHome,
+        now: this.options.now,
+      });
     const userProfile = createUserProfileServiceFromProjectWikiConfig({
       config: snapshot.config.projectWiki,
       modelRuntime: model,
@@ -1174,6 +1177,10 @@ class ProjectRuntimeRegistry {
       }),
     };
   }
+}
+
+function isGeneralProjectRoot(projectRoot: string, pilotHome: string): boolean {
+  return resolve(projectRoot) === resolve(pilotHome);
 }
 
 function mergeSessionDependencies(

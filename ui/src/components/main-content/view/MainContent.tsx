@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import ChatInterfaceV2 from '../../chat-v2/ChatInterfaceV2';
 import PluginTabContent from '../../plugins/view/PluginTabContent';
 import { cn } from '../../../lib/utils.js';
+import { isGeneralProject } from '../../../lib/projects';
 import type { MainContentProps } from '../types/types';
 import { useTaskMaster } from '../../../contexts/TaskMasterContext';
 import { useTasksSettings } from '../../../contexts/TasksSettingsContext';
@@ -130,6 +131,12 @@ function MainContent({
       setActiveTab('chat');
     }
   }, [shouldShowTasksTab, activeTab, setActiveTab]);
+
+  useEffect(() => {
+    if (activeTab === 'memory' && isGeneralProject(selectedProject)) {
+      setActiveTab('chat');
+    }
+  }, [activeTab, selectedProject, setActiveTab]);
 
   const refreshProjectsSilently = useCallback(() => {
     if (window.refreshProjects) {
@@ -446,6 +453,7 @@ function SplitBody(props: SplitBodyProps) {
     hasEditor,
     onSelectProjectByName,
   } = props;
+  const surfaceTab = activeTab === 'memory' && isGeneralProject(selectedProject) ? 'chat' : activeTab;
 
   // Render-mode taxonomy:
   //   - 'chat':    Agent surface. No session shows the welcome composer;
@@ -459,7 +467,7 @@ function SplitBody(props: SplitBodyProps) {
   // Note: Shell + Git aren't surfaced in the V2 top tab bar (see TABS in
   // MainAreaV2.tsx) but plugins / programmatic activeTab values still hit
   // those code paths, so we keep them here as full-screen tool views.
-  const isPlugin = typeof activeTab === 'string' && activeTab.startsWith('plugin:');
+  const isPlugin = typeof surfaceTab === 'string' && surfaceTab.startsWith('plugin:');
   const fullScreenToolTabs = new Set([
     'shell',
     'git',
@@ -469,11 +477,11 @@ function SplitBody(props: SplitBodyProps) {
     'skills',
     'tasks',
   ]);
-  const isFullScreenTool = fullScreenToolTabs.has(activeTab) || isPlugin;
+  const isFullScreenTool = fullScreenToolTabs.has(surfaceTab) || isPlugin;
   // Tasks tab is conditional — fall back to chat if the project hasn't
   // enabled it yet so we don't render a black hole.
-  const renderTasksAsTool = activeTab === 'tasks' && shouldShowTasksTab;
-  const isFiles = activeTab === 'files';
+  const renderTasksAsTool = surfaceTab === 'tasks' && shouldShowTasksTab;
+  const isFiles = surfaceTab === 'files';
   const filesSplitContainerRef = useRef<HTMLDivElement | null>(null);
   const [filesChatWidth, setFilesChatWidth] = useState(FILES_CHAT_DEFAULT_WIDTH);
   const [isFilesSplitResizing, setIsFilesSplitResizing] = useState(false);
@@ -537,7 +545,7 @@ function SplitBody(props: SplitBodyProps) {
   }, [clampFilesChatWidth, isFilesSplitResizing]);
 
   const renderTool = () => {
-    if (activeTab === 'shell') {
+    if (surfaceTab === 'shell') {
       return (
         <ShellV2
           selectedProject={selectedProject}
@@ -546,10 +554,10 @@ function SplitBody(props: SplitBodyProps) {
         />
       );
     }
-    if (activeTab === 'git') {
+    if (surfaceTab === 'git') {
       return <GitV2 selectedProject={selectedProject} onFileOpen={handleFileOpen} />;
     }
-    if (activeTab === 'always-on') {
+    if (surfaceTab === 'always-on') {
       return (
         <AlwaysOnV2
           selectedProject={selectedProject}
@@ -560,14 +568,14 @@ function SplitBody(props: SplitBodyProps) {
         />
       );
     }
-    if (activeTab === 'dashboard') return <DashboardV2 projectFilter={selectedProject?.name} projectFullPath={selectedProject?.fullPath} onSelectProject={onSelectProjectByName} />;
-    if (activeTab === 'memory') return <ProjectWikiPanel selectedProject={selectedProject} />;
-    if (activeTab === 'skills') return <SkillsV2 selectedProject={selectedProject} projects={projects} />;
+    if (surfaceTab === 'dashboard') return <DashboardV2 projectFilter={selectedProject?.name} projectFullPath={selectedProject?.fullPath} onSelectProject={onSelectProjectByName} />;
+    if (surfaceTab === 'memory') return <ProjectWikiPanel selectedProject={selectedProject} />;
+    if (surfaceTab === 'skills') return <SkillsV2 selectedProject={selectedProject} projects={projects} />;
     if (renderTasksAsTool) return <TasksV2 isVisible />;
     if (isPlugin) {
       return (
         <PluginTabContent
-          pluginName={activeTab.replace('plugin:', '')}
+          pluginName={surfaceTab.replace('plugin:', '')}
           selectedProject={selectedProject}
           selectedSession={selectedSession}
         />
@@ -576,7 +584,7 @@ function SplitBody(props: SplitBodyProps) {
     return null;
   };
 
-  const showFullScreenTool = isFullScreenTool && (activeTab !== 'tasks' || shouldShowTasksTab);
+  const showFullScreenTool = isFullScreenTool && (surfaceTab !== 'tasks' || shouldShowTasksTab);
   const showChat = !showFullScreenTool;
 
   return (

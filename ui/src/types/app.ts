@@ -240,6 +240,7 @@ export interface ProjectTaskmasterInfo {
 export interface Project {
   name: string;
   displayName: string;
+  isGeneral?: boolean;
   fullPath: string;
   path?: string;
   sessions?: ProjectSession[];

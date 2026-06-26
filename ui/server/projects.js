@@ -271,6 +271,7 @@ async function getProjects(progressCallback = null) {
     result.unshift({
         name: 'general',
         displayName: 'general',
+        isGeneral: true,
         fullPath: generalHome,
         path: generalHome,
         lastActivity: generalLastActivity,

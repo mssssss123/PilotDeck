@@ -22,6 +22,7 @@ import MainContent from '../main-content/view/MainContent';
 import type { MainContentProps } from '../main-content/types/types';
 import { cn } from '../../lib/utils.js';
 import { projectDisplayName, sessionDisplayTitle, useCustomNamesVersion } from '../../lib/customNames';
+import { isGeneralProject } from '../../lib/projects';
 import { api } from '../../utils/api';
 
 type Tab = { id: AppTab; labelKey: string; icon: LucideIcon };
@@ -92,6 +93,12 @@ export default function MainAreaV2(props: MainAreaV2Props) {
   }, [activeTab, setActiveTab]);
 
   useEffect(() => {
+    if (activeTab === 'memory' && isGeneralProject(selectedProject)) {
+      setActiveTab('chat');
+    }
+  }, [activeTab, selectedProject, setActiveTab]);
+
+  useEffect(() => {
     let cancelled = false;
 
     const refreshAlwaysOnEventMarker = async () => {
@@ -143,7 +150,14 @@ export default function MainAreaV2(props: MainAreaV2Props) {
   // mono. Falls back to "Home" when no project is selected so the breadcrumb
   // never collapses to "/". Project + session strings flow through the
   // customNames overlay so user renames in the sidebar reflect here too.
-  const displayActiveTab = activeTab === 'home' ? 'chat' : activeTab;
+  const displayActiveTab = activeTab === 'home'
+    ? 'chat'
+    : activeTab === 'memory' && isGeneralProject(selectedProject)
+      ? 'chat'
+      : activeTab;
+  const visibleTabs = isGeneralProject(selectedProject)
+    ? TABS.filter((tab) => tab.id !== 'memory')
+    : TABS;
   const tabLabelKey = TABS.find((tab) => tab.id === displayActiveTab)?.labelKey;
   const tabLabel = tabLabelKey
     ? t(tabLabelKey)
@@ -196,7 +210,7 @@ export default function MainAreaV2(props: MainAreaV2Props) {
           aria-label="Tools"
           className="scrollbar-thin ml-4 flex h-9 max-w-[70%] shrink-0 items-center gap-1 overflow-x-auto"
         >
-          {TABS.map((tab) => {
+          {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = displayActiveTab === tab.id;
             return (
