@@ -30,6 +30,9 @@ function classifyPath(path: string): PilotConfigChangeClass {
   if (path.startsWith("router.")) {
     return classifyRouterPath(path);
   }
+  if (path.startsWith("projectWiki.")) {
+    return "next-runtime";
+  }
   if (path.startsWith("alwaysOn.")) {
     return "next-runtime";
   }

@@ -19,7 +19,7 @@ type SubsystemResult = {
 
 export type ConfigReload = {
   processEnv?: SubsystemResult;
-  memory?: SubsystemResult;
+  projectWiki?: SubsystemResult;
   router?: SubsystemResult;
   gateway?: SubsystemResult;
   proxy?: SubsystemResult;

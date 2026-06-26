@@ -11,7 +11,7 @@
   },
   "scripts": {
     "install:browser": "npx @playwright/mcp install-browser chrome-for-testing",
-    "prebuild": "node scripts/bootstrap-pilotdeck-config.mjs && cd src/context/memory/edgeclaw-memory-core && npm run build",
+    "prebuild": "node scripts/bootstrap-pilotdeck-config.mjs",
     "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json && node -e \"require('fs').cpSync('src/extension/plugins/builtin','dist/src/extension/plugins/builtin',{recursive:true})\"",
     "server": "tsx src/cli/pilotdeck.ts server",
     "server:built": "node dist/src/cli/pilotdeck.js server",
@@ -34,7 +34,6 @@
     "@types/react": "^19.2.14",
     "@types/turndown": "^5.0.6",
     "@vscode/ripgrep": "^1.18.0",
-    "edgeclaw-memory-core": "file:src/context/memory/edgeclaw-memory-core",
     "ink": "^7.0.2",
     "ink-text-input": "^6.0.0",
     "js-tiktoken": "^1.0.21",

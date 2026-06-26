@@ -250,6 +250,15 @@ export class GatewayWsConnection {
           return this.options.gateway.alwaysOnRerunPlan(frame.params as never);
         }
         return Promise.resolve({ runId: "", error: { code: "not_configured", message: "Always-On rerun not available" } });
+      case "project_wiki_refresh":
+        if (this.options.gateway.projectWikiRefresh) {
+          return this.options.gateway.projectWikiRefresh(frame.params as never);
+        }
+        return Promise.resolve({
+          projectKey: "",
+          refreshed: false,
+          error: { code: "not_configured", message: "ProjectWiki refresh not available" },
+        });
       default:
         throw new Error(`Unknown gateway method ${(frame as { method?: string }).method}.`);
     }

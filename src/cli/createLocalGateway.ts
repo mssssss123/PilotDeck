@@ -1,7 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync as mkdirSyncFs, renameSync } from "node:fs";
 import { resolve, join as joinPath } from "node:path";
 import { tmpdir } from "node:os";
-import type { EdgeClawMemoryService } from "edgeclaw-memory-core";
 import type { SessionConfigOverrides } from "../always-on/runtime/SessionConfigOverrides.js";
 import {
   createAgentEventBuffer,
@@ -23,7 +22,6 @@ import {
   SnipEngine,
   TokenBudgetManager,
   ToolResultBudget,
-  createEdgeClawMemoryProviderFromConfig,
 } from "../context/index.js";
 import { FileHistoryStore } from "../session/filesystem/FileHistoryStore.js";
 import type { AgentSubagentTranscriptHooks } from "../agent/runtime/AgentRuntimeDependencies.js";
@@ -41,6 +39,8 @@ import {
   type Gateway,
   type GatewayCronController,
   type GatewayProjectStorageOptions,
+  type ProjectWikiRefreshInput,
+  type ProjectWikiRefreshResult,
   type GatewaySessionContext,
   type ListSessionsInput,
   type ListSessionsResult,
@@ -71,7 +71,15 @@ import type { PilotDeckToolDefinition, ToolRegistry, PilotDeckElicitationChannel
 import { createRouterRuntime, type RouterRuntime } from "../router/index.js";
 import { SessionRouterStore } from "../router/session/SessionRouterStore.js";
 import type { RouterEventBus, RouterEvent } from "../router/protocol/events.js";
-import type { EdgeClawMemoryProvider } from "../context/index.js";
+import {
+  createProjectWikiServiceFromConfig,
+  createProjectWikiTools,
+  type ProjectWikiService,
+} from "../project-wiki/index.js";
+import {
+  createUserProfileServiceFromProjectWikiConfig,
+  type UserProfileService,
+} from "../user-profile/index.js";
 import { loadBuiltinPlugins } from "../extension/plugins/builtin/loadBuiltinPlugins.js";
 import { SkillManager } from "../extension/skills/index.js";
 import { ExtensionWatchManager, type ExtensionWatchEvent } from "./ExtensionWatchManager.js";
@@ -307,6 +315,9 @@ export function createLocalGateway(options: CreateLocalGatewayOptions = {}): Cre
       });
       return { reloaded: true, changedPaths };
     },
+    async projectWikiRefresh(input) {
+      return registry.refreshProjectWiki(input);
+    },
     // Defensive: re-check the on-disk config at the start of every
     // turn so an apiKey/url edit applied between two messages takes
     // effect on the next one, even if the fs watcher missed it.
@@ -330,7 +341,6 @@ export function createLocalGateway(options: CreateLocalGatewayOptions = {}): Cre
           },
         });
       }
-      registry.scheduleMemoryMaintenance(projectKey ?? projectRoot);
     },
   });
   // Hand the gateway back to the registry so per-session creation can
@@ -390,13 +400,10 @@ type ProjectRuntime = {
   projectStorage: GatewayProjectStorageOptions;
   /** Per-project background task runtime (shared across sessions). C5. */
   backgroundTasks: BackgroundTaskRuntime;
-  /** Memory provider, undefined when memory is disabled in PilotConfig. */
-  memory?: EdgeClawMemoryProvider;
-  /** Backing memory service for maintenance / introspection. */
-  memoryService?: EdgeClawMemoryService;
-  /** Coalesced project-level memory maintenance loop. */
-  memoryMaintenanceInFlight?: Promise<void>;
-  memoryMaintenanceRequested?: boolean;
+  /** ProjectWiki service, undefined when projectWiki is disabled. */
+  projectWiki?: ProjectWikiService;
+  /** Hidden global UserProfile service, using ProjectWiki model configuration. */
+  userProfile?: UserProfileService;
   /**
    * Lazily-started MCP runtime (C1). Built on first session creation by
    * `ensureMcpReady()` because plugin refresh + connect is async.
@@ -541,7 +548,6 @@ class ProjectRuntimeRegistry {
       if (runtime?.mcpRuntime) {
         runtime.mcpRuntime.stop().catch(() => {});
       }
-      runtime?.memoryService?.close();
       runtime?.router?.shutdown().catch(() => {});
       this.runtimes.delete(projectRoot);
     } else {
@@ -549,7 +555,6 @@ class ProjectRuntimeRegistry {
         if (runtime.mcpRuntime) {
           runtime.mcpRuntime.stop().catch(() => {});
         }
-        runtime.memoryService?.close();
         runtime.router?.shutdown().catch(() => {});
       }
       this.runtimes.clear();
@@ -636,14 +641,32 @@ class ProjectRuntimeRegistry {
       tools.register(tool);
     }
 
-    const memory = createEdgeClawMemoryProviderFromConfig({
-      config: snapshot.config.memory,
-      modelConfig: snapshot.config.model,
-      agentModel: snapshot.config.agent.model.id,
+    const projectWiki = createProjectWikiServiceFromConfig({
+      config: snapshot.config.projectWiki,
+      modelRuntime: model,
+      agentModel: {
+        provider: snapshot.config.agent.model.provider,
+        model: snapshot.config.agent.model.model,
+      },
       projectRoot,
+      pilotHome: this.options.pilotHome,
       now: this.options.now,
-      telemetry: this.options.telemetry,
     });
+    const userProfile = createUserProfileServiceFromProjectWikiConfig({
+      config: snapshot.config.projectWiki,
+      modelRuntime: model,
+      agentModel: {
+        provider: snapshot.config.agent.model.provider,
+        model: snapshot.config.agent.model.model,
+      },
+      pilotHome: this.options.pilotHome,
+      now: this.options.now,
+    });
+    if (projectWiki) {
+      for (const tool of createProjectWikiTools(projectWiki)) {
+        if (!tools.has(tool.name)) tools.register(tool);
+      }
+    }
 
     const runtime: ProjectRuntime = {
       projectRoot,
@@ -653,8 +676,8 @@ class ProjectRuntimeRegistry {
       pluginRuntime,
       tools,
       backgroundTasks,
-      memory: memory?.provider,
-      memoryService: memory?.service,
+      projectWiki,
+      userProfile,
       projectStorage: {
         projectRoot,
         pilotHome: this.options.pilotHome,
@@ -664,51 +687,47 @@ class ProjectRuntimeRegistry {
     return runtime;
   }
 
-  scheduleMemoryMaintenance(projectKey?: string): void {
-    const runtime = this.resolve(projectKey);
-    const service = runtime.memoryService;
-    if (!service) return;
-    runtime.memoryMaintenanceRequested = true;
-    if (runtime.memoryMaintenanceInFlight) return;
-    runtime.memoryMaintenanceInFlight = (async () => {
-      while (runtime.memoryMaintenanceRequested) {
-        runtime.memoryMaintenanceRequested = false;
-        try {
-          await service.runDueScheduledMaintenance("scheduled");
-          this.options.telemetry.trackFeatureLoopStage({
-            module: "memory",
-            ownerModule: "memory",
-            executionKind: "memory",
-            phase: "maintenance",
-            loopStage: "module_event",
-            outcome: "success",
-            metadata: {
-              phase: "maintenance_completed",
-            },
-          });
-        } catch (error) {
-          this.options.telemetry.trackError(error, {
-            module: "memory",
-            ownerModule: "memory",
-            executionKind: "memory",
-            phase: "maintenance",
-            loopStage: "loop_end",
-            errorCategory: "loop_error",
-            code: error instanceof Error ? error.name : "UnknownError",
-          });
-          // eslint-disable-next-line no-console
-          console.warn(
-            `[pilotdeck] memory maintenance failed for project ${runtime.projectRoot}:`,
-            error instanceof Error ? error.message : String(error),
-          );
-        }
-      }
-    })().finally(() => {
-      runtime.memoryMaintenanceInFlight = undefined;
-      if (runtime.memoryMaintenanceRequested) {
-        this.scheduleMemoryMaintenance(projectKey);
-      }
-    });
+  async refreshProjectWiki(input: ProjectWikiRefreshInput): Promise<ProjectWikiRefreshResult> {
+    const runtime = this.resolve(input.projectKey);
+    if (!runtime.projectWiki) {
+      return {
+        projectKey: runtime.projectRoot,
+        refreshed: false,
+        diagnostics: [{
+          code: "project_wiki_disabled",
+          severity: "info",
+          message: "ProjectWiki is disabled for this project.",
+        }],
+      };
+    }
+    try {
+      const result = await runtime.projectWiki.refresh({
+        sessionId: "__projectwiki_dashboard__",
+        reason: input.reason ?? "manual_refresh",
+        maxHistoricalTurns: input.maxHistoricalTurns,
+      });
+      return {
+        projectKey: runtime.projectRoot,
+        refreshed: result.refreshed,
+        diagnostics: result.diagnostics,
+        maxHistoricalTurns: result.maxHistoricalTurns,
+        indexedTurns: result.indexedTurns,
+        skippedTurns: result.skippedTurns,
+        failedTurns: result.failedTurns,
+        scannedTranscripts: result.scannedTranscripts,
+        discoveredTurns: result.discoveredTurns,
+        sourceCardsCreated: result.sourceCardsCreated,
+      };
+    } catch (error) {
+      return {
+        projectKey: runtime.projectRoot,
+        refreshed: false,
+        error: {
+          code: "project_wiki_refresh_failed",
+          message: error instanceof Error ? error.message : String(error),
+        },
+      };
+    }
   }
 
   /**
@@ -920,7 +939,8 @@ class ProjectRuntimeRegistry {
     const lifecycle = new LifecycleRuntime(hookRuntime);
     const extension = new PluginRuntimeExtensionResolver(runtime.pluginRuntime);
     const projectRoot = runtime.projectRoot;
-    const memoryResolver = runtime.memory;
+    const userProfileResolver = runtime.userProfile;
+    const projectWikiResolver = runtime.projectWiki;
     const now = this.options.now;
     const eventBuf = createAgentEventBuffer();
 
@@ -991,8 +1011,10 @@ class ProjectRuntimeRegistry {
       const contextRuntime = new DefaultContextRuntime({
         extension,
         projectRoot,
-        memoryResolver,
-        memoryRetrievalTimeoutMs: runtime.snapshot.config.memory?.retrievalTimeoutMs,
+        transcriptPath: storage.transcriptPath,
+        userProfileResolver,
+        projectWikiResolver,
+        projectWikiRetrievalTimeoutMs: runtime.snapshot.config.projectWiki?.limits.modelTimeoutMs,
         instructionDiscovery,
         toolResultBudget,
         tokenBudget,

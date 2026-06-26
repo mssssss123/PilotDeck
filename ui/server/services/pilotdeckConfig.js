@@ -11,7 +11,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 //   schemaVersion: 1
 //   agent:    { model: "provider/model", params, subagents }
 //   model:    { providers: { [pid]: { protocol, url, apiKey, models, headers, timeoutMs } } }
-//   memory:   { enabled, model, apiType?, reasoningMode, ... }
+//   projectWiki: { enabled, language, models, sources, limits }
 //   webui:    { runtime: { host, serverPort, vitePort, ... } }
 //   router:   { enabled, stats: { enabled, modelPricing }, ... }
 //   gateway:  { enabled, home, ... }
@@ -26,6 +26,14 @@ const CONFIG_VERSION = 1;
 const PILOT_HOME_DIR = process.env.PILOT_HOME || path.join(os.homedir(), '.pilotdeck');
 const DEFAULT_CONFIG_PATH = path.join(PILOT_HOME_DIR, 'pilotdeck.yaml');
 const MASK = '********';
+const LEGACY_MEMORY_ENV_KEYS = new Set([
+  'PILOTDECK_MEMORY_ENABLED',
+  'PILOTDECK_MEMORY_MODEL',
+  'PILOTDECK_MEMORY_PROVIDER',
+  'PILOTDECK_MEMORY_BASE_URL',
+  'PILOTDECK_MEMORY_API_KEY',
+  'PILOTDECK_MEMORY_API_TYPE',
+]);
 
 const SECRET_KEY_RE = /(api[_-]?key|token|secret|password|auth[_-]?token|access[_-]?token|bot[_-]?token|app[_-]?token|encoding[_-]?aes[_-]?key)$/i;
 const SECRET_EXACT_KEYS = new Set(['key', 'apiKey', 'api_key', 'authToken', 'accessToken']);
@@ -70,15 +78,28 @@ export function buildDefaultPilotDeckConfig() {
     model: {
       providers: {},
     },
-    memory: {
+    projectWiki: {
       enabled: true,
-      reasoningMode: 'answer_first',
-      autoIndexIntervalMinutes: 30,
-      autoDreamIntervalMinutes: 60,
-      captureStrategy: 'last_turn',
-      includeAssistant: true,
-      maxMessageChars: 6000,
-      heartbeatBatchSize: 30,
+      language: 'en',
+      models: {
+        indexer: 'inherit',
+        maintainer: 'inherit',
+        searcher: 'inherit',
+        curator: 'inherit',
+      },
+      sources: {
+        repo: true,
+        memory: true,
+        conversations: true,
+        knowledge: true,
+      },
+      limits: {
+        maxContextChars: 12000,
+        maxSourceCardsPerTurn: 12,
+        maxCatalogChars: 24000,
+        maxMaterialChars: 8000,
+        modelTimeoutMs: 60000,
+      },
     },
     webui: {
       runtime: {
@@ -235,12 +256,17 @@ export function validatePilotDeckConfig(config) {
     }
   }
 
-  if (normalized.memory?.enabled && normalizeString(normalized.memory.model)) {
-    const ref = normalizeString(normalized.memory.model);
-    if (ref !== 'inherit') {
-      const memory = resolveModel(normalized, ref, { allowMissing: true });
-      if (!memory) {
-        errors.push(`memory.model="${ref}" doesn't resolve to a configured provider/model`);
+  if (normalized.projectWiki?.enabled && isRecord(normalized.projectWiki.models)) {
+    const projectWikiLanguage = normalizeString(normalized.projectWiki.language);
+    if (projectWikiLanguage && projectWikiLanguage !== 'en' && projectWikiLanguage !== 'zh-CN') {
+      warnings.push('projectWiki.language should be "en" or "zh-CN"; the runtime will fall back to English.');
+    }
+    for (const [role, ref] of Object.entries(normalized.projectWiki.models)) {
+      const modelRef = normalizeString(ref);
+      if (!modelRef || modelRef === 'inherit') continue;
+      const projectWikiModel = resolveModel(normalized, modelRef, { allowMissing: true });
+      if (!projectWikiModel) {
+        errors.push(`projectWiki.models.${role}="${modelRef}" doesn't resolve to a configured provider/model`);
       }
     }
   }
@@ -296,13 +322,6 @@ export function preserveMaskedSecrets(nextValue, previousValue) {
 
 // ─── Runtime env derivation ──────────────────────────────────────────────────
 
-function providerProtocolToMemoryApi(protocol) {
-  // V2 catalog only uses 'openai' (Chat Completions) and 'anthropic'.
-  // The /responses style is only relevant when a user manually sets
-  // memory.apiType, which they can do alongside protocol="openai".
-  return 'openai-completions';
-}
-
 export function buildRuntimeEnv(config) {
   const normalized = normalizePilotDeckConfig(config);
   const main = resolveModel(normalized, normalized.agent.model, { allowMissing: true });
@@ -313,7 +332,6 @@ export function buildRuntimeEnv(config) {
     VITE_PORT: process.env.VITE_PORT || String(runtime.vitePort ?? 5173),
     HOST: process.env.HOST || String(runtime.host ?? '0.0.0.0'),
     API_TIMEOUT_MS: String(runtime.apiTimeoutMs ?? 120000),
-    PILOTDECK_MEMORY_ENABLED: normalized.memory?.enabled ? '1' : '0',
   };
 
   if (runtime.databasePath) env.DATABASE_PATH = expandTilde(runtime.databasePath);
@@ -358,21 +376,10 @@ export function buildRuntimeEnv(config) {
   const tavilyKey = mainParams.tavilyApiKey ?? mainParams.tavily_api_key ?? process.env.TAVILY_API_KEY;
   if (tavilyKey) env.TAVILY_API_KEY = String(tavilyKey);
 
-  // Memory uses memory.model (or inherits agent.model when blank).
-  const memoryRef = normalizeString(normalized.memory?.model) || normalized.agent.model;
-  const memory = resolveModel(normalized, memoryRef, { allowMissing: true });
-  if (memory) {
-    env.PILOTDECK_MEMORY_MODEL = memory.model;
-    env.PILOTDECK_MEMORY_PROVIDER = memory.providerId;
-    env.PILOTDECK_MEMORY_BASE_URL = memory.provider.url || '';
-    env.PILOTDECK_MEMORY_API_KEY = memory.provider.apiKey || '';
-    env.PILOTDECK_MEMORY_API_TYPE = normalizeString(normalized.memory?.apiType)
-      || providerProtocolToMemoryApi(memory.provider.protocol);
-  }
-
   // Pass through customEnv (UI-managed escape hatch).
   if (isRecord(normalized.customEnv)) {
     for (const [key, value] of Object.entries(normalized.customEnv)) {
+      if (LEGACY_MEMORY_ENV_KEYS.has(key)) continue;
       if (typeof value === 'string' && value.trim()) env[key] = value;
     }
   }
@@ -381,41 +388,10 @@ export function buildRuntimeEnv(config) {
 }
 
 export function applyConfigToProcessEnv(config) {
+  for (const key of LEGACY_MEMORY_ENV_KEYS) {
+    delete process.env[key];
+  }
   Object.assign(process.env, buildRuntimeEnv(config));
-}
-
-// ─── Memory service options ──────────────────────────────────────────────────
-
-export function buildMemoryLlmOptions(config) {
-  const normalized = normalizePilotDeckConfig(config);
-  const ref = normalizeString(normalized.memory?.model) || normalized.agent.model;
-  const memory = resolveModel(normalized, ref, { allowMissing: true });
-  if (!memory) return undefined;
-  return {
-    provider: memory.providerId,
-    model: memory.model,
-    apiType: normalizeString(normalized.memory?.apiType)
-      || providerProtocolToMemoryApi(memory.provider.protocol),
-    baseUrl: memory.provider.url || '',
-    apiKey: memory.provider.apiKey || '',
-    headers: isRecord(memory.provider.headers) ? memory.provider.headers : {},
-  };
-}
-
-export function buildMemoryDefaults(config) {
-  const memory = normalizePilotDeckConfig(config).memory ?? {};
-  return {
-    llm: buildMemoryLlmOptions(config),
-    defaultIndexingSettings: {
-      reasoningMode: memory.reasoningMode,
-      autoIndexIntervalMinutes: memory.autoIndexIntervalMinutes,
-      autoDreamIntervalMinutes: memory.autoDreamIntervalMinutes,
-    },
-    captureStrategy: memory.captureStrategy,
-    includeAssistant: memory.includeAssistant,
-    maxMessageChars: memory.maxMessageChars,
-    heartbeatBatchSize: memory.heartbeatBatchSize,
-  };
 }
 
 // ─── File I/O ────────────────────────────────────────────────────────────────
@@ -560,12 +536,7 @@ export async function writePilotDeckConfig(config) {
       ),
     ),
   );
-  if (isRecord(sanitized.memory)) {
-    const memModel = sanitized.memory.model;
-    if (typeof memModel === 'string' && !memModel.trim()) {
-      delete sanitized.memory.model;
-    }
-  }
+  if (isRecord(sanitized)) delete sanitized.memory;
   const validation = validatePilotDeckConfig(sanitized);
   if (!validation.valid) {
     const error = new Error('Invalid PilotDeck config');
@@ -575,12 +546,7 @@ export async function writePilotDeckConfig(config) {
   const configPath = getPilotDeckConfigPath();
   await fsPromises.mkdir(path.dirname(configPath), { recursive: true });
   const yamlObj = validation.config;
-  if (isRecord(yamlObj.memory)) {
-    const memModel = yamlObj.memory.model;
-    if (typeof memModel === 'string' && !memModel.trim()) {
-      delete yamlObj.memory.model;
-    }
-  }
+  if (isRecord(yamlObj)) delete yamlObj.memory;
   const raw = stringifyYaml(yamlObj, { lineWidth: 0 });
   await fsPromises.writeFile(configPath, raw, 'utf8');
   return { configPath, raw, validation, config: yamlObj };

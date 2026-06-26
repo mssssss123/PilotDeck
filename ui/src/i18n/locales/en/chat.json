@@ -230,6 +230,11 @@
       "enter": "Enter to send • Shift+Enter for new line • Tab to change modes • / for slash commands"
     },
     "clickToChangeMode": "Click to change permission mode (or press Tab in input)",
+    "contextStatus": "{{percent}}% used. {{used}} tokens used out of {{total}}. Auto compact runs near the limit.",
+    "contextStatusUnknown": "Context usage unknown. It will appear after the next model response.",
+    "contextStatusUsed": "{{used}} tokens used out of {{total}}.",
+    "contextStatusAutoCompact": "Auto compact runs when the conversation approaches the configured limit.",
+    "contextStatusUnknownBody": "No token budget has been reported yet. It will appear after the next model response.",
     "showAllCommands": "Show all commands",
     "clearInput": "Clear input",
     "scrollToBottom": "Scroll to bottom",
@@ -395,6 +400,10 @@
   "composer": {
     "placeholder": "Tell PilotDeck what you want to get done…",
     "welcomePlaceholder": "Tell PilotDeck what you want to get done…"
+  },
+  "welcome": {
+    "greetingWithProject": "What's on the plan today?",
+    "noProject": "Pick a project from the sidebar to get started"
   },
   "subagent": {
     "detailTitle": "Subagent Detail",

@@ -671,9 +671,10 @@ export function useSessionStore() {
 
   const recordSubagentLink = useCallback((sessionId: string, msg: NormalizedMessage) => {
     const slot = getSlot(sessionId);
-    const toolCallId = (msg as Record<string, unknown>).toolCallId as string | undefined;
-    const subagentId = (msg as Record<string, unknown>).subagentId as string | undefined;
-    const subagentType = (msg as Record<string, unknown>).subagentType as string | undefined;
+    const record = msg as unknown as Record<string, unknown>;
+    const toolCallId = record.toolCallId as string | undefined;
+    const subagentId = record.subagentId as string | undefined;
+    const subagentType = record.subagentType as string | undefined;
     if (toolCallId && subagentId) {
       const nextLinks = new Map(slot.subagentLinks);
       nextLinks.set(toolCallId, { subagentId, subagentType: subagentType || 'agent' });

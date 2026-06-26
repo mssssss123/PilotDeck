@@ -1,4 +1,5 @@
 {
+  "home": "Home",
   "buttons": {
     "save": "Save",
     "cancel": "Cancel",
@@ -26,7 +27,7 @@
     "git": "Source Control",
     "tasks": "Tasks",
     "dashboard": "Routing",
-    "memory": "Memory",
+    "memory": "ProjectWiki",
     "skills": "Skills"
   },
   "skillsTab": {

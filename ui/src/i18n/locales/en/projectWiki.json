@@ -1,0 +1,308 @@
+{
+  "header": {
+    "waiting": "Waiting for ProjectWiki data"
+  },
+  "home": {
+    "title": "ProjectWiki",
+    "description": "ProjectWiki entry point and storage map.",
+    "bodyTitle": "ProjectWiki",
+    "bodyDescription": "ProjectWiki is the unified project context layer for this workspace.",
+    "wikiPagesTitle": "Wiki Pages",
+    "sourceCardsTitle": "Source Cards",
+    "sourceCards": {
+      "repo": "model summaries of repository material.",
+      "memory": "imported memory summaries.",
+      "conversations": "summaries of relevant conversation turns.",
+      "knowledge": "reusable high-quality assistant output."
+    }
+  },
+  "wikiPages": {
+    "projectOverview": {
+      "title": "Project Overview",
+      "description": "Project identity, architecture, and major moving parts."
+    },
+    "projectStatus": {
+      "title": "Project Status",
+      "description": "Current project state, active direction, decisions, blockers, and next steps."
+    },
+    "projectFeedback": {
+      "title": "Project Feedback",
+      "description": "Project-specific user feedback, constraints, and preferences."
+    },
+    "knowledge": {
+      "title": "Knowledge",
+      "description": "Reusable knowledge produced or validated during agent work."
+    }
+  },
+  "views": {
+    "wiki": "Wiki",
+    "sources": "Sources",
+    "conflicts": "Conflicts",
+    "traces": "Model Traces"
+  },
+  "metrics": {
+    "refined": "Refined",
+    "pending": "Pending",
+    "cards": "Cards",
+    "queued": "Queued",
+    "stale": "Stale",
+    "conflicts": "Conflicts",
+    "runs": "Runs"
+  },
+  "actions": {
+    "indexNow": "Index now",
+    "indexNowTitle": "Run ProjectWiki indexer and maintainer now",
+    "refresh": "Refresh",
+    "refreshTitle": "Refresh ProjectWiki snapshot",
+    "updating": "Updating",
+    "open": "Open",
+    "hide": "Hide",
+    "openPath": "Open {{path}}"
+  },
+  "empty": {
+    "selectProject": "Select a project to inspect ProjectWiki.",
+    "noData": "No ProjectWiki data recorded for this project yet. Wiki pages, source cards, and trace runs will appear after the next project turn.",
+    "initializedNoCards": "ProjectWiki is initialized, but it has not captured source cards yet. Pending wiki pages will be refined after the indexer records project material.",
+    "noWikiPages": "No wiki pages recorded yet. The first project turn will create ProjectWiki pages.",
+    "noWikiPageSelected": "No wiki page selected."
+  },
+  "status": {
+    "pending": "Pending",
+    "pendingRefinement": "Pending refinement"
+  },
+  "refreshResult": {
+    "indexedTurns": "{{count}} indexed turns",
+    "skippedTurns": "{{count}} skipped",
+    "failedTurns": "{{count}} failed",
+    "sourceCards": "{{count}} source cards",
+    "transcripts": "{{count}} transcripts scanned",
+    "limit": "limit {{count}} historical turns",
+    "completed": "ProjectWiki refresh completed."
+  },
+  "pendingPage": {
+    "title": "{{title}} is waiting for source-backed refinement.",
+    "description": "ProjectWiki has created the page shell, but the maintainer has not attached source cards yet.",
+    "queued": "Source cards are queued for the maintainer; refresh after the next maintenance run to see whether this page changes.",
+    "waitingForMaterial": "Once the indexer captures repository, conversation, imported memory, or knowledge material, this page can be rewritten as durable project knowledge.",
+    "queueTitle": "Maintainer queue",
+    "queueSummary": "{{count}} source cards waiting",
+    "queuedSourceCard": "Queued source card",
+    "typeCount": "{{count}} {{type}}"
+  },
+  "wikiSources": {
+    "empty": "No source cards linked yet. The maintainer will attach source cards when this wiki page is refined.",
+    "title": "Source Cards",
+    "linked": "{{count}} linked",
+    "missing": "{{count}} missing",
+    "needsReview": "This wiki page depends on source cards that need review."
+  },
+  "sources": {
+    "searchPlaceholder": "Search source cards",
+    "noMatches": "No source cards match this view.",
+    "empty": "No source cards recorded yet.",
+    "showCardBody": "Show card body"
+  },
+  "conflicts": {
+    "empty": "No ProjectWiki conflicts recorded yet.",
+    "open": "Open",
+    "resolved": "Resolved",
+    "reopen": "Reopen",
+    "markResolved": "Mark resolved",
+    "reopenTitle": "Reopen this ProjectWiki conflict",
+    "resolveTitle": "Mark this ProjectWiki conflict as resolved"
+  },
+  "sourceTrace": {
+    "refs": "{{count}} refs",
+    "usedBy": "Used by",
+    "moreRefs": "+{{count}} more source refs in card body"
+  },
+  "quality": {
+    "evidence": "Evidence {{value}}",
+    "confidence": "Confidence {{value}}%",
+    "confidenceDecimal": "Confidence {{value}}"
+  },
+  "sourceRef": {
+    "session": "session {{id}}",
+    "turn": "turn {{id}}",
+    "range": "range {{range}}",
+    "hash": "hash {{hash}}"
+  },
+  "sourceStatus": {
+    "stale": "Stale",
+    "conflict": "Conflict",
+    "draft": "Draft"
+  },
+  "health": {
+    "stale": "{{count}} stale",
+    "conflict": "{{count}} conflict",
+    "missing": "{{count}} missing",
+    "staleCompact": "Stale"
+  },
+  "sourceTypes": {
+    "all": "All",
+    "repo": "Repository",
+    "memory": "Imported memory",
+    "conversations": "Conversations",
+    "knowledge": "Knowledge",
+    "source": "Source"
+  },
+  "traceKinds": {
+    "index": "Index",
+    "maintain": "Maintain",
+    "retrieval": "Retrieval",
+    "context": "Context"
+  },
+  "traceRoles": {
+    "retrieval": "Searcher recall",
+    "context": "Curator assembly",
+    "index": "Indexer capture",
+    "maintain": "Maintainer update"
+  },
+  "tracePhases": {
+    "toolLoop": "Retriever tool loop",
+    "toolLoopFallback": "Retriever fallback",
+    "toolCatalogSearch": "Tool search decision",
+    "toolCatalogSearchFailed": "Tool search failed",
+    "search": "Search decision",
+    "read": "Read materials",
+    "searchFailed": "Search failed",
+    "retrieveFailed": "Retrieval failed",
+    "assemble": "Context assembly",
+    "assembleFailed": "Context assembly failed",
+    "turn": "Turn indexing",
+    "turnFailed": "Turn indexing failed",
+    "repo": "Repository indexing",
+    "repoFailed": "Repository indexing failed",
+    "sourceFreshness": "Source freshness",
+    "sourceFreshnessFailed": "Source freshness failed",
+    "importedMemory": "Imported memory",
+    "importedMemoryFailed": "Imported memory failed",
+    "historyBackfill": "History backfill",
+    "historyBackfillFailed": "History backfill failed",
+    "captureFailed": "Capture failed",
+    "wiki": "Wiki maintenance",
+    "wikiFailed": "Wiki maintenance failed"
+  },
+  "traceStatus": {
+    "success": "Success",
+    "error": "Error",
+    "skipped": "Skipped",
+    "failed": "failed",
+    "executed": "executed"
+  },
+  "traces": {
+    "emptyType": "No model runs recorded for this trace type yet.",
+    "noModelRecorded": "No model recorded",
+    "model": "Model",
+    "language": "Language",
+    "languageEn": "English",
+    "languageZh": "Simplified Chinese",
+    "notRecorded": "Not recorded",
+    "compactedPayload": "Long model payloads are compacted here so the dashboard stays fast. Source paths, selected artifacts, and model decisions remain visible.",
+    "input": "Input",
+    "outputDecision": "Output / Decision",
+    "selectRun": "Select a trace run to inspect model decisions.",
+    "artifactCount": "{{count}} artifacts",
+    "noData": "No data",
+    "openJson": "Open trace JSON · {{size}}",
+    "hideJson": "Hide trace JSON · {{size}}"
+  },
+  "turnFlow": {
+    "title": "Turn Flow",
+    "steps": "{{count}} ProjectWiki steps",
+    "noRelated": "No related ProjectWiki runs are available in the current trace window."
+  },
+  "payload": {
+    "title": "Raw Payloads",
+    "rawInput": "Raw input",
+    "rawOutput": "Raw output",
+    "loading": "Loading payload...",
+    "empty": "No payload content",
+    "loadFailed": "Failed to load raw payload"
+  },
+  "artifacts": {
+    "title": "Artifacts",
+    "fallback": "artifact"
+  },
+  "artifactKinds": {
+    "wikiPage": "Wiki page",
+    "sourceCard": "Source card",
+    "context": "Context",
+    "conflict": "Conflict",
+    "source": "Source"
+  },
+  "decisions": {
+    "readMaterials": {
+      "title": "Read Materials",
+      "summary": "{{count}} ProjectWiki materials read for the curator.",
+      "empty": "No ProjectWiki materials were read.",
+      "missing": "{{count}} selected paths missing.",
+      "itemFallback": "Read material {{index}}"
+    },
+    "search": {
+      "title": "Search Decision",
+      "toolLoopTitle": "Retriever Tool Loop",
+      "fallbackTitle": "Retriever Fallback",
+      "toolSearchTitle": "Tool Search Decision",
+      "selectedProjectWiki": "ProjectWiki was selected for this turn.",
+      "skippedProjectWiki": "ProjectWiki was skipped for this turn.",
+      "intent": "Intent: {{intent}}.",
+      "toolCalls": "{{count}} ProjectWiki tool calls executed.",
+      "selectedFallback": "Selected material {{index}}",
+      "toolEventFallback": "Tool event {{index}}"
+    },
+    "context": {
+      "title": "Context Assembly",
+      "summaryLabel": "Context summary",
+      "packLabel": "Context pack",
+      "sectionFallback": "Context section {{index}}",
+      "assembled": "ProjectWiki context was assembled for the main agent.",
+      "sections": "{{count}} sections assembled.",
+      "omitted": "{{count}} materials omitted."
+    },
+    "freshness": {
+      "title": "Source Freshness",
+      "markedStale": "{{count}} source cards marked stale.",
+      "clean": "No source freshness issues found."
+    },
+    "history": {
+      "title": "History Backfill",
+      "indexed": "{{count}} indexed",
+      "skipped": "{{count}} skipped",
+      "failed": "{{count}} failed",
+      "sourceCards": "{{count}} source cards",
+      "transcripts": "{{count}} transcripts scanned",
+      "discoveredTurns": "Discovered turns"
+    },
+    "index": {
+      "title": "Index Output",
+      "proposed": "{{count}} source cards proposed.",
+      "noneProposed": "No source cards proposed.",
+      "skipped": "{{count}} sources skipped.",
+      "sourceCardFallback": "Source card {{index}}"
+    },
+    "maintain": {
+      "title": "Wiki Maintenance",
+      "pagesUpdated": "{{count}} wiki pages updated.",
+      "noPagesUpdated": "No wiki pages updated.",
+      "conflictsRecorded": "{{count}} conflicts recorded.",
+      "wikiPageFallback": "Wiki page {{index}}",
+      "conflictFallback": "Conflict {{index}}"
+    }
+  },
+  "meta": {
+    "updated": "Updated {{date}}",
+    "trace": "trace {{id}}",
+    "chars": "{{count}} chars",
+    "priority": "priority {{priority}}"
+  },
+  "errors": {
+    "requestFailed": "ProjectWiki request failed ({{status}})",
+    "conflictUpdateFailed": "ProjectWiki conflict update failed ({{status}})",
+    "refreshFailed": "ProjectWiki refresh failed ({{status}})",
+    "payloadFailed": "ProjectWiki payload request failed ({{status}})"
+  },
+  "punctuation": {
+    "period": "."
+  }
+}

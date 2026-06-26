@@ -121,29 +121,15 @@ export {
   type PluginRuntimeLike,
 } from "./extension/PluginRuntimeExtensionResolver.js";
 export {
-  MemoryAttachmentBuilder,
-  type MemoryAttachmentBuilderResult,
-} from "./memory/MemoryAttachmentBuilder.js";
+  ProjectWikiAttachmentBuilder,
+  type ProjectWikiAttachmentBuilderInput,
+  type ProjectWikiAttachmentBuilderResult,
+} from "../project-wiki/ProjectWikiAttachmentBuilder.js";
 export {
-  canonicalMessagesToMemoryMessages,
-  type ContextMemoryMessage,
-  type MemoryCaptureTurnInput,
-  type MemoryDiagnostic,
-  type MemoryResolver,
-  type MemoryRetrieveInput,
-  type MemoryRetrieveResult,
-} from "./memory/MemoryResolver.js";
-export {
-  EdgeClawMemoryProvider,
-  type EdgeClawCaptureTurnResult,
-  type EdgeClawMemoryProviderOptions,
-  type EdgeClawMemoryServiceLike,
-  type EdgeClawRetrieveContextResult,
-} from "./memory/EdgeClawMemoryProvider.js";
-export {
-  createEdgeClawMemoryProviderFromConfig,
-  type CreateEdgeClawMemoryProviderOptions,
-} from "./memory/createEdgeClawMemoryProviderFromConfig.js";
+  UserProfileAttachmentBuilder,
+  type UserProfileAttachmentBuilderInput,
+  type UserProfileAttachmentBuilderResult,
+} from "../user-profile/UserProfileAttachmentBuilder.js";
 export {
   InstructionDiscovery,
   scopeDescription,

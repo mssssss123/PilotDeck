@@ -67,9 +67,9 @@ PilotDeck 正是围绕这些问题做的增量探索。它以 WorkSpace 为基�
 </td>
 <td width="50%" valign="top">
 
-**可追溯的白盒记忆**
+**可追溯的 ProjectWiki**
 
-记忆的生成、抽取、存储与使用全链路可见。AI 记错时可直接定位并手动修改。内置 **Dream 模式**，利用空闲时间自动归纳整理，并支持一键回滚。
+ProjectWiki 会把项目状态、反馈、对话、仓库事实和可复用知识整理成来源卡片与项目 Wiki 页面。索引、维护、召回和上下文组装全链路可见，项目上下文出错时可以追溯到原始来源。
 
 <p align="center">
   <img src="assets/memory.gif" width="100%" alt="白盒记忆演示"/>
@@ -207,7 +207,7 @@ PilotDeck 的三大核心能力在实际生产环境中展现出了显著的优�
 <tr>
   <td><b>可回滚</b></td>
   <td>上下文压缩后无法查看原始内容</td>
-  <td>Dream 整理后支持一键回滚到整理前状态，不怕"越整理越乱"</td>
+  <td>来源卡片让 ProjectWiki 页面始终可以追溯到原始项目证据</td>
 </tr>
 </tbody>
 </table>

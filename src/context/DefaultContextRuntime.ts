@@ -14,10 +14,19 @@ import { ensureTrailingUserMessage } from "./compaction/toolPairIntegrity.js";
 import type { ContextOverflowRecovery } from "./recovery/ContextOverflowRecovery.js";
 import { NullExtensionResolver, type ExtensionResolver } from "./extension/ExtensionResolver.js";
 import type { InstructionDiscovery, InstructionScope } from "./instructions/InstructionDiscovery.js";
-import { MemoryAttachmentBuilder } from "./memory/MemoryAttachmentBuilder.js";
-import type { MemoryResolver } from "./memory/MemoryResolver.js";
 import { PromptAssembler } from "./prompt/PromptAssembler.js";
 import { MessageProjector } from "./projection/MessageProjector.js";
+import {
+  ProjectWikiAttachmentBuilder,
+  type ProjectWikiAttachmentBuilderInput,
+  type ProjectWikiAttachmentBuilderResult,
+} from "../project-wiki/ProjectWikiAttachmentBuilder.js";
+import type { ProjectWikiResolver } from "../project-wiki/types.js";
+import {
+  UserProfileAttachmentBuilder,
+  type UserProfileAttachmentBuilderResult,
+} from "../user-profile/UserProfileAttachmentBuilder.js";
+import type { UserProfileResolver } from "../user-profile/types.js";
 import type {
   ContextCaptureTurnInput,
   ContextDiagnostic,
@@ -47,7 +56,8 @@ export type DefaultContextRuntimeOptions = {
   promptAssembler?: PromptAssembler;
   messageProjector?: MessageProjector;
   toolResultBudget?: ToolResultBudget;
-  memoryResolver?: MemoryResolver;
+  userProfileResolver?: UserProfileResolver;
+  projectWikiResolver?: ProjectWikiResolver;
   /** A2 — token budget manager (provider-aware tokenizer fallback). */
   tokenBudget?: TokenBudgetManager;
   /** A5 — full-conversation compaction engine (summarize via model call). */
@@ -67,8 +77,10 @@ export type DefaultContextRuntimeOptions = {
   overflowRecovery?: ContextOverflowRecovery;
   /** PILOTDECK.md instruction file discovery (multi-scope hierarchy). */
   instructionDiscovery?: InstructionDiscovery;
-  /** Project root forwarded to MemoryResolver.retrieve. */
+  /** Project root forwarded to ProjectWiki retrieval. */
   projectRoot?: string;
+  /** Session transcript path forwarded to ProjectWiki capture sourceRefs. */
+  transcriptPath?: string;
   /**
    * Maximum context window size (tokens) for the active model. Used by
    * `tryAutoCompact` to evaluate whether proactive compaction is needed.
@@ -82,23 +94,31 @@ export type DefaultContextRuntimeOptions = {
   truncateFirstKeepRatio?: number;
   /** Aggressive ratio used after one truncate-and-retry already failed. */
   truncateSecondKeepRatio?: number;
-  /** Timeout budget for MemoryResolver.retrieve during prepareForModel. */
-  memoryRetrievalTimeoutMs?: number;
+  /** Timeout budget for ProjectWiki.retrieve during prepareForModel. */
+  projectWikiRetrievalTimeoutMs?: number;
   now?: () => Date;
 };
 
 const DEFAULT_MAX_CONTEXT_TOKENS = 8192;
 const DEFAULT_TRUNCATE_FIRST_RATIO = 0.5;
 const DEFAULT_TRUNCATE_SECOND_RATIO = 0.25;
-const DEFAULT_MEMORY_RETRIEVAL_TIMEOUT_MS = 30_000;
+const DEFAULT_PROJECT_WIKI_RETRIEVAL_TIMEOUT_MS = 30_000;
+
+type ProjectWikiContextCacheEntry = {
+  key: string;
+  result: ProjectWikiAttachmentBuilderResult;
+};
 
 export class DefaultContextRuntime implements ContextRuntime {
   private readonly extension: ExtensionResolver;
   private readonly promptAssembler: PromptAssembler;
   private readonly messageProjector: MessageProjector;
   private readonly toolResultBudget?: ToolResultBudget;
-  private readonly memoryResolver?: MemoryResolver;
-  private readonly memoryAttachmentBuilder?: MemoryAttachmentBuilder;
+  private readonly userProfileResolver?: UserProfileResolver;
+  private readonly userProfileAttachmentBuilder?: UserProfileAttachmentBuilder;
+  private readonly projectWikiResolver?: ProjectWikiResolver;
+  private readonly projectWikiAttachmentBuilder?: ProjectWikiAttachmentBuilder;
+  private projectWikiContextCache?: ProjectWikiContextCacheEntry;
   readonly tokenBudget?: TokenBudgetManager;
   readonly compactionEngine?: CompactionEngine;
   readonly autoCompactionPolicy?: AutoCompactionPolicy;
@@ -108,10 +128,11 @@ export class DefaultContextRuntime implements ContextRuntime {
   private readonly overflowRecovery?: ContextOverflowRecovery;
   private readonly instructionDiscovery?: InstructionDiscovery;
   private readonly projectRoot?: string;
+  private readonly transcriptPath?: string;
   private readonly maxContextTokens: number;
   private readonly truncateFirstKeepRatio: number;
   private readonly truncateSecondKeepRatio: number;
-  private readonly memoryRetrievalTimeoutMs: number;
+  private readonly projectWikiRetrievalTimeoutMs: number;
   private readonly now: () => Date;
 
   constructor(options: DefaultContextRuntimeOptions = {}) {
@@ -119,9 +140,13 @@ export class DefaultContextRuntime implements ContextRuntime {
     this.promptAssembler = options.promptAssembler ?? new PromptAssembler(this.extension);
     this.messageProjector = options.messageProjector ?? new MessageProjector();
     this.toolResultBudget = options.toolResultBudget;
-    this.memoryResolver = options.memoryResolver;
-    this.memoryAttachmentBuilder = options.memoryResolver
-      ? new MemoryAttachmentBuilder(options.memoryResolver)
+    this.userProfileResolver = options.userProfileResolver;
+    this.userProfileAttachmentBuilder = options.userProfileResolver
+      ? new UserProfileAttachmentBuilder(options.userProfileResolver)
+      : undefined;
+    this.projectWikiResolver = options.projectWikiResolver;
+    this.projectWikiAttachmentBuilder = options.projectWikiResolver
+      ? new ProjectWikiAttachmentBuilder(options.projectWikiResolver)
       : undefined;
     this.tokenBudget = options.tokenBudget;
     this.compactionEngine = options.compactionEngine;
@@ -132,10 +157,12 @@ export class DefaultContextRuntime implements ContextRuntime {
     this.overflowRecovery = options.overflowRecovery;
     this.instructionDiscovery = options.instructionDiscovery;
     this.projectRoot = options.projectRoot;
+    this.transcriptPath = options.transcriptPath;
     this.maxContextTokens = options.maxContextTokens ?? DEFAULT_MAX_CONTEXT_TOKENS;
     this.truncateFirstKeepRatio = options.truncateFirstKeepRatio ?? DEFAULT_TRUNCATE_FIRST_RATIO;
     this.truncateSecondKeepRatio = options.truncateSecondKeepRatio ?? DEFAULT_TRUNCATE_SECOND_RATIO;
-    this.memoryRetrievalTimeoutMs = options.memoryRetrievalTimeoutMs ?? DEFAULT_MEMORY_RETRIEVAL_TIMEOUT_MS;
+    this.projectWikiRetrievalTimeoutMs =
+      options.projectWikiRetrievalTimeoutMs ?? DEFAULT_PROJECT_WIKI_RETRIEVAL_TIMEOUT_MS;
     this.now = options.now ?? (() => new Date());
   }
 
@@ -168,23 +195,42 @@ export class DefaultContextRuntime implements ContextRuntime {
     });
 
     const parts = [...prompt.parts];
-    if (this.memoryAttachmentBuilder) {
-      const memory = await this.memoryAttachmentBuilder.build({
-        query: extractRecentUserText(projection.messages) ?? "",
+    if (this.userProfileAttachmentBuilder) {
+      const userProfile = await this.userProfileAttachmentBuilder.build({
         sessionId: input.sessionId,
-        projectRoot: this.projectRoot ?? input.cwd,
+        turnId: input.turnId,
+        signal: input.abortSignal,
+      });
+      appendAttachmentText(parts, userProfile);
+      for (const diagnostic of userProfile.diagnostics) {
+        diagnostics.push({
+          code: diagnostic.code,
+          severity: diagnostic.severity,
+          message: diagnostic.message,
+        });
+      }
+    }
+    if (this.projectWikiAttachmentBuilder) {
+      const query = extractRecentUserText(projection.messages) ?? "";
+      const projectRoot = this.projectRoot ?? input.cwd;
+      const cacheKey = buildProjectWikiContextCacheKey({
+        sessionId: input.sessionId,
+        turnId: input.turnId,
+        projectRoot,
+        query,
+        timeoutMs: this.projectWikiRetrievalTimeoutMs,
+      });
+      const projectWiki = await this.buildProjectWikiAttachment(cacheKey, {
+        query,
+        sessionId: input.sessionId,
+        turnId: input.turnId,
+        projectRoot,
         recentMessages: projection.messages,
         signal: input.abortSignal,
-        timeoutMs: this.memoryRetrievalTimeoutMs,
+        timeoutMs: this.projectWikiRetrievalTimeoutMs,
       });
-      for (const block of memory.attachments) {
-        for (const content of block.content) {
-          if (content.type === "text" && content.text.trim().length > 0) {
-            parts.push(content.text);
-          }
-        }
-      }
-      for (const diagnostic of memory.diagnostics) {
+      appendAttachmentText(parts, projectWiki);
+      for (const diagnostic of projectWiki.diagnostics) {
         diagnostics.push({
           code: diagnostic.code,
           severity: diagnostic.severity,
@@ -277,18 +323,41 @@ export class DefaultContextRuntime implements ContextRuntime {
   }
 
   async captureTurn(input: ContextCaptureTurnInput): Promise<void> {
-    if (!this.memoryResolver) return;
-    try {
-      await this.memoryResolver.captureTurn({
-        sessionId: input.sessionId,
-        projectRoot: this.projectRoot ?? "",
-        messages: input.messages,
-        errored: input.errored,
-      });
-    } catch {
-      // Memory capture must never break the agent turn — provider already
-      // swallows in EdgeClawMemoryProvider, this catch is belt-and-suspenders.
+    const tasks: Promise<void>[] = [];
+    if (this.userProfileResolver) {
+      tasks.push((async () => {
+        try {
+          await this.userProfileResolver!.captureTurn({
+            sessionId: input.sessionId,
+            turnId: input.turnId,
+            projectRoot: this.projectRoot ?? "",
+            transcriptPath: this.transcriptPath,
+            messages: input.messages,
+            errored: input.errored,
+          });
+        } catch {
+          // UserProfile capture must never break the agent turn.
+        }
+      })());
     }
+    if (this.projectWikiResolver) {
+      this.projectWikiContextCache = undefined;
+      tasks.push((async () => {
+        try {
+          await this.projectWikiResolver!.captureTurn({
+            sessionId: input.sessionId,
+            turnId: input.turnId,
+            projectRoot: this.projectRoot ?? "",
+            transcriptPath: this.transcriptPath,
+            messages: input.messages,
+            errored: input.errored,
+          });
+        } catch {
+          // ProjectWiki capture must never break the agent turn.
+        }
+      })());
+    }
+    if (tasks.length > 0) await Promise.all(tasks);
   }
 
   async tryAutoCompact(input: {
@@ -409,6 +478,53 @@ export class DefaultContextRuntime implements ContextRuntime {
       keepRatio: this.truncateFirstKeepRatio,
       reason: "ptl-first-attempt",
     };
+  }
+
+  private async buildProjectWikiAttachment(
+    cacheKey: string,
+    input: ProjectWikiAttachmentBuilderInput,
+  ): Promise<ProjectWikiAttachmentBuilderResult> {
+    if (this.projectWikiContextCache?.key === cacheKey) {
+      return this.projectWikiContextCache.result;
+    }
+    const result = await this.projectWikiAttachmentBuilder!.build(input);
+    if (!input.signal?.aborted && isCacheableProjectWikiAttachmentResult(result)) {
+      this.projectWikiContextCache = { key: cacheKey, result };
+    }
+    return result;
+  }
+}
+
+function buildProjectWikiContextCacheKey(input: {
+  sessionId: string;
+  turnId?: string;
+  projectRoot: string;
+  query: string;
+  timeoutMs: number;
+}): string {
+  return JSON.stringify([
+    input.sessionId,
+    input.turnId ?? "",
+    input.projectRoot,
+    input.query,
+    input.timeoutMs,
+  ]);
+}
+
+function isCacheableProjectWikiAttachmentResult(result: ProjectWikiAttachmentBuilderResult): boolean {
+  return result.diagnostics.every((diagnostic) => diagnostic.severity === "info");
+}
+
+function appendAttachmentText(
+  parts: string[],
+  result: ProjectWikiAttachmentBuilderResult | UserProfileAttachmentBuilderResult,
+): void {
+  for (const block of result.attachments) {
+    for (const content of block.content) {
+      if (content.type === "text" && content.text.trim().length > 0) {
+        parts.push(content.text);
+      }
+    }
   }
 }
 

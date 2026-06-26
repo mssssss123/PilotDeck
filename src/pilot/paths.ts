@@ -33,6 +33,15 @@ export function getPilotMemoryRootDir(pilotHome: string): string {
   return resolve(pilotHome, "memory");
 }
 
+export function getPilotUserProfileRootDir(pilotHome: string): string {
+  return resolve(pilotHome, "user_profile");
+}
+
+export function getPilotProjectWikiRootDir(projectRoot: string, pilotHome: string): string {
+  const projectId = resolveProjectStorageId(projectRoot, pilotHome);
+  return resolve(pilotHome, "projects", projectId, "project_wiki");
+}
+
 export function getPilotProjectChatDir(projectRoot: string, pilotHome: string): string {
   const projectId = resolveProjectStorageId(projectRoot, pilotHome);
   return resolve(pilotHome, "projects", projectId, "chats");

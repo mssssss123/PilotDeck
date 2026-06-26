@@ -17,7 +17,9 @@
     "projects": "projects",
     "noMatchingProjects": "No matching projects",
     "tryDifferentSearch": "Try adjusting your search term",
-    "runPilotDeckCli": "Run PilotDeck CLI in a project directory to get started"
+    "runPilotDeckCli": "Run PilotDeck CLI in a project directory to get started",
+    "expandAll": "Expand all projects",
+    "collapseAll": "Collapse all projects"
   },
   "general": {
     "title": "General",
@@ -47,6 +49,9 @@
     "unnamed": "Unnamed",
     "loading": "Loading...",
     "loadingMore": "Loading more…",
+    "processing": "Agent is running",
+    "unread": "Unread messages",
+    "idle": "No unread messages",
     "showMore": "Show more sessions",
     "showMoreCount": "Show more ({{count}})"
   },
@@ -58,6 +63,7 @@
     "renameProject": "Rename project (F2)",
     "deleteProject": "Delete empty project (Delete)",
     "showSidebar": "Show sidebar",
+    "resize": "Resize sidebar",
     "newChat": "New Chat",
     "addToFavorites": "Add to favorites",
     "removeFromFavorites": "Remove from favorites",

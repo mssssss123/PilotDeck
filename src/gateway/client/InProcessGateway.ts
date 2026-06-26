@@ -32,6 +32,8 @@ import type {
   AlwaysOnApplyResult,
   AlwaysOnRerunPlanInput,
   AlwaysOnRerunPlanResult,
+  ProjectWikiRefreshInput,
+  ProjectWikiRefreshResult,
   ReloadConfigResult,
   WebDescribeProjectInput,
   WebListProjectsResult,
@@ -139,6 +141,7 @@ export type InProcessGatewayOptions = {
   /** Delegate for Always-On apply — wired to AlwaysOnManager.applyPlan. */
   alwaysOnApply?: (input: AlwaysOnApplyInput) => Promise<AlwaysOnApplyResult>;
   alwaysOnRerunPlan?: (input: AlwaysOnRerunPlanInput) => Promise<AlwaysOnRerunPlanResult>;
+  projectWikiRefresh?: (input: ProjectWikiRefreshInput) => Promise<ProjectWikiRefreshResult>;
   /**
    * Optional non-blocking post-turn callback. Used by createLocalGateway to
    * coalesce project-level memory maintenance after a turn has fully ended.
@@ -642,6 +645,20 @@ export class InProcessGateway implements Gateway {
       return { reloaded: false };
     }
     return this.options.reloadExtensions(input);
+  }
+
+  async projectWikiRefresh(input: ProjectWikiRefreshInput): Promise<ProjectWikiRefreshResult> {
+    if (!this.options.projectWikiRefresh) {
+      return {
+        projectKey: input.projectKey ?? "",
+        refreshed: false,
+        error: {
+          code: "not_configured",
+          message: "ProjectWiki refresh is not configured.",
+        },
+      };
+    }
+    return this.options.projectWikiRefresh(input);
   }
 
   setCronController(cron: GatewayCronController | undefined): void {

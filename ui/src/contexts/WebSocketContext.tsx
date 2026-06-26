@@ -99,7 +99,7 @@ const useWebSocketProviderState = (): WebSocketContextType => {
             const subs = subscribersRef.current;
             if (subs.size > 0) {
               subs.forEach((sub) => {
-                try { sub(reconnectMsg); } catch {}
+                try { sub(reconnectMsg); } catch { /* ignore subscriber errors */ }
               });
             }
             setLatestMessage(reconnectMsg);
@@ -143,8 +143,9 @@ const useWebSocketProviderState = (): WebSocketContextType => {
           }, delay);
         };
 
-        websocket.onerror = (error) => {
-          console.error('WebSocket error:', error);
+        websocket.onerror = () => {
+          if (connectIdRef.current !== id) return;
+          console.warn('WebSocket connection issue; reconnecting.');
         };
       } catch (error) {
         console.error('Error creating WebSocket connection:', error);

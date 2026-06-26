@@ -502,7 +502,13 @@ export default function MessagesPaneV2({
   const hasPendingToolUse = useMemo(() => {
     if (!isAssistantWorking || liveProcessHeaderIndex < 0) return false;
     const liveItems = keyedMessageItems.slice(liveProcessHeaderIndex);
-    const lastToolUseIdx = liveItems.findLastIndex((item) => item.message.isToolUse);
+    let lastToolUseIdx = -1;
+    for (let index = liveItems.length - 1; index >= 0; index -= 1) {
+      if (liveItems[index]?.message.isToolUse) {
+        lastToolUseIdx = index;
+        break;
+      }
+    }
     if (lastToolUseIdx < 0) return false;
     const hasContentAfterTool = liveItems.slice(lastToolUseIdx + 1).some((item) =>
       item.message.type === 'assistant' && !item.message.isThinking && !item.message.isToolUse &&

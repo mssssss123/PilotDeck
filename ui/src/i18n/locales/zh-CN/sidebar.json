@@ -17,7 +17,9 @@
     "projects": "项目",
     "noMatchingProjects": "未找到匹配的项目",
     "tryDifferentSearch": "尝试调整您的搜索词",
-    "runPilotDeckCli": "在项目目录中运行 PilotDeck CLI 以开始使用"
+    "runPilotDeckCli": "在项目目录中运行 PilotDeck CLI 以开始使用",
+    "expandAll": "展开所有项目",
+    "collapseAll": "折叠所有项目"
   },
   "general": {
     "title": "通用",
@@ -47,6 +49,9 @@
     "unnamed": "未命名",
     "loading": "加载中...",
     "loadingMore": "加载更多中…",
+    "processing": "智能体运行中",
+    "unread": "有未读消息",
+    "idle": "没有未读消息",
     "showMore": "显示更多会话",
     "showMoreCount": "显示更多 ({{count}})"
   },
@@ -58,6 +63,7 @@
     "renameProject": "重命名项目 (F2)",
     "deleteProject": "删除空项目 (Delete)",
     "showSidebar": "显示侧边栏",
+    "resize": "调整侧边栏宽度",
     "newChat": "新建对话",
     "addToFavorites": "添加到收藏",
     "removeFromFavorites": "从收藏移除",

@@ -14,6 +14,8 @@ function makeSlot(overrides: Partial<SessionSlot> = {}): SessionSlot {
     serverMessages: [],
     realtimeMessages: [],
     activityMessages: [],
+    subagentDetailMessages: new Map(),
+    subagentLinks: new Map(),
     merged: [],
     _lastServerRef: [],
     _lastRealtimeRef: [],
@@ -79,7 +81,7 @@ describe('patchMergedStreamingMessage', () => {
 describe('createRafNotifyScheduler', () => {
   it('coalesces multiple schedules for the same session into one frame callback', () => {
     const frames: Array<() => void> = [];
-    let activeSessionId: string | null = 'web:s_1';
+    const activeSessionId: string | null = 'web:s_1';
     let notifyCount = 0;
 
     const scheduler = createRafNotifyScheduler(

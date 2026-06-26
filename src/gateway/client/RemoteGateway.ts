@@ -12,6 +12,8 @@ import type {
   ListSessionsInput,
   ListSessionsResult,
   NewSessionInput,
+  ProjectWikiRefreshInput,
+  ProjectWikiRefreshResult,
   ReloadConfigResult,
   ReloadExtensionsInput,
   ReloadExtensionsResult,
@@ -148,6 +150,10 @@ export class RemoteGateway implements Gateway {
 
   async reloadExtensions(input: ReloadExtensionsInput = {}): Promise<ReloadExtensionsResult> {
     return (await this.client.request("reload_extensions", input)) as ReloadExtensionsResult;
+  }
+
+  async projectWikiRefresh(input: ProjectWikiRefreshInput): Promise<ProjectWikiRefreshResult> {
+    return (await this.client.request("project_wiki_refresh", input)) as ProjectWikiRefreshResult;
   }
 
   async skillsList(input: SkillsListInput): Promise<SkillsListResult> {

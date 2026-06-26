@@ -67,9 +67,9 @@ Every project gets its own file system, memory store and skill set. Parallel wor
 </td>
 <td width="50%" valign="top">
 
-**Traceable White-box Memory**
+**Traceable ProjectWiki**
 
-Memory generation, extraction, storage and retrieval are visible end-to-end. When the AI mis-remembers, you can pinpoint and fix the offending entry. Built-in **Dream Mode** consolidates memory in idle windows, and supports one-click rollback.
+ProjectWiki turns project state, feedback, conversations, repository facts, and reusable knowledge into source cards and curated wiki pages. Indexing, maintenance, retrieval, and context assembly are visible end-to-end, so misremembered project context can be traced back to its source.
 
 <p align="center">
   <img src="assets/memory_en.gif" width="100%" alt="White-box memory demo"/>
@@ -207,7 +207,7 @@ In black-box agents, mixing tasks in a shared context pool inevitably pollutes m
 <tr>
   <td><b>Reversible</b></td>
   <td>After compression, the original is gone</td>
-  <td>Dream-mode supports <b>one-click rollback</b> to the prior state</td>
+  <td>Source cards keep ProjectWiki pages traceable back to the original project evidence</td>
 </tr>
 </tbody>
 </table>

@@ -76,7 +76,7 @@ import gitRoutes from './routes/git.js';
 import authRoutes from './routes/auth.js';
 import mcpRoutes from './routes/mcp.js';
 import taskmasterRoutes from './routes/taskmaster.js';
-import memoryRoutes, { MEMORY_DASHBOARD_DIR } from './routes/memory.js';
+import projectWikiRoutes from './routes/projectWiki.js';
 import mcpUtilsRoutes from './routes/mcp-utils.js';
 import commandsRoutes from './routes/commands.js';
 import skillsRoutes from './routes/skills.js';
@@ -91,7 +91,9 @@ import projectsRoutes, { WORKSPACES_ROOT, validateWorkspacePath } from './routes
 import userRoutes from './routes/user.js';
 import pluginsRoutes from './routes/plugins.js';
 import messagesRoutes from './routes/messages.js';
-import { closeMemoryServices, startMemoryScheduler, stopMemoryScheduler } from './services/memoryService.js';
+import {
+    renderProjectWikiDashboardBridgeHtml,
+} from './services/projectWikiLegacyBridge.js';
 import { createNormalizedMessage } from './pilotdeck-message.js';
 import { startEnabledPluginServers, stopAllPlugins, getPluginPort } from './utils/plugin-process-manager.js';
 import { initializeDatabase, sessionNamesDb, applyCustomSessionNames, userDb } from './database/db.js';
@@ -419,8 +421,16 @@ app.use('/api/mcp', authenticateToken, mcpRoutes);
 // TaskMaster API Routes (protected)
 app.use('/api/taskmaster', authenticateToken, taskmasterRoutes);
 
-// Memory API Routes (protected)
-app.use('/api/memory', authenticateToken, memoryRoutes);
+// Legacy Memory API Routes (protected). ProjectWiki now owns memory retrieval,
+// indexing, and migrated legacy memory assets.
+app.use('/api/memory', authenticateToken, (_req, res) => {
+    res.status(410).json({
+        success: false,
+        error: 'memory_replaced_by_project_wiki',
+        message: 'Direct memory APIs were replaced by ProjectWiki. Use /api/project-wiki instead.',
+    });
+});
+app.use('/api/project-wiki', authenticateToken, projectWikiRoutes);
 
 // MCP utilities
 app.use('/api/mcp-utils', authenticateToken, mcpUtilsRoutes);
@@ -620,29 +630,30 @@ app.put('/api/ccr/config', authenticateToken, (_req, res) => {
     });
 });
 
-app.get('/memory-dashboard', authenticateToken, (req, res) => {
-    const indexPath = path.join(MEMORY_DASHBOARD_DIR, 'index.html');
-    if (!fs.existsSync(indexPath)) {
-        res.status(404).type('text/plain').send('Memory dashboard assets not bundled.');
-        return;
-    }
-    res.sendFile(indexPath);
+app.get('/memory-dashboard', authenticateToken, (_req, res) => {
+    res
+        .status(200)
+        .type('html')
+        .setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+        .send(renderProjectWikiDashboardBridgeHtml());
 });
 
-app.use('/memory-dashboard', authenticateToken, express.static(MEMORY_DASHBOARD_DIR, {
-    setHeaders: (res, filePath) => {
-        if (filePath.endsWith('.html')) {
-            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-            res.setHeader('Pragma', 'no-cache');
-            res.setHeader('Expires', '0');
-        }
+app.use('/memory-dashboard', authenticateToken, (req, res) => {
+    if (req.path === '/' || req.path === '') {
+        res
+            .status(200)
+            .type('html')
+            .setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+            .send(renderProjectWikiDashboardBridgeHtml());
+        return;
     }
-}));
+    res.status(404).type('text/plain').send('Direct memory dashboard assets were replaced by ProjectWiki.');
+});
 
 // Hard 404 boundary: anything still asking for /memory-dashboard/* after the
 // static middleware is a missing asset. Without this, the request would fall
 // through to the SPA wildcard below and return the PilotDeck shell index.html,
-// which the MemoryPanel iframe then renders — recursively nesting the entire
+// which the ProjectWiki iframe then renders — recursively nesting the entire
 // app inside itself (see bug: "嵌套显示 + general memory 多次出现").
 app.use('/memory-dashboard', (_req, res) => {
     res.status(404).type('text/plain').send('Not found in memory-dashboard.');
@@ -2959,9 +2970,6 @@ async function startServer() {
                     // Start watching the projects folder for changes
                     await setupProjectsWatcher();
 
-                    // Start background memory scheduler for auto index/dream.
-                    startMemoryScheduler();
-
                     // Start server-side plugin processes for enabled plugins
                     startEnabledPluginServers().catch(err => {
                         console.error('[Plugins] Error during startup:', err.message);
@@ -2987,8 +2995,6 @@ async function startServer() {
 
             shutdownPromise = (async () => {
                 try {
-                    stopMemoryScheduler();
-                    closeMemoryServices();
                     stopPilotDeckConfigWatcher();
                     await stopAllPlugins();
                     // helpers were retired with the four-provider runtime.

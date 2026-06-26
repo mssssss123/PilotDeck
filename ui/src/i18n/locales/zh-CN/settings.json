@@ -111,7 +111,7 @@
     "workflow": "工作流",
     "advanced": "高级",
     "config": {
-      "detail": "模型池、智能体、路由、记忆、搜索和服务参数"
+      "detail": "模型池、智能体、ProjectWiki、路由、搜索和服务参数"
     },
     "mcp": {
       "detail": "通过全局或项目 JSON 配置 MCP 工具"
@@ -579,10 +579,10 @@
 	          "label": "进程环境",
 	          "applied": "原生设置已应用到当前进程。"
 	        },
-	        "memory": {
-	          "label": "记忆",
-	          "enabled": "记忆服务已启用。",
-	          "disabled": "memory.enabled 为 false。"
+	        "projectWiki": {
+	          "label": "ProjectWiki",
+	          "enabled": "ProjectWiki 已启用。",
+	          "disabled": "projectWiki.enabled 为 false。"
 	        },
 	        "router": {
 	          "label": "路由 (CCR)",
@@ -621,7 +621,7 @@
       },
       "models": {
         "label": "模型池",
-        "description": "可供智能体、记忆和路由选择的模型"
+        "description": "可供智能体、ProjectWiki 和路由选择的模型"
       },
       "agents": {
         "label": "智能体",
@@ -637,7 +637,11 @@
       },
       "memory": {
         "label": "记忆",
-        "description": "PilotDeck 记忆服务"
+        "description": "旧记忆来源"
+      },
+      "projectWiki": {
+        "label": "ProjectWiki",
+        "description": "统一项目上下文和可追溯记忆"
       },
       "tools": {
         "label": "搜索",
@@ -674,7 +678,7 @@
       },
       "models": {
         "title": "模型池",
-        "description": "配置想使用的模型提供商、API 密钥、接口地址与启用模型。智能体、记忆和路由会从这里的已启用模型中选择。",
+        "description": "配置想使用的模型提供商、API 密钥、接口地址与启用模型。智能体、ProjectWiki 和路由会从这里的已启用模型中选择。",
         "providerIdDuplicate": "已有同名 Provider id。",
         "addProvider": "添加提供商",
         "addProviderTitle": "添加提供商",
@@ -811,17 +815,81 @@
           "description": "同一时间允许执行的 Cron 运行数量上限。"
         }
       },
-      "memory": {
-        "title": "记忆",
-        "description": "配置记忆索引与 Dream 使用的模型。",
+      "projectWiki": {
+        "title": "ProjectWiki",
+        "description": "配置替代直接 memory 注入的模型维护项目 Wiki。",
         "enabled": {
           "label": "启用",
-          "description": "启用记忆服务的总开关。"
+          "description": "启用后，ProjectWiki 接管记忆召回、索引和上下文组装。"
         },
-        "model": {
-          "label": "记忆模型",
-          "description": "记忆管线使用的提供商/模型。",
-          "inherit": "继承（使用主智能体模型）"
+        "language": {
+          "label": "生成语言",
+          "description": "后续由模型生成的 ProjectWiki 卡片、页面、召回理由和上下文包使用的语言。已有 wiki 文件不会被重写。",
+          "english": "英文",
+          "chinese": "简体中文"
+        },
+        "models": {
+          "inherit": "继承（使用主智能体模型）",
+          "indexer": {
+            "label": "索引模型",
+            "description": "把代码仓库、对话、导入记忆和可复用知识整理成 source cards。"
+          },
+          "maintainer": {
+            "label": "维护模型",
+            "description": "把 source cards 归纳进 ProjectWiki 页面，并记录冲突。"
+          },
+          "searcher": {
+            "label": "搜索模型",
+            "description": "每轮对话前选择相关 wiki 页面和 source cards。"
+          },
+          "curator": {
+            "label": "组装模型",
+            "description": "把被选中的 ProjectWiki 材料压缩成最终 agent 上下文。"
+          }
+        },
+        "rootDir": {
+          "label": "根目录",
+          "description": "可选的 ProjectWiki 存储基目录。每个项目会写入各自独立的 project_wiki 子目录。"
+        },
+        "sources": {
+          "repo": {
+            "label": "代码仓库",
+            "description": "索引本地仓库的模型摘要。"
+          },
+          "memory": {
+            "label": "导入记忆",
+            "description": "把已有 memory 记录导入为 ProjectWiki source cards。新的对话事实会进入对话或知识来源。"
+          },
+          "conversations": {
+            "label": "对话",
+            "description": "索引相关的用户和 agent 对话轮次。"
+          },
+          "knowledge": {
+            "label": "知识",
+            "description": "捕获可复用的高质量 assistant 产出。"
+          }
+        },
+        "limits": {
+          "maxContextChars": {
+            "label": "最大上下文字数",
+            "description": "注入主 agent 的 ProjectWiki context 最大字符数。"
+          },
+          "maxSourceCardsPerTurn": {
+            "label": "每轮最大 source cards",
+            "description": "检索阶段模型最多选择读取的 cards 和 pages 数量。"
+          },
+          "maxCatalogChars": {
+            "label": "最大目录字符数",
+            "description": "提供给搜索模型的 ProjectWiki 目录最大字符数。"
+          },
+          "maxMaterialChars": {
+            "label": "最大材料字符数",
+            "description": "组装上下文前，每个被选中的 wiki 页面或 source card 最多读取的字符数。"
+          },
+          "modelTimeoutMs": {
+            "label": "模型超时（毫秒）",
+            "description": "ProjectWiki 模型决策的超时时间。"
+          }
         }
       },
       "tools": {

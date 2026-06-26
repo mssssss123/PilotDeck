@@ -84,17 +84,29 @@ type PilotDeckConfig = {
   model?: {
     providers?: Record<string, V2Provider>;
   };
-  memory?: {
+  projectWiki?: {
     enabled?: boolean;
-    model?: string;
-    apiType?: string;
-    reasoningMode?: string;
-    autoIndexIntervalMinutes?: number;
-    autoDreamIntervalMinutes?: number;
-    captureStrategy?: string;
-    includeAssistant?: boolean;
-    maxMessageChars?: number;
-    heartbeatBatchSize?: number;
+    language?: 'en' | 'zh-CN';
+    rootDir?: string;
+    models?: {
+      indexer?: string;
+      maintainer?: string;
+      searcher?: string;
+      curator?: string;
+    };
+    sources?: {
+      repo?: boolean;
+      memory?: boolean;
+      conversations?: boolean;
+      knowledge?: boolean;
+    };
+    limits?: {
+      maxContextChars?: number;
+      maxSourceCardsPerTurn?: number;
+      maxCatalogChars?: number;
+      maxMaterialChars?: number;
+      modelTimeoutMs?: number;
+    };
   };
   proxy?: {
     url?: string;
@@ -202,7 +214,7 @@ type PilotDeckConfig = {
   };
 };
 
-type SectionId = 'models' | 'agents' | 'memory' | 'tools' | 'router' | 'gateway' | 'customEnv' | 'alwaysOn' | 'cron' | 'advanced';
+type SectionId = 'models' | 'agents' | 'projectWiki' | 'tools' | 'router' | 'gateway' | 'customEnv' | 'alwaysOn' | 'cron' | 'advanced';
 
 const SECTIONS: Array<{ id: SectionId; labelKey: string; descriptionKey: string }> = [
   { id: 'advanced',  labelKey: 'runtime',   descriptionKey: 'runtime' },
@@ -210,7 +222,7 @@ const SECTIONS: Array<{ id: SectionId; labelKey: string; descriptionKey: string 
   { id: 'agents',    labelKey: 'agents',    descriptionKey: 'agents' },
   { id: 'alwaysOn',  labelKey: 'alwaysOn',  descriptionKey: 'alwaysOn' },
   { id: 'cron',      labelKey: 'cron',      descriptionKey: 'cron' },
-  { id: 'memory',    labelKey: 'memory',    descriptionKey: 'memory' },
+  { id: 'projectWiki', labelKey: 'projectWiki', descriptionKey: 'projectWiki' },
   { id: 'tools',     labelKey: 'tools',     descriptionKey: 'tools' },
   { id: 'router',    labelKey: 'router',    descriptionKey: 'router' },
   { id: 'gateway',   labelKey: 'gateway',   descriptionKey: 'gateway' },
@@ -219,7 +231,7 @@ const SECTIONS: Array<{ id: SectionId; labelKey: string; descriptionKey: string 
 
 const SECTION_GROUPS: Array<{ id: 'basic' | 'features' | 'advanced'; sections: SectionId[] }> = [
   { id: 'basic', sections: ['models', 'agents'] },
-  { id: 'features', sections: ['router', 'memory', 'tools', 'alwaysOn', 'cron', 'gateway'] },
+  { id: 'features', sections: ['router', 'projectWiki', 'tools', 'alwaysOn', 'cron', 'gateway'] },
   { id: 'advanced', sections: ['advanced', 'customEnv'] },
 ];
 
@@ -227,7 +239,7 @@ const SECTION_ICONS: Record<SectionId, LucideIcon> = {
   models: Database,
   agents: Bot,
   router: Route,
-  memory: Brain,
+  projectWiki: Brain,
   tools: Search,
   alwaysOn: Zap,
   cron: Clock,
@@ -238,7 +250,7 @@ const SECTION_ICONS: Record<SectionId, LucideIcon> = {
 
 // ── Config status presentation ──────────────────────────────────────────
 
-type SubsystemKey = 'processEnv' | 'memory' | 'router' | 'gateway';
+type SubsystemKey = 'processEnv' | 'projectWiki' | 'router' | 'gateway';
 type StatusState = 'ok' | 'skipped' | 'error' | 'unknown';
 
 type SubsystemResult = {
@@ -251,7 +263,7 @@ type SubsystemResult = {
 
 const STATUS_ITEMS: Array<{ key: SubsystemKey; labelKey: string }> = [
   { key: 'processEnv', labelKey: 'processEnv' },
-  { key: 'memory', labelKey: 'memory' },
+  { key: 'projectWiki', labelKey: 'projectWiki' },
   { key: 'router', labelKey: 'router' },
   { key: 'gateway', labelKey: 'gateway' },
 ];
@@ -277,10 +289,10 @@ function fallbackSubsystemStatus(key: SubsystemKey, config: PilotDeckConfig | nu
   if (key === 'processEnv') {
     return { state: 'ok', detailKey: 'processEnv.applied' };
   }
-  if (key === 'memory') {
-    return config?.memory?.enabled === false
-      ? { state: 'skipped', detailKey: 'memory.disabled' }
-      : { state: 'ok', detailKey: 'memory.enabled' };
+  if (key === 'projectWiki') {
+    return config?.projectWiki?.enabled === false
+      ? { state: 'skipped', detailKey: 'projectWiki.disabled' }
+      : { state: 'ok', detailKey: 'projectWiki.enabled' };
   }
   if (key === 'router') {
     return config?.router?.enabled === false
@@ -298,7 +310,7 @@ function subsystemStatus(key: SubsystemKey, config: PilotDeckConfig | null, relo
 
   if (!result) return fallback;
   if (result.error) return { state: 'error', detailKey: fallback.detailKey, detail: result.error };
-  if ((key === 'memory' || key === 'router' || key === 'gateway') && fallback.state === 'skipped') {
+  if ((key === 'projectWiki' || key === 'router' || key === 'gateway') && fallback.state === 'skipped') {
     return fallback;
   }
 
@@ -317,7 +329,7 @@ function ConfigStatusGrid({
 }) {
   const { t } = useTranslation('settings');
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
       {STATUS_ITEMS.map((item) => {
         const status = subsystemStatus(item.key, config, reload);
         return (
@@ -379,16 +391,13 @@ function rewriteProviderRefs(config: PilotDeckConfig, oldProviderId: string, new
     next = patch(next, ['agent', 'subagents', 'default'], subagentDefault);
   }
 
-  const memoryModel = rewriteProviderRef(next.memory?.model, oldProviderId, newProviderId);
-  if (memoryModel !== next.memory?.model) {
-    next = patch(next, ['memory', 'model'], memoryModel);
-  }
-
-  const memoryLlm = (next.memory as Record<string, unknown> | undefined)?.llm;
-  if (memoryLlm && typeof memoryLlm === 'object' && !Array.isArray(memoryLlm)) {
-    const llm = memoryLlm as Record<string, unknown>;
-    if (llm.provider === oldProviderId) {
-      next = patch(next, ['memory', 'llm', 'provider'], newProviderId);
+  const projectWikiModels = next.projectWiki?.models;
+  if (projectWikiModels) {
+    const rewritten = Object.fromEntries(
+      Object.entries(projectWikiModels).map(([key, ref]) => [key, rewriteProviderRef(ref, oldProviderId, newProviderId) as string]),
+    );
+    if (Object.entries(projectWikiModels).some(([key, ref]) => rewritten[key] !== ref)) {
+      next = patch(next, ['projectWiki', 'models'], rewritten);
     }
   }
 
@@ -561,10 +570,12 @@ function Select({
   value,
   onChange,
   options,
+  ariaLabel,
 }: {
   value: string | undefined;
   onChange: (next: string) => void;
   options: Array<{ value: string; label: string }>;
+  ariaLabel?: string;
 }) {
   const selectedLabel = options.find((opt) => opt.value === value)?.label ?? '';
   return (
@@ -577,7 +588,7 @@ function Select({
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
         className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-        aria-label={selectedLabel}
+        aria-label={ariaLabel ?? selectedLabel}
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1861,53 +1872,176 @@ function CronSection({ config, onChange }: { config: PilotDeckConfig; onChange: 
   );
 }
 
-function MemorySection({ config, onChange }: { config: PilotDeckConfig; onChange: (next: PilotDeckConfig) => void }) {
+function ProjectWikiSection({ config, onChange }: { config: PilotDeckConfig; onChange: (next: PilotDeckConfig) => void }) {
   const { t } = useTranslation('settings');
-  const m = config.memory ?? {};
-  // Memory uses a "provider/model" reference, or "inherit" to fall back
-  // to agent.model. The backend treats `undefined` and `"inherit"` the
-  // same way, so we map both to the inherit option in the UI.
+  const pw = config.projectWiki ?? {};
+  const models = pw.models ?? {};
+  const sources = pw.sources ?? {};
+  const limits = pw.limits ?? {};
   const refOptions = buildModelRefOptions(config);
-  const options = [
-    { value: 'inherit', label: t('pilotDeckConfig.panels.memory.model.inherit') },
+  const modelOptions = [
+    { value: 'inherit', label: t('pilotDeckConfig.panels.projectWiki.models.inherit') },
     ...refOptions,
   ];
-  const selected = m.model && m.model.trim() ? m.model : 'inherit';
+  const languageOptions = [
+    { value: 'en', label: t('pilotDeckConfig.panels.projectWiki.language.english') },
+    { value: 'zh-CN', label: t('pilotDeckConfig.panels.projectWiki.language.chinese') },
+  ];
+  const modelRows: Array<{ role: 'indexer' | 'maintainer' | 'searcher' | 'curator'; labelKey: string; descriptionKey: string }> = [
+    { role: 'indexer', labelKey: 'indexer', descriptionKey: 'indexer' },
+    { role: 'maintainer', labelKey: 'maintainer', descriptionKey: 'maintainer' },
+    { role: 'searcher', labelKey: 'searcher', descriptionKey: 'searcher' },
+    { role: 'curator', labelKey: 'curator', descriptionKey: 'curator' },
+  ];
+  const sourceRows: Array<{ key: 'repo' | 'memory' | 'conversations' | 'knowledge'; labelKey: string }> = [
+    { key: 'repo', labelKey: 'repo' },
+    { key: 'memory', labelKey: 'memory' },
+    { key: 'conversations', labelKey: 'conversations' },
+    { key: 'knowledge', labelKey: 'knowledge' },
+  ];
+
+  const setModel = (role: 'indexer' | 'maintainer' | 'searcher' | 'curator', value: string) => {
+    const nextValue = value === 'inherit' ? 'inherit' : value;
+    onChange(patch(ensureModelRefConfigured(config, nextValue), ['projectWiki', 'models', role], nextValue));
+  };
+
   return (
     <SettingsSection
-      title={t('pilotDeckConfig.panels.memory.title')}
-      description={t('pilotDeckConfig.panels.memory.description')}
+      title={t('pilotDeckConfig.panels.projectWiki.title')}
+      description={t('pilotDeckConfig.panels.projectWiki.description')}
     >
       <SettingsCard>
         <SettingsRow
-          label={t('pilotDeckConfig.panels.memory.enabled.label')}
-          description={t('pilotDeckConfig.panels.memory.enabled.description')}
+          label={t('pilotDeckConfig.panels.projectWiki.enabled.label')}
+          description={t('pilotDeckConfig.panels.projectWiki.enabled.description')}
         >
           <SettingsToggle
-            checked={Boolean(m.enabled)}
-            ariaLabel={t('pilotDeckConfig.panels.memory.enabled.label')}
-            onChange={(v) => onChange(patch(config, ['memory', 'enabled'], v))}
+            checked={pw.enabled !== false}
+            ariaLabel={t('pilotDeckConfig.panels.projectWiki.enabled.label')}
+            onChange={(v) => onChange(patch(config, ['projectWiki', 'enabled'], v))}
           />
         </SettingsRow>
-        {m.enabled && (
-          <FormRow
-            label={t('pilotDeckConfig.panels.memory.model.label')}
-            description={t('pilotDeckConfig.panels.memory.model.description')}
-          >
-            <Select
-              value={selected}
-              options={options}
-              onChange={(v) => {
-                const nextValue = v === 'inherit' ? '' : v;
-                onChange(patch(ensureModelRefConfigured(config, nextValue), ['memory', 'model'], nextValue));
-              }}
-            />
-          </FormRow>
+        {pw.enabled !== false && (
+          <>
+            <FormRow
+              label={t('pilotDeckConfig.panels.projectWiki.language.label')}
+              description={t('pilotDeckConfig.panels.projectWiki.language.description')}
+            >
+              <Select
+                value={pw.language === 'zh-CN' ? 'zh-CN' : 'en'}
+                options={languageOptions}
+                onChange={(value) => onChange(patch(config, ['projectWiki', 'language'], value === 'zh-CN' ? 'zh-CN' : 'en'))}
+                ariaLabel={t('pilotDeckConfig.panels.projectWiki.language.label')}
+              />
+            </FormRow>
+            {modelRows.map((row) => {
+              const selected = models[row.role] && models[row.role]!.trim() ? models[row.role]! : 'inherit';
+              return (
+                <FormRow
+                  key={row.role}
+                  label={t(`pilotDeckConfig.panels.projectWiki.models.${row.labelKey}.label`)}
+                  description={t(`pilotDeckConfig.panels.projectWiki.models.${row.descriptionKey}.description`)}
+                >
+                  <Select
+                    value={selected}
+                    options={modelOptions}
+                    onChange={(v) => setModel(row.role, v)}
+                    ariaLabel={t(`pilotDeckConfig.panels.projectWiki.models.${row.labelKey}.label`)}
+                  />
+                </FormRow>
+              );
+            })}
+            <FormRow
+              label={t('pilotDeckConfig.panels.projectWiki.rootDir.label')}
+              description={t('pilotDeckConfig.panels.projectWiki.rootDir.description')}
+            >
+              <TextInput
+                value={pw.rootDir ?? ''}
+                placeholder="~/.pilotdeck/projects/<project>/project_wiki"
+                monospace
+                onChange={(value) => onChange(patch(config, ['projectWiki', 'rootDir'], value || undefined))}
+              />
+            </FormRow>
+          </>
         )}
       </SettingsCard>
+      {pw.enabled !== false && (
+        <>
+          <SettingsCard>
+            {sourceRows.map((row) => (
+              <SettingsRow
+                key={row.key}
+                label={t(`pilotDeckConfig.panels.projectWiki.sources.${row.labelKey}.label`)}
+                description={t(`pilotDeckConfig.panels.projectWiki.sources.${row.labelKey}.description`)}
+              >
+                <SettingsToggle
+                  checked={sources[row.key] !== false}
+                  ariaLabel={t(`pilotDeckConfig.panels.projectWiki.sources.${row.labelKey}.label`)}
+                  onChange={(v) => onChange(patch(config, ['projectWiki', 'sources', row.key], v))}
+                />
+              </SettingsRow>
+            ))}
+          </SettingsCard>
+          <SettingsCard>
+            <FormRow
+              label={t('pilotDeckConfig.panels.projectWiki.limits.maxContextChars.label')}
+              description={t('pilotDeckConfig.panels.projectWiki.limits.maxContextChars.description')}
+            >
+              <NumberInput
+                value={limits.maxContextChars}
+                placeholder="12000"
+                onChange={(value) => onChange(patch(config, ['projectWiki', 'limits', 'maxContextChars'], value))}
+              />
+            </FormRow>
+            <FormRow
+              label={t('pilotDeckConfig.panels.projectWiki.limits.maxSourceCardsPerTurn.label')}
+              description={t('pilotDeckConfig.panels.projectWiki.limits.maxSourceCardsPerTurn.description')}
+            >
+              <NumberInput
+                value={limits.maxSourceCardsPerTurn}
+                placeholder="12"
+                onChange={(value) => onChange(patch(config, ['projectWiki', 'limits', 'maxSourceCardsPerTurn'], value))}
+              />
+            </FormRow>
+            <FormRow
+              label={t('pilotDeckConfig.panels.projectWiki.limits.maxCatalogChars.label')}
+              description={t('pilotDeckConfig.panels.projectWiki.limits.maxCatalogChars.description')}
+            >
+              <NumberInput
+                value={limits.maxCatalogChars}
+                placeholder="24000"
+                onChange={(value) => onChange(patch(config, ['projectWiki', 'limits', 'maxCatalogChars'], value))}
+              />
+            </FormRow>
+            <FormRow
+              label={t('pilotDeckConfig.panels.projectWiki.limits.maxMaterialChars.label')}
+              description={t('pilotDeckConfig.panels.projectWiki.limits.maxMaterialChars.description')}
+            >
+              <NumberInput
+                value={limits.maxMaterialChars}
+                placeholder="8000"
+                onChange={(value) => onChange(patch(config, ['projectWiki', 'limits', 'maxMaterialChars'], value))}
+              />
+            </FormRow>
+            <FormRow
+              label={t('pilotDeckConfig.panels.projectWiki.limits.modelTimeoutMs.label')}
+              description={t('pilotDeckConfig.panels.projectWiki.limits.modelTimeoutMs.description')}
+            >
+              <NumberInput
+                value={limits.modelTimeoutMs}
+                placeholder="30000"
+                onChange={(value) => onChange(patch(config, ['projectWiki', 'limits', 'modelTimeoutMs'], value))}
+              />
+            </FormRow>
+          </SettingsCard>
+        </>
+      )}
     </SettingsSection>
   );
 }
+
+type WebSearchConfig = NonNullable<NonNullable<PilotDeckConfig['tools']>['webSearch']>;
+type CustomWebSearchProviderConfig = NonNullable<WebSearchConfig['customProvider']>;
 
 function ToolsSection({ config, onChange }: { config: PilotDeckConfig; onChange: (next: PilotDeckConfig) => void }) {
   const { t } = useTranslation('settings');
@@ -1948,7 +2082,7 @@ function ToolsSection({ config, onChange }: { config: PilotDeckConfig; onChange:
 
   const setField = (field: 'apiKey' | 'endpoint', value: string) => {
     const trimmed = value;
-    const nextWs: NonNullable<PilotDeckConfig['tools']>['webSearch'] = { ...ws };
+    const nextWs: WebSearchConfig = { ...ws };
     nextWs.provider = provider;
     if (trimmed === '') {
       delete nextWs[field];
@@ -1961,22 +2095,23 @@ function ToolsSection({ config, onChange }: { config: PilotDeckConfig; onChange:
   };
 
   const setCustomField = (
-    field: keyof NonNullable<NonNullable<PilotDeckConfig['tools']>['webSearch']>['customProvider'],
+    field: keyof CustomWebSearchProviderConfig,
     value: string,
   ) => {
-    const nextWs: NonNullable<PilotDeckConfig['tools']>['webSearch'] = {
+    const nextCustom: CustomWebSearchProviderConfig = { ...(ws.customProvider ?? {}) };
+    const nextWs: WebSearchConfig = {
       ...ws,
       provider: 'custom',
-      customProvider: { ...(ws.customProvider ?? {}) },
+      customProvider: nextCustom,
     };
     if (value === '') {
-      delete nextWs.customProvider?.[field];
+      delete nextCustom[field];
     } else if (field === 'auth') {
-      nextWs.customProvider![field] = value as 'bearer' | 'bodyApiKey' | 'queryApiKey' | 'none';
+      nextCustom.auth = value as 'bearer' | 'bodyApiKey' | 'queryApiKey' | 'none';
     } else if (field === 'method') {
-      nextWs.customProvider![field] = value as 'GET' | 'POST';
+      nextCustom.method = value as 'GET' | 'POST';
     } else {
-      nextWs.customProvider![field] = value;
+      nextCustom[field] = value;
     }
     if (Object.keys(nextWs.customProvider ?? {}).length === 0) {
       delete nextWs.customProvider;
@@ -2456,6 +2591,10 @@ const DEFAULT_TIERS: Record<RouterTierKey, { description: string }> = {
   reasoning: { description: 'Deep single-agent work: multi-file operations, data analysis, multi-step workflows, web research, structured reports from many sources' },
 };
 
+function isRouterTierKey(value: string): value is RouterTierKey {
+  return (ROUTER_TIER_KEYS as readonly string[]).includes(value);
+}
+
 const DEFAULT_RULES: string[] = [
   'complex is ONLY for tasks that need sub-agent orchestration or parallel delegation — do NOT use it for single-agent multi-step work',
   'Multi-file operations, data analysis, and multi-step workflows without orchestration should be reasoning',
@@ -2484,7 +2623,7 @@ function TokenSaverTierEditor({ config, onChange }: { config: PilotDeckConfig; o
   const addTier = () => {
     const key = newKey.trim();
     if (!key || tiers[key]) return;
-    const preset = DEFAULT_TIERS[key];
+    const preset = isRouterTierKey(key) ? DEFAULT_TIERS[key] : undefined;
     const model = modelOpts[0]?.value ?? '';
     onChange(patch(ensureModelRefConfigured(config, model), ['router', 'tokenSaver', 'tiers', key], {
       model,
@@ -2848,6 +2987,7 @@ function RouterSection({ config, onChange }: { config: PilotDeckConfig; onChange
                   >
                     <SettingsToggle
                       checked={transientRetryEnabled}
+                      ariaLabel={t('pilotDeckConfig.panels.router.transientRetry.label')}
                       onChange={(v) => onChange(patch(config, ['router', 'transientRetry', 'enabled'], v))}
                     />
                   </SettingsRow>
@@ -3345,7 +3485,7 @@ export default function PilotDeckConfigTab({ projects = [] }: { projects?: Setti
             <div className="min-w-0 space-y-6">
               {activeSection === 'models' && <ModelsSection config={parsedConfig} onChange={onFormChange} />}
               {activeSection === 'agents' && <AgentsSection config={parsedConfig} onChange={onFormChange} />}
-              {activeSection === 'memory' && <MemorySection config={parsedConfig} onChange={onFormChange} />}
+              {activeSection === 'projectWiki' && <ProjectWikiSection config={parsedConfig} onChange={onFormChange} />}
               {activeSection === 'tools' && <ToolsSection config={parsedConfig} onChange={onFormChange} />}
               {activeSection === 'router' && <RouterSection config={parsedConfig} onChange={onFormChange} />}
               {activeSection === 'gateway' && <GatewaySection config={parsedConfig} onChange={onFormChange} />}

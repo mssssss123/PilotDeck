@@ -25,7 +25,7 @@ const ShellV2 = React.lazy(() => import('../../main-content-v2/ShellV2'));
 const GitV2 = React.lazy(() => import('../../main-content-v2/GitV2'));
 const DashboardV2 = React.lazy(() => import('../../main-content-v2/DashboardV2'));
 const TasksV2 = React.lazy(() => import('../../main-content-v2/TasksV2'));
-const MemoryPanel = React.lazy(() => import('./memory/MemoryPanel'));
+const ProjectWikiPanel = React.lazy(() => import('./project-wiki/ProjectWikiPanel'));
 const SkillsV2 = React.lazy(() => import('../../main-content-v2/SkillsV2'));
 
 function TabSkeleton() {
@@ -561,7 +561,7 @@ function SplitBody(props: SplitBodyProps) {
       );
     }
     if (activeTab === 'dashboard') return <DashboardV2 projectFilter={selectedProject?.name} projectFullPath={selectedProject?.fullPath} onSelectProject={onSelectProjectByName} />;
-    if (activeTab === 'memory') return <MemoryPanel selectedProject={selectedProject} />;
+    if (activeTab === 'memory') return <ProjectWikiPanel selectedProject={selectedProject} />;
     if (activeTab === 'skills') return <SkillsV2 selectedProject={selectedProject} projects={projects} />;
     if (renderTasksAsTool) return <TasksV2 isVisible />;
     if (isPlugin) {

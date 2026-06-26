@@ -102,6 +102,25 @@ router:
     subagentMaxTokens: 48000
   stats:
     enabled: true
+projectWiki:
+  enabled: true
+  language: en
+  models:
+    indexer: inherit
+    maintainer: inherit
+    searcher: inherit
+    curator: inherit
+  sources:
+    repo: true
+    memory: true
+    conversations: true
+    knowledge: true
+  limits:
+    maxContextChars: 12000
+    maxSourceCardsPerTurn: 12
+    maxCatalogChars: 24000
+    maxMaterialChars: 8000
+    modelTimeoutMs: 60000
 cron:
   enabled: true
   timezone: Asia/Shanghai
@@ -205,8 +224,31 @@ cron:
   runTimeoutMinutes: 60
 `;
 
+const DEFAULT_PROJECT_WIKI_SNIPPET = `
+projectWiki:
+  enabled: true
+  language: en
+  models:
+    indexer: inherit
+    maintainer: inherit
+    searcher: inherit
+    curator: inherit
+  sources:
+    repo: true
+    memory: true
+    conversations: true
+    knowledge: true
+  limits:
+    maxContextChars: 12000
+    maxSourceCardsPerTurn: 12
+    maxCatalogChars: 24000
+    maxMaterialChars: 8000
+    modelTimeoutMs: 60000
+`;
+
 const PATCH_SECTIONS = [
   { key: 'adapters', snippet: DEFAULT_ADAPTERS_SNIPPET },
+  { key: 'projectWiki', snippet: DEFAULT_PROJECT_WIKI_SNIPPET },
   { key: 'cron', snippet: DEFAULT_CRON_SNIPPET },
 ];
 

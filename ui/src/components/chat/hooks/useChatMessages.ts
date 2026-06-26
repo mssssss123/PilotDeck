@@ -107,7 +107,7 @@ function convertSingleMessage(
       const subagentLink = isSubagentContainer && msg.toolId
         ? subagentLinks?.get(msg.toolId)
         : undefined;
-      const msgSubagentId = (msg as Record<string, unknown>).subagentId as string | undefined;
+      const msgSubagentId = (msg as unknown as Record<string, unknown>).subagentId as string | undefined;
 
       return {
         id: msg.id,
@@ -146,13 +146,17 @@ function convertSingleMessage(
       return null;
 
     case 'error':
+      {
+        const record = msg as unknown as Record<string, unknown>;
+        const userHint = typeof record.userHint === 'string' ? record.userHint : undefined;
       return {
         id: msg.id,
         type: 'error',
         content: msg.content || 'Unknown error',
         timestamp: msg.timestamp,
-        ...(msg.userHint ? { userHint: msg.userHint } : {}),
+        ...(userHint ? { userHint } : {}),
       };
+      }
 
     case 'interactive_prompt':
       return {

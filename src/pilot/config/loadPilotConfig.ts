@@ -5,10 +5,14 @@ import { parseCronConfig } from "../../cron/config/parseCronConfig.js";
 import { parseModelConfig } from "../../model/config/parseModelConfig.js";
 import { isRecord } from "../../model/config/schema.js";
 import { ModelConfigError } from "../../model/protocol/errors.js";
-import { getPilotConfigFilePath, getPilotMemoryRootDir, resolvePilotHome } from "../paths.js";
+import {
+  getPilotConfigFilePath,
+  getPilotProjectWikiRootDir,
+  resolvePilotHome,
+} from "../paths.js";
 import { sha256, stableStringify } from "./hash.js";
 import { mergeConfigSources } from "./merge.js";
-import { parseMemoryConfig } from "./parseMemoryConfig.js";
+import { parseProjectWikiConfig } from "./parseProjectWikiConfig.js";
 import { parseAdaptersConfig, parseGatewayConfig } from "./parseGatewayConfig.js";
 import { parseToolsConfig } from "./parseToolsConfig.js";
 import { parseRouterConfig } from "../../router/config/parseRouterConfig.js";
@@ -91,7 +95,12 @@ export function loadPilotConfig(options: PilotConfigLoadOptions = {}): PilotConf
   const model = parseModel(rawConfig.model, env, diagnostics);
   const agent = parseAgent(rawConfig.agent, model, diagnostics);
   const extension = parseExtension(rawConfig.extension, diagnostics);
-  const memory = parseMemoryConfig(rawConfig.memory, diagnostics, getPilotMemoryRootDir(pilotHome), model);
+  const projectWiki = parseProjectWikiConfig(
+    rawConfig.projectWiki,
+    diagnostics,
+    options.projectRoot ? getPilotProjectWikiRootDir(options.projectRoot, pilotHome) : undefined,
+    model,
+  );
   const gateway = parseGatewayConfig(rawConfig.gateway, diagnostics);
   const adapters = parseAdaptersConfig(rawConfig.adapters, diagnostics);
   const router = parseRouterSection(rawConfig.router, model, diagnostics);
@@ -132,7 +141,7 @@ export function loadPilotConfig(options: PilotConfigLoadOptions = {}): PilotConf
     agent,
     model,
     extension,
-    memory,
+    projectWiki,
     gateway,
     adapters,
     router,
@@ -153,7 +162,7 @@ export function loadPilotConfig(options: PilotConfigLoadOptions = {}): PilotConf
       agent,
       model,
       extension,
-      ...(memory ? { memory } : {}),
+      ...(projectWiki ? { projectWiki } : {}),
       ...(gateway ? { gateway } : {}),
       ...(adapters ? { adapters } : {}),
       ...(router ? { router } : {}),
@@ -301,6 +310,7 @@ function validateTopLevel(rawConfig: PilotRawConfig, diagnostics: PilotConfigDia
     "model",
     "extension",
     "memory",
+    "projectWiki",
     "gateway",
     "adapters",
     "router",

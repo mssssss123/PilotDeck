@@ -75,6 +75,11 @@ export function resolveProjectStorageId(projectRoot, pilotHome = resolvePilotHom
     return findStoredProjectId(projectRoot, pilotHome) ?? createProjectId(projectRoot);
 }
 
+export function getPilotProjectWikiRootDir(projectRoot, pilotHome = resolvePilotHome()) {
+    const projectId = resolveProjectStorageId(projectRoot, pilotHome);
+    return resolve(pilotHome, 'projects', projectId, 'project_wiki');
+}
+
 /**
  * Sanitize a sessionId for safe use as a filename component.
  *

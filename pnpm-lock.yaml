@@ -23,9 +23,6 @@ importers:
       '@vscode/ripgrep':
         specifier: ^1.18.0
         version: 1.18.0
-      edgeclaw-memory-core:
-        specifier: file:src/context/memory/edgeclaw-memory-core
-        version: file:src/context/memory/edgeclaw-memory-core
       ink:
         specifier: ^7.0.2
         version: 7.0.4(@types/react@19.2.15)(react@19.2.6)
@@ -2840,9 +2837,6 @@ packages:
 
   ecdsa-sig-formatter@1.0.11:
     resolution: {integrity: sha512-nagl3RYrbNv6kQkeJIpt6NJZy8twLB/2vtz6yN9Z4vRKHN4/QZJIEbqohALSgwKdnksuY3k5Addp5lg8sVoVcQ==}
-
-  edgeclaw-memory-core@file:src/context/memory/edgeclaw-memory-core:
-    resolution: {directory: src/context/memory/edgeclaw-memory-core, type: directory}
 
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
@@ -8137,8 +8131,6 @@ snapshots:
   ecdsa-sig-formatter@1.0.11:
     dependencies:
       safe-buffer: 5.2.1
-
-  edgeclaw-memory-core@file:src/context/memory/edgeclaw-memory-core: {}
 
   ee-first@1.1.1: {}
 

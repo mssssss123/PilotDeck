@@ -39,6 +39,7 @@ export type PilotRawConfig = {
   model?: unknown;
   extension?: unknown;
   memory?: unknown;
+  projectWiki?: unknown;
   gateway?: unknown;
   adapters?: unknown;
   router?: unknown;
@@ -83,28 +84,31 @@ export type PilotAgentConfig = {
  */
 export type PilotRouterConfig = RouterConfig;
 
-export type PilotMemoryApiType = "openai-responses" | "responses" | "openai-completions";
-export type PilotMemoryReasoningMode = "answer_first" | "accuracy_first";
+export type PilotProjectWikiModelRole = "indexer" | "maintainer" | "searcher" | "curator";
+export type PilotProjectWikiPromptLanguage = "en" | "zh-CN";
 
-export type PilotMemoryScheduleConfig = {
-  reasoningMode?: PilotMemoryReasoningMode;
-  autoIndexIntervalMinutes?: number;
-  autoDreamIntervalMinutes?: number;
+export type PilotProjectWikiSourcesConfig = {
+  repo: boolean;
+  memory: boolean;
+  conversations: boolean;
+  knowledge: boolean;
 };
 
-export type PilotMemoryConfig = {
+export type PilotProjectWikiLimitsConfig = {
+  maxContextChars: number;
+  maxSourceCardsPerTurn: number;
+  maxCatalogChars: number;
+  maxMaterialChars: number;
+  modelTimeoutMs: number;
+};
+
+export type PilotProjectWikiConfig = {
   enabled: boolean;
-  provider: "edgeclaw";
+  language: PilotProjectWikiPromptLanguage;
   rootDir?: string;
-  captureStrategy: "last_turn" | "full_session";
-  includeAssistant: boolean;
-  maxMessageChars?: number;
-  retrievalTimeoutMs?: number;
-  /** "provider/model" string referencing model.providers, e.g. "openai/gpt-4.1-mini" */
-  model?: string;
-  apiType?: PilotMemoryApiType;
-  schedule?: PilotMemoryScheduleConfig;
-  heartbeatBatchSize?: number;
+  models: Partial<Record<PilotProjectWikiModelRole, string>>;
+  sources: PilotProjectWikiSourcesConfig;
+  limits: PilotProjectWikiLimitsConfig;
 };
 
 export type PilotGatewayConfig = {
@@ -212,7 +216,7 @@ export type PilotConfig = {
   agent: PilotAgentConfig;
   model: ModelConfig;
   extension: PilotExtensionConfig;
-  memory?: PilotMemoryConfig;
+  projectWiki?: PilotProjectWikiConfig;
   gateway?: PilotGatewayConfig;
   adapters?: PilotAdaptersConfig;
   router?: RouterConfig;

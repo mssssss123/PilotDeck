@@ -499,9 +499,13 @@ export default function SidebarV2({
   const handleProjectClick = useCallback(
     (project: Project) => {
       if (renamingProject === project.name) return;
+      if (selectedProject?.name !== project.name) {
+        onSelectProject(project);
+      }
+      navToProject(project.name);
       toggleProjectExpanded(project);
     },
-    [renamingProject, toggleProjectExpanded],
+    [navToProject, onSelectProject, renamingProject, selectedProject?.name, toggleProjectExpanded],
   );
 
   const handleSessionClick = useCallback(

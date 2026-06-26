@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   BarChart3,
+  BookOpen,
   Bot,
-  Database,
   Folder,
   PanelLeftOpen,
   Radio,
@@ -38,7 +38,7 @@ const TABS: Tab[] = [
   { id: 'files',     labelKey: 'tabs.files',     icon: Folder },
   { id: 'skills',    labelKey: 'tabs.skills',    icon: Sparkles },
   { id: 'dashboard', labelKey: 'tabs.dashboard', icon: BarChart3 },
-  { id: 'memory',    labelKey: 'tabs.memory',    icon: Database },
+  { id: 'memory',    labelKey: 'tabs.memory',    icon: BookOpen },
   { id: 'always-on', labelKey: 'tabs.alwaysOn',  icon: Radio },
 ];
 

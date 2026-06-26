@@ -1,0 +1,308 @@
+{
+  "header": {
+    "waiting": "正在等待 ProjectWiki 数据"
+  },
+  "home": {
+    "title": "ProjectWiki",
+    "description": "ProjectWiki 入口与存储地图。",
+    "bodyTitle": "ProjectWiki",
+    "bodyDescription": "ProjectWiki 是这个工作区统一的项目上下文层。",
+    "wikiPagesTitle": "项目知识页面",
+    "sourceCardsTitle": "来源卡片",
+    "sourceCards": {
+      "repo": "仓库材料的模型摘要。",
+      "memory": "从旧 memory 导入的摘要。",
+      "conversations": "相关对话回合的摘要。",
+      "knowledge": "可复用的高质量智能体产出。"
+    }
+  },
+  "wikiPages": {
+    "projectOverview": {
+      "title": "项目架构",
+      "description": "项目身份、架构和主要组成部分。"
+    },
+    "projectStatus": {
+      "title": "项目状态",
+      "description": "当前项目状态、活跃方向、决策、阻塞和下一步。"
+    },
+    "projectFeedback": {
+      "title": "项目反馈",
+      "description": "项目相关的用户反馈、约束和偏好。"
+    },
+    "knowledge": {
+      "title": "知识",
+      "description": "智能体工作中产出或验证过的可复用知识。"
+    }
+  },
+  "views": {
+    "wiki": "Wiki",
+    "sources": "来源材料",
+    "conflicts": "冲突",
+    "traces": "模型追溯"
+  },
+  "metrics": {
+    "refined": "已整理",
+    "pending": "待整理",
+    "cards": "卡片",
+    "queued": "队列",
+    "stale": "过期",
+    "conflicts": "冲突",
+    "runs": "运行"
+  },
+  "actions": {
+    "indexNow": "立即索引",
+    "indexNowTitle": "立即运行 ProjectWiki 索引器和维护器",
+    "refresh": "刷新",
+    "refreshTitle": "刷新 ProjectWiki 快照",
+    "updating": "更新中",
+    "open": "打开",
+    "hide": "收起",
+    "openPath": "打开 {{path}}"
+  },
+  "empty": {
+    "selectProject": "选择一个项目来查看 ProjectWiki。",
+    "noData": "这个项目还没有 ProjectWiki 数据。下一次项目对话后会出现项目知识页面、来源卡片和 trace 记录。",
+    "initializedNoCards": "ProjectWiki 已初始化，但还没有捕获来源卡片。索引器记录项目材料后，待整理页面会被维护器细化。",
+    "noWikiPages": "还没有项目知识页面。第一次项目对话会创建 ProjectWiki 页面。",
+    "noWikiPageSelected": "未选择项目知识页面。"
+  },
+  "status": {
+    "pending": "待整理",
+    "pendingRefinement": "等待整理"
+  },
+  "refreshResult": {
+    "indexedTurns": "已索引 {{count}} 个回合",
+    "skippedTurns": "跳过 {{count}} 个",
+    "failedTurns": "失败 {{count}} 个",
+    "sourceCards": "生成 {{count}} 张来源卡片",
+    "transcripts": "扫描 {{count}} 份 transcript",
+    "limit": "历史回合上限 {{count}}",
+    "completed": "ProjectWiki 刷新完成。"
+  },
+  "pendingPage": {
+    "title": "{{title}} 正在等待有来源支撑的整理。",
+    "description": "ProjectWiki 已创建页面壳，但维护器还没有挂载来源卡片。",
+    "queued": "来源卡片已进入维护队列；下次维护运行后刷新即可查看页面是否变化。",
+    "waitingForMaterial": "当索引器捕获仓库、对话、导入记忆或知识材料后，这个页面会被改写成稳定的项目知识。",
+    "queueTitle": "维护队列",
+    "queueSummary": "{{count}} 张来源卡片等待处理",
+    "queuedSourceCard": "排队中的 source card",
+    "typeCount": "{{count}} 个{{type}}"
+  },
+  "wikiSources": {
+    "empty": "还没有关联来源卡片。维护器整理这个项目知识页面时会挂载来源卡片。",
+    "title": "来源卡片",
+    "linked": "已关联 {{count}} 个",
+    "missing": "缺失 {{count}} 个",
+    "needsReview": "这个项目知识页面依赖的来源卡片需要复核。"
+  },
+  "sources": {
+    "searchPlaceholder": "搜索来源卡片",
+    "noMatches": "当前视图没有匹配的来源卡片。",
+    "empty": "还没有记录来源卡片。",
+    "showCardBody": "展开卡片正文"
+  },
+  "conflicts": {
+    "empty": "还没有 ProjectWiki 冲突记录。",
+    "open": "未解决",
+    "resolved": "已解决",
+    "reopen": "重新打开",
+    "markResolved": "标记解决",
+    "reopenTitle": "重新打开这个 ProjectWiki 冲突",
+    "resolveTitle": "将这个 ProjectWiki 冲突标记为已解决"
+  },
+  "sourceTrace": {
+    "refs": "{{count}} 个引用",
+    "usedBy": "用于",
+    "moreRefs": "正文里还有 {{count}} 个来源引用"
+  },
+  "quality": {
+    "evidence": "证据 {{value}}",
+    "confidence": "置信度 {{value}}%",
+    "confidenceDecimal": "置信度 {{value}}"
+  },
+  "sourceRef": {
+    "session": "会话 {{id}}",
+    "turn": "回合 {{id}}",
+    "range": "范围 {{range}}",
+    "hash": "哈希 {{hash}}"
+  },
+  "sourceStatus": {
+    "stale": "过期",
+    "conflict": "冲突",
+    "draft": "草稿"
+  },
+  "health": {
+    "stale": "{{count}} 个过期",
+    "conflict": "{{count}} 个冲突",
+    "missing": "{{count}} 个缺失",
+    "staleCompact": "过期"
+  },
+  "sourceTypes": {
+    "all": "全部",
+    "repo": "仓库",
+    "memory": "导入记忆",
+    "conversations": "对话",
+    "knowledge": "知识",
+    "source": "来源"
+  },
+  "traceKinds": {
+    "index": "索引",
+    "maintain": "维护",
+    "retrieval": "召回",
+    "context": "上下文"
+  },
+  "traceRoles": {
+    "retrieval": "搜索器召回",
+    "context": "整理器组装",
+    "index": "索引器捕获",
+    "maintain": "维护器更新"
+  },
+  "tracePhases": {
+    "toolLoop": "检索工具循环",
+    "toolLoopFallback": "检索 fallback",
+    "toolCatalogSearch": "工具搜索决策",
+    "toolCatalogSearchFailed": "工具搜索失败",
+    "search": "搜索决策",
+    "read": "读取材料",
+    "searchFailed": "搜索失败",
+    "retrieveFailed": "召回失败",
+    "assemble": "上下文组装",
+    "assembleFailed": "上下文组装失败",
+    "turn": "回合索引",
+    "turnFailed": "回合索引失败",
+    "repo": "仓库索引",
+    "repoFailed": "仓库索引失败",
+    "sourceFreshness": "来源新鲜度",
+    "sourceFreshnessFailed": "来源新鲜度失败",
+    "importedMemory": "导入记忆",
+    "importedMemoryFailed": "导入记忆失败",
+    "historyBackfill": "历史回填",
+    "historyBackfillFailed": "历史回填失败",
+    "captureFailed": "捕获失败",
+    "wiki": "Wiki 维护",
+    "wikiFailed": "Wiki 维护失败"
+  },
+  "traceStatus": {
+    "success": "成功",
+    "error": "错误",
+    "skipped": "跳过",
+    "failed": "失败",
+    "executed": "已执行"
+  },
+  "traces": {
+    "emptyType": "这个 trace 类型还没有模型运行记录。",
+    "noModelRecorded": "未记录模型",
+    "model": "模型",
+    "language": "语言",
+    "languageEn": "英文",
+    "languageZh": "简体中文",
+    "notRecorded": "未记录",
+    "compactedPayload": "较长的模型 payload 会在这里压缩展示，以保证看板流畅；来源路径、选中材料和模型决策仍然可见。",
+    "input": "输入",
+    "outputDecision": "输出 / 决策",
+    "selectRun": "选择一次 trace 运行来查看模型决策。",
+    "artifactCount": "{{count}} 个产物",
+    "noData": "无数据",
+    "openJson": "展开 trace JSON · {{size}}",
+    "hideJson": "收起 trace JSON · {{size}}"
+  },
+  "turnFlow": {
+    "title": "回合链路",
+    "steps": "{{count}} 个 ProjectWiki 步骤",
+    "noRelated": "当前 trace 窗口内没有相关 ProjectWiki 运行。"
+  },
+  "payload": {
+    "title": "原始数据",
+    "rawInput": "原始输入",
+    "rawOutput": "原始输出",
+    "loading": "正在加载 payload...",
+    "empty": "没有 payload 内容",
+    "loadFailed": "加载原始 payload 失败"
+  },
+  "artifacts": {
+    "title": "产物",
+    "fallback": "产物"
+  },
+  "artifactKinds": {
+    "wikiPage": "项目知识页面",
+    "sourceCard": "来源卡片",
+    "context": "上下文",
+    "conflict": "冲突",
+    "source": "来源"
+  },
+  "decisions": {
+    "readMaterials": {
+      "title": "读取材料",
+      "summary": "为整理器读取了 {{count}} 份 ProjectWiki 材料。",
+      "empty": "没有读取 ProjectWiki 材料。",
+      "missing": "{{count}} 个选中路径缺失。",
+      "itemFallback": "读取材料 {{index}}"
+    },
+    "search": {
+      "title": "搜索决策",
+      "toolLoopTitle": "检索工具循环",
+      "fallbackTitle": "检索 fallback",
+      "toolSearchTitle": "工具搜索决策",
+      "selectedProjectWiki": "本回合选择了 ProjectWiki。",
+      "skippedProjectWiki": "本回合跳过了 ProjectWiki。",
+      "intent": "意图：{{intent}}。",
+      "toolCalls": "执行了 {{count}} 次 ProjectWiki 工具调用。",
+      "selectedFallback": "选中材料 {{index}}",
+      "toolEventFallback": "工具事件 {{index}}"
+    },
+    "context": {
+      "title": "上下文组装",
+      "summaryLabel": "上下文摘要",
+      "packLabel": "上下文包",
+      "sectionFallback": "上下文段落 {{index}}",
+      "assembled": "已为主智能体组装 ProjectWiki 上下文。",
+      "sections": "组装了 {{count}} 个段落。",
+      "omitted": "省略了 {{count}} 份材料。"
+    },
+    "freshness": {
+      "title": "来源新鲜度",
+      "markedStale": "{{count}} 张来源卡片被标记为过期。",
+      "clean": "没有发现来源新鲜度问题。"
+    },
+    "history": {
+      "title": "历史回填",
+      "indexed": "已索引 {{count}} 个",
+      "skipped": "跳过 {{count}} 个",
+      "failed": "失败 {{count}} 个",
+      "sourceCards": "{{count}} 张来源卡片",
+      "transcripts": "扫描 {{count}} 份 transcript",
+      "discoveredTurns": "发现的回合"
+    },
+    "index": {
+      "title": "索引输出",
+      "proposed": "提出了 {{count}} 张来源卡片。",
+      "noneProposed": "没有提出来源卡片。",
+      "skipped": "跳过了 {{count}} 个来源。",
+      "sourceCardFallback": "来源卡片 {{index}}"
+    },
+    "maintain": {
+      "title": "Wiki 维护",
+      "pagesUpdated": "更新了 {{count}} 个项目知识页面。",
+      "noPagesUpdated": "没有更新项目知识页面。",
+      "conflictsRecorded": "记录了 {{count}} 个冲突。",
+      "wikiPageFallback": "项目知识页面 {{index}}",
+      "conflictFallback": "冲突 {{index}}"
+    }
+  },
+  "meta": {
+    "updated": "更新于 {{date}}",
+    "trace": "trace {{id}}",
+    "chars": "{{count}} 字符",
+    "priority": "优先级 {{priority}}"
+  },
+  "errors": {
+    "requestFailed": "ProjectWiki 请求失败（{{status}}）",
+    "conflictUpdateFailed": "ProjectWiki 冲突更新失败（{{status}}）",
+    "refreshFailed": "ProjectWiki 刷新失败（{{status}}）",
+    "payloadFailed": "ProjectWiki payload 请求失败（{{status}}）"
+  },
+  "punctuation": {
+    "period": "。"
+  }
+}

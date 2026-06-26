@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import {
   BarChart3,
+  BookOpen,
   ClipboardCheck,
-  Database,
   Folder,
   GitBranch,
   MessageSquare,
@@ -48,11 +48,13 @@ export const TASKS_APP_TAB: BuiltInAppTab = {
   icon: ClipboardCheck,
 };
 
-export const MEMORY_APP_TAB: BuiltInAppTab = {
+export const PROJECT_WIKI_APP_TAB: BuiltInAppTab = {
   kind: 'builtin',
+  // Keep the historical tab id for URL/local-storage compatibility; the product
+  // surface is ProjectWiki.
   id: 'memory',
   labelKey: 'tabs.memory',
-  icon: Database,
+  icon: BookOpen,
 };
 
 // IDs that V2 Sidebar renders under the "global tools" group. Plugins + the
@@ -81,8 +83,8 @@ export function useAppTabs({ shouldShowTasksTab }: UseAppTabsOptions): UseAppTab
 
   return useMemo(() => {
     const builtInTabs: BuiltInAppTab[] = shouldShowTasksTab
-      ? [...BASE_APP_TABS, TASKS_APP_TAB, MEMORY_APP_TAB]
-      : [...BASE_APP_TABS, MEMORY_APP_TAB];
+      ? [...BASE_APP_TABS, TASKS_APP_TAB, PROJECT_WIKI_APP_TAB]
+      : [...BASE_APP_TABS, PROJECT_WIKI_APP_TAB];
 
     const pluginTabs: PluginAppTab[] = plugins
       .filter((plugin) => plugin.enabled)

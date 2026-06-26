@@ -144,6 +144,7 @@ function MessageRowV2({
         : [],
     [message.attachments],
   );
+  const [userImageLightbox, setUserImageLightbox] = useState<number | null>(null);
 
   if (message.isAgentActivitySummary) {
     return (
@@ -233,7 +234,6 @@ function MessageRowV2({
 
   const isUser = message.type === 'user';
   const isError = message.type === 'error';
-  const [userImageLightbox, setUserImageLightbox] = useState<number | null>(null);
 
   // User: right-aligned grey bubble.
   if (isUser) {

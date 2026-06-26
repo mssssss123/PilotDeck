@@ -64,8 +64,8 @@ const authenticateToken = async (req, res, next) => {
   if (!token && req.query.token) {
     token = req.query.token;
   }
-  // Memory dashboard static assets inherit the iframe document URL as Referer,
-  // but do not inherit the query string onto app.js/app.css requests.
+  // Dashboard compatibility routes may inherit auth through the iframe document
+  // URL as Referer, but static/app requests do not inherit the query string.
   if (!token) {
     token = extractDashboardRefererToken(req);
   }

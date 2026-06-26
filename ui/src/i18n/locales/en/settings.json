@@ -111,7 +111,7 @@
     "workflow": "Workflow",
     "advanced": "Advanced",
     "config": {
-      "detail": "Model pool, agents, routing, memory, search, and service settings"
+      "detail": "Model pool, agents, ProjectWiki, routing, search, and service settings"
     },
     "mcp": {
       "detail": "Configure MCP tools from global or project JSON"
@@ -579,10 +579,10 @@
 	          "label": "Process Env",
 	          "applied": "Native settings have been applied to this process."
 	        },
-	        "memory": {
-	          "label": "Memory",
-	          "enabled": "Memory service is enabled.",
-	          "disabled": "memory.enabled is false."
+	        "projectWiki": {
+	          "label": "ProjectWiki",
+	          "enabled": "ProjectWiki is enabled.",
+	          "disabled": "projectWiki.enabled is false."
 	        },
 	        "router": {
 	          "label": "Router (CCR)",
@@ -621,7 +621,7 @@
       },
       "models": {
         "label": "Model Pool",
-        "description": "Models available to agents, memory, and routing"
+        "description": "Models available to agents, ProjectWiki, and routing"
       },
       "agents": {
         "label": "Agents",
@@ -637,7 +637,11 @@
       },
       "memory": {
         "label": "Memory",
-        "description": "PilotDeck memory service"
+        "description": "Imported memory source"
+      },
+      "projectWiki": {
+        "label": "ProjectWiki",
+        "description": "Unified project context and traceable memory"
       },
       "tools": {
         "label": "Search",
@@ -674,7 +678,7 @@
       },
       "models": {
         "title": "Model Pool",
-        "description": "Configure model providers, API keys, base URLs, and enabled models. Agents, memory, and routing choose from the enabled models here.",
+        "description": "Configure model providers, API keys, base URLs, and enabled models. Agents, ProjectWiki, and routing choose from the enabled models here.",
         "providerIdDuplicate": "A Provider id with this name already exists.",
         "addProvider": "Add provider",
         "addProviderTitle": "Add a provider",
@@ -811,17 +815,81 @@
           "description": "Maximum number of Cron runs that may execute at the same time."
         }
       },
-      "memory": {
-        "title": "Memory",
-        "description": "Configure the model used for memory indexing and Dream.",
+      "projectWiki": {
+        "title": "ProjectWiki",
+        "description": "Configure the model-maintained project wiki that replaces direct memory injection.",
         "enabled": {
           "label": "Enabled",
-          "description": "Toggles the memory service."
+          "description": "When enabled, ProjectWiki owns memory retrieval, indexing, and context assembly."
         },
-        "model": {
-          "label": "Memory Model",
-          "description": "Provider/model the memory pipeline calls.",
-          "inherit": "inherit (use main agent's model)"
+        "language": {
+          "label": "Generation language",
+          "description": "Language used by future ProjectWiki model-generated cards, pages, retrieval reasons, and context packs. Existing wiki files are not rewritten.",
+          "english": "English",
+          "chinese": "Simplified Chinese"
+        },
+        "models": {
+          "inherit": "inherit (use main agent's model)",
+          "indexer": {
+            "label": "Indexer model",
+            "description": "Creates source cards from repository material, conversations, imported memory, and reusable knowledge."
+          },
+          "maintainer": {
+            "label": "Maintainer model",
+            "description": "Refines source cards into ProjectWiki pages and records conflicts."
+          },
+          "searcher": {
+            "label": "Searcher model",
+            "description": "Selects relevant wiki pages and source cards for each turn."
+          },
+          "curator": {
+            "label": "Curator model",
+            "description": "Compresses selected ProjectWiki material into the final agent context."
+          }
+        },
+        "rootDir": {
+          "label": "Root directory",
+          "description": "Optional base directory for ProjectWiki storage. Each project is stored under its own project_wiki subdirectory."
+        },
+        "sources": {
+          "repo": {
+            "label": "Repository",
+            "description": "Index a model summary of the local repository."
+          },
+          "memory": {
+            "label": "Imported memory",
+            "description": "Import existing memory records as ProjectWiki source cards. New conversation facts are stored under Conversations or Knowledge."
+          },
+          "conversations": {
+            "label": "Conversations",
+            "description": "Index relevant user and agent conversation turns."
+          },
+          "knowledge": {
+            "label": "Knowledge",
+            "description": "Capture reusable high-quality assistant output."
+          }
+        },
+        "limits": {
+          "maxContextChars": {
+            "label": "Max context characters",
+            "description": "Maximum size of ProjectWiki context injected into the main agent."
+          },
+          "maxSourceCardsPerTurn": {
+            "label": "Max source cards per turn",
+            "description": "Upper bound for model-selected cards and pages read during retrieval."
+          },
+          "maxCatalogChars": {
+            "label": "Max catalog characters",
+            "description": "Maximum ProjectWiki catalog size shown to the searcher model."
+          },
+          "maxMaterialChars": {
+            "label": "Max material characters",
+            "description": "Maximum characters read from each selected wiki page or source card before context assembly."
+          },
+          "modelTimeoutMs": {
+            "label": "Model timeout (ms)",
+            "description": "Timeout for ProjectWiki model decisions."
+          }
         }
       },
       "tools": {

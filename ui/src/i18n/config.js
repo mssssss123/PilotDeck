@@ -27,6 +27,7 @@ import enChat from './locales/en/chat.json';
 import enCodeEditor from './locales/en/codeEditor.json';
 import enAlwaysOn from './locales/en/alwaysOn.json';
 import enRouting from './locales/en/routing.json';
+import enProjectWiki from './locales/en/projectWiki.json';
 // eslint-disable-next-line import-x/order
 import enTasks from './locales/en/tasks.json';
 
@@ -37,6 +38,7 @@ import zhSidebar from './locales/zh-CN/sidebar.json';
 import zhChat from './locales/zh-CN/chat.json';
 import zhAlwaysOn from './locales/zh-CN/alwaysOn.json';
 import zhRouting from './locales/zh-CN/routing.json';
+import zhProjectWiki from './locales/zh-CN/projectWiki.json';
 // eslint-disable-next-line import-x/order
 import zhCodeEditor from './locales/zh-CN/codeEditor.json';
 
@@ -69,6 +71,7 @@ i18n
         tasks: enTasks,
         alwaysOn: enAlwaysOn,
         routing: enRouting,
+        projectWiki: enProjectWiki,
       },
       'zh-CN': {
         common: zhCommon,
@@ -79,6 +82,7 @@ i18n
         codeEditor: zhCodeEditor,
         alwaysOn: zhAlwaysOn,
         routing: zhRouting,
+        projectWiki: zhProjectWiki,
       },
     },
 
@@ -86,7 +90,7 @@ i18n
     fallbackLng: 'en',
     debug: import.meta.env.DEV,
 
-    ns: ['common', 'settings', 'auth', 'sidebar', 'chat', 'codeEditor', 'tasks', 'alwaysOn', 'routing'],
+    ns: ['common', 'settings', 'auth', 'sidebar', 'chat', 'codeEditor', 'tasks', 'alwaysOn', 'routing', 'projectWiki'],
     defaultNS: 'common',
     keySeparator: '.',
     nsSeparator: ':',
@@ -115,11 +119,18 @@ i18n.on('languageChanged', (lng) => {
   } catch (error) {
     console.error('Failed to save language preference:', error);
   }
-  syncAlwaysOnLanguage(lng);
+  syncPromptLanguages(lng);
 });
 
-function syncAlwaysOnLanguage(lng) {
-  const alwaysOnLang = lng === 'zh-CN' ? 'zh-CN' : 'en';
+i18n.on('initialized', () => {
+  syncPromptLanguages(i18n.language);
+});
+if (i18n.isInitialized) {
+  syncPromptLanguages(i18n.language);
+}
+
+function syncPromptLanguages(lng) {
+  const promptLang = lng === 'zh-CN' ? 'zh-CN' : 'en';
   authenticatedFetch('/api/config')
     .then((r) => r.json())
     .then((data) => {
@@ -128,9 +139,19 @@ function syncAlwaysOnLanguage(lng) {
       let parsed;
       try { parsed = parseYaml(raw); } catch { return; }
       if (!parsed || typeof parsed !== 'object') return;
-      if (!parsed.alwaysOn || typeof parsed.alwaysOn !== 'object') return;
-      if (parsed.alwaysOn.language === alwaysOnLang) return;
-      parsed.alwaysOn.language = alwaysOnLang;
+      let changed = false;
+      if (parsed.alwaysOn && typeof parsed.alwaysOn === 'object' && parsed.alwaysOn.language !== promptLang) {
+        parsed.alwaysOn.language = promptLang;
+        changed = true;
+      }
+      if (!parsed.projectWiki || typeof parsed.projectWiki !== 'object') {
+        parsed.projectWiki = {};
+      }
+      if (parsed.projectWiki.language !== promptLang) {
+        parsed.projectWiki.language = promptLang;
+        changed = true;
+      }
+      if (!changed) return;
       const updated = stringifyYaml(parsed, { lineWidth: 0 });
       return authenticatedFetch('/api/config', {
         method: 'PUT',

@@ -195,7 +195,7 @@ export function useChatRealtimeHandlers({
           }
 
           if (isCurrentSession && Array.isArray(msg.activitySnapshot)) {
-            const activities = msg.activitySnapshot.map((activity) => {
+            const activities = msg.activitySnapshot.map((activity: LatestChatMessage) => {
               const normalized = activity as NormalizedMessage;
               if (getExplicitSessionId(normalized)) return normalized;
               return { ...normalized, sessionId: statusSessionId };

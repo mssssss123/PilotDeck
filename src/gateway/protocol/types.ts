@@ -305,6 +305,30 @@ export type AlwaysOnRerunPlanResult = {
   error?: { code: string; message: string };
 };
 
+export type ProjectWikiRefreshInput = {
+  projectKey?: string;
+  reason?: string;
+  maxHistoricalTurns?: number;
+};
+
+export type ProjectWikiRefreshResult = {
+  projectKey: string;
+  refreshed: boolean;
+  diagnostics?: Array<{
+    code: string;
+    severity: "info" | "warning" | "error";
+    message: string;
+  }>;
+  maxHistoricalTurns?: number;
+  indexedTurns?: number;
+  skippedTurns?: number;
+  failedTurns?: number;
+  scannedTranscripts?: number;
+  discoveredTurns?: number;
+  sourceCardsCreated?: number;
+  error?: { code: string; message: string };
+};
+
 export interface Gateway {
   submitTurn(input: GatewaySubmitTurnInput): AsyncIterable<GatewayEvent>;
   abortTurn(input: { sessionKey: string; runId?: string }): Promise<void>;
@@ -396,6 +420,13 @@ export interface Gateway {
    * (workspace, execution, report). Used by the UI retry button.
    */
   alwaysOnRerunPlan?(input: AlwaysOnRerunPlanInput): Promise<AlwaysOnRerunPlanResult>;
+
+  /**
+   * Trigger a real ProjectWiki refresh in the gateway-owned project runtime.
+   * This initializes storage and runs the model-backed ProjectWiki indexer /
+   * maintainer paths for currently available project material.
+   */
+  projectWikiRefresh?(input: ProjectWikiRefreshInput): Promise<ProjectWikiRefreshResult>;
 
   skillsList?(input: SkillsListInput): Promise<SkillsListResult>;
   skillRead?(input: SkillAddressInput): Promise<SkillReadResult>;

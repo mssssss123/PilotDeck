@@ -41,6 +41,8 @@ export type {
   ListSessionsInput,
   ListSessionsResult,
   NewSessionInput,
+  ProjectWikiRefreshInput,
+  ProjectWikiRefreshResult,
   ReloadConfigResult,
   TurnUsage,
 } from "./protocol/index.js";
