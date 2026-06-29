@@ -21,6 +21,7 @@ import type {
   ProjectWikiSourceRange,
   ProjectWikiSourceType,
   ProjectWikiTraceKind,
+  ProjectWikiTracePayloadRefs,
   ProjectWikiTraceRecord,
 } from "./types.js";
 import {
@@ -62,6 +63,7 @@ type ProjectWikiAppendTraceInput =
     createdAt?: string;
     rawInput?: unknown;
     rawOutput?: unknown;
+    payloads?: Partial<Record<keyof ProjectWikiTracePayloadRefs, unknown>>;
   };
 
 const DEFAULT_PAGE_TITLES: Record<ProjectWikiPageId, { title: string; description: string }> = {
@@ -440,7 +442,7 @@ export class ProjectWikiStore {
 
   async appendTrace(trace: ProjectWikiAppendTraceInput): Promise<ProjectWikiTraceRecord> {
     await this.ensureInitialized();
-    const { rawInput, rawOutput, ...traceFields } = trace;
+    const { rawInput, rawOutput, payloads, ...traceFields } = trace;
     const createdAt = trace.createdAt ?? this.now().toISOString();
     const record: ProjectWikiTraceRecord = {
       ...traceFields,
@@ -454,6 +456,10 @@ export class ProjectWikiStore {
     if (rawOutput !== undefined) {
       payloadRefs.output = await this.writeTracePayload(record.id, "output", rawOutput);
     }
+    for (const [key, value] of Object.entries(payloads ?? {}) as Array<[keyof ProjectWikiTracePayloadRefs, unknown]>) {
+      if (value === undefined) continue;
+      payloadRefs[key] = await this.writeTracePayload(record.id, key, value);
+    }
     if (Object.keys(payloadRefs).length > 0) {
       record.payloadRefs = payloadRefs;
     }
@@ -464,7 +470,7 @@ export class ProjectWikiStore {
 
   private async writeTracePayload(
     traceId: string,
-    side: "input" | "output",
+    side: keyof ProjectWikiTracePayloadRefs,
     payload: unknown,
   ): Promise<string> {
     const relativePath = toPosix(join("traces", "payloads", `${traceId}-${side}.json`));

@@ -147,10 +147,60 @@
     "source": "来源"
   },
   "traceKinds": {
+    "all": "全部",
     "index": "索引",
     "maintain": "维护",
     "retrieval": "召回",
     "context": "上下文"
+  },
+  "pipelineTitles": {
+    "userConversation": "用户对话",
+    "automaticIndex": "自动构建索引",
+    "manualIndex": "手动构建索引",
+    "directSearch": "ProjectWiki 搜索",
+    "unknownEvent": "ProjectWiki 事件"
+  },
+  "pipelineSubtitles": {
+    "retrievalContext": "ProjectWiki 为这次对话检索并组装上下文。",
+    "fromConversation": "来自对话：{{query}}"
+  },
+  "pipelineKinds": {
+    "userConversation": "用户对话",
+    "automaticIndex": "自动构建",
+    "manualIndex": "手动构建",
+    "directSearch": "直接搜索",
+    "legacy": "旧记录"
+  },
+  "pipeline": {
+    "stepsTitle": "执行顺序"
+  },
+  "traceSteps": {
+    "check_source_freshness": "检查来源新鲜度",
+    "check_source_freshness_failed": "来源新鲜度检查失败",
+    "retrieval_decision": "检索决策",
+    "read_materials": "读取 ProjectWiki 材料",
+    "assemble_context": "组装主智能体上下文",
+    "retrieval_failed": "召回上下文失败",
+    "retriever_tool_loop": "检索工具循环",
+    "retriever_tool_loop_fallback": "检索工具循环 fallback",
+    "tool_catalog_search": "工具内搜索决策",
+    "tool_catalog_search_failed": "工具内搜索失败",
+    "project_wiki_search": "ProjectWiki 搜索",
+    "project_wiki_search_failed": "ProjectWiki 搜索失败",
+    "capture_queue_failed": "收录队列失败",
+    "capture_failed": "收录流程失败",
+    "history_backfill": "历史对话回填",
+    "history_backfill_failed": "历史对话回填失败",
+    "index_turn": "索引当前回合",
+    "index_turn_failed": "索引当前回合失败",
+    "repo_index": "仓库材料索引",
+    "repo_index_failed": "仓库材料索引失败",
+    "legacy_memory_import": "导入旧记忆",
+    "legacy_memory_import_failed": "导入旧记忆失败",
+    "maintain_wiki": "整理 Wiki 页面",
+    "maintain_wiki_failed": "整理 Wiki 页面失败",
+    "maintenance_deferred": "Wiki 维护延后",
+    "maintenance_queue_failed": "Wiki 维护队列失败"
   },
   "traceRoles": {
     "retrieval": "搜索器召回",
@@ -203,6 +253,7 @@
     "outputDecision": "输出 / 决策",
     "selectRun": "选择一次 trace 运行来查看模型决策。",
     "artifactCount": "{{count}} 个产物",
+    "hasModelTrace": "含模型请求",
     "noData": "无数据",
     "openJson": "展开 trace JSON · {{size}}",
     "hideJson": "收起 trace JSON · {{size}}"
@@ -219,6 +270,16 @@
     "loading": "正在加载 payload...",
     "empty": "没有 payload 内容",
     "loadFailed": "加载原始 payload 失败"
+  },
+  "payloadKinds": {
+    "modelRequest": "模型请求",
+    "modelResponse": "模型响应",
+    "parsedOutput": "结构化结果",
+    "toolLoopMessages": "工具循环消息",
+    "businessInput": "业务输入",
+    "businessOutput": "业务输出",
+    "input": "旧版原始输入",
+    "output": "旧版原始输出"
   },
   "artifacts": {
     "title": "产物",

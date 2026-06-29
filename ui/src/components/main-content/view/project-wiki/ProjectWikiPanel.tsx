@@ -51,6 +51,11 @@ type TraceRecord = {
   id: string;
   kind: 'index' | 'maintain' | 'retrieval' | 'context';
   phase: string;
+  pipelineRunId?: string;
+  pipelineKind?: 'ingestion' | 'retrieval_context' | 'refresh' | 'direct_search';
+  stepIndex?: number;
+  stepName?: string;
+  parentTraceId?: string;
   createdAt: string;
   sessionId?: string;
   turnId?: string;
@@ -62,8 +67,30 @@ type TraceRecord = {
   output?: unknown;
   error?: string;
   payload?: { inputBytes?: number; outputBytes?: number; compacted?: boolean };
-  payloadRefs?: { input?: string; output?: string };
+  payloadRefs?: Partial<Record<TracePayloadKind, string>>;
   artifacts?: Array<{ kind: string; path?: string; id?: string; title?: string }>;
+};
+
+type TracePayloadKind =
+  | 'modelRequest'
+  | 'modelResponse'
+  | 'parsedOutput'
+  | 'toolLoopMessages'
+  | 'businessInput'
+  | 'businessOutput'
+  | 'input'
+  | 'output';
+
+type TracePipelineRun = {
+  id: string;
+  kind: NonNullable<TraceRecord['pipelineKind']> | 'legacy';
+  title: string;
+  subtitle?: string;
+  createdAt: string;
+  sessionId?: string;
+  turnId?: string;
+  status: TraceRecord['status'];
+  traces: TraceRecord[];
 };
 
 type ConflictRecord = {
@@ -142,6 +169,7 @@ type RefreshProjectWikiResult = {
 
 type ViewId = 'wiki' | 'sources' | 'conflicts' | 'traces';
 type TraceKind = 'index' | 'maintain' | 'retrieval' | 'context';
+type TraceKindFilter = TraceKind | 'all';
 
 const VIEWS: Array<{ id: ViewId; labelKey: string; icon: typeof BookOpen }> = [
   { id: 'wiki', labelKey: 'views.wiki', icon: BookOpen },
@@ -157,6 +185,11 @@ const TRACE_KINDS: Array<{ id: TraceKind; labelKey: string }> = [
   { id: 'context', labelKey: 'traceKinds.context' },
 ];
 
+const TRACE_FILTERS: Array<{ id: TraceKindFilter; labelKey: string }> = [
+  { id: 'all', labelKey: 'traceKinds.all' },
+  ...TRACE_KINDS,
+];
+
 export default function ProjectWikiPanel({ selectedProject }: ProjectWikiPanelProps) {
   const { t } = useTranslation('projectWiki');
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
@@ -166,7 +199,8 @@ export default function ProjectWikiPanel({ selectedProject }: ProjectWikiPanelPr
   const [activeView, setActiveView] = useState<ViewId>('wiki');
   const [selectedPage, setSelectedPage] = useState<string>('home.md');
   const [sourceType, setSourceType] = useState<string>('all');
-  const [traceKind, setTraceKind] = useState<TraceKind>('retrieval');
+  const [traceKind, setTraceKind] = useState<TraceKindFilter>('all');
+  const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(null);
   const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [conflictUpdatingId, setConflictUpdatingId] = useState<string | null>(null);
@@ -205,6 +239,7 @@ export default function ProjectWikiPanel({ selectedProject }: ProjectWikiPanelPr
   useEffect(() => {
     setSnapshot(null);
     setSelectedPage('home.md');
+    setSelectedPipelineId(null);
     setSelectedTraceId(null);
     setLastRefreshResult(null);
     if (projectPath) {
@@ -239,18 +274,35 @@ export default function ProjectWikiPanel({ selectedProject }: ProjectWikiPanelPr
     return pages.find((page) => page.pageId === selectedPage || page.relativePath === selectedPage) ?? pages[0] ?? null;
   }, [selectedPage, snapshot]);
 
-  const traces = snapshot?.traces[traceKind] ?? [];
   const traceCounts = useMemo(() => (
     TRACE_KINDS.reduce((acc, kind) => {
       acc[kind.id] = snapshot?.traces[kind.id]?.length ?? 0;
       return acc;
     }, {} as Record<TraceKind, number>)
   ), [snapshot]);
-  const selectedTrace = traces.find((trace) => trace.id === selectedTraceId) ?? traces[0] ?? null;
+  const pipelineRuns = useMemo(() => buildTracePipelineRuns(snapshot?.traces, t), [snapshot, t]);
+  const filteredPipelineRuns = useMemo(() => (
+    traceKind === 'all'
+      ? pipelineRuns
+      : pipelineRuns.filter((run) => run.traces.some((trace) => trace.kind === traceKind))
+  ), [pipelineRuns, traceKind]);
+  const selectedPipeline = filteredPipelineRuns.find((run) => run.id === selectedPipelineId)
+    ?? filteredPipelineRuns[0]
+    ?? null;
+  const selectedTrace = selectedPipeline?.traces.find((trace) => trace.id === selectedTraceId)
+    ?? selectedPipeline?.traces[0]
+    ?? null;
 
   const selectTraceRun = (kind: TraceKind, id: string) => {
     setTraceKind(kind);
+    const run = pipelineRuns.find((candidate) => candidate.traces.some((trace) => trace.id === id));
+    setSelectedPipelineId(run?.id ?? null);
     setSelectedTraceId(id);
+  };
+  const selectPipelineRun = (id: string) => {
+    const run = filteredPipelineRuns.find((candidate) => candidate.id === id);
+    setSelectedPipelineId(id);
+    setSelectedTraceId(run?.traces[0]?.id ?? null);
   };
 
   const inspectSourceCard = (card: MarkdownItem) => {
@@ -467,8 +519,10 @@ export default function ProjectWikiPanel({ selectedProject }: ProjectWikiPanelPr
             traceCounts={traceCounts}
             onTraceKindChange={setTraceKind}
             allTraces={snapshot?.traces ?? { index: [], maintain: [], retrieval: [], context: [] }}
-            traces={traces}
+            pipelineRuns={filteredPipelineRuns}
+            selectedPipeline={selectedPipeline}
             selectedTrace={selectedTrace}
+            onSelectPipeline={selectPipelineRun}
             onSelectTrace={setSelectedTraceId}
             onSelectRelatedTrace={selectTraceRun}
             onInspectArtifact={inspectTraceArtifact}
@@ -1194,19 +1248,23 @@ function TracesView({
   traceCounts,
   onTraceKindChange,
   allTraces,
-  traces,
+  pipelineRuns,
+  selectedPipeline,
   selectedTrace,
+  onSelectPipeline,
   onSelectTrace,
   onSelectRelatedTrace,
   onInspectArtifact,
 }: {
   projectPath: string;
-  traceKind: TraceKind;
+  traceKind: TraceKindFilter;
   traceCounts: Record<TraceKind, number>;
-  onTraceKindChange: (kind: TraceKind) => void;
+  onTraceKindChange: (kind: TraceKindFilter) => void;
   allTraces: Record<TraceKind, TraceRecord[]>;
-  traces: TraceRecord[];
+  pipelineRuns: TracePipelineRun[];
+  selectedPipeline: TracePipelineRun | null;
   selectedTrace: TraceRecord | null;
+  onSelectPipeline: (id: string) => void;
   onSelectTrace: (id: string) => void;
   onSelectRelatedTrace: (kind: TraceKind, id: string) => void;
   onInspectArtifact: (artifact: NonNullable<TraceRecord['artifacts']>[number]) => void;
@@ -1217,7 +1275,7 @@ function TracesView({
     <div className="grid h-full min-h-0 grid-rows-[minmax(220px,38vh)_minmax(0,1fr)] lg:grid-cols-[340px_minmax(0,1fr)] lg:grid-rows-1">
       <aside className="min-h-0 overflow-y-auto border-b border-neutral-200 lg:border-b-0 lg:border-r dark:border-neutral-800">
         <div className="sticky top-0 z-10 flex flex-wrap gap-1 border-b border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950">
-          {TRACE_KINDS.map((kind) => (
+          {TRACE_FILTERS.map((kind) => (
             <button
               key={kind.id}
               type="button"
@@ -1228,28 +1286,30 @@ function TracesView({
                   : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-900'
               }`}
             >
-              <span>{t(kind.labelKey)}</span>
+	              <span>{t(kind.labelKey)}</span>
               <span className={`rounded px-1 text-[10px] ${
                 traceKind === kind.id
                   ? 'bg-white/20 text-white'
                   : 'bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400'
               }`}
               >
-                {traceCounts[kind.id] ?? 0}
+                {kind.id === 'all'
+                  ? Object.values(traceCounts).reduce((sum, count) => sum + count, 0)
+                  : traceCounts[kind.id] ?? 0}
               </span>
             </button>
           ))}
         </div>
         <div className="p-3">
-          {traces.length === 0 ? (
+          {pipelineRuns.length === 0 ? (
             <EmptyState text={t('traces.emptyType')} />
-          ) : traces.map((trace) => {
-            const active = selectedTrace?.id === trace.id;
+          ) : pipelineRuns.map((run) => {
+            const active = selectedPipeline?.id === run.id;
             return (
               <button
-                key={trace.id}
+                key={run.id}
                 type="button"
-                onClick={() => onSelectTrace(trace.id)}
+                onClick={() => onSelectPipeline(run.id)}
                 className={`mb-2 block w-full rounded-md border p-3 text-left ${
                   active
                     ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30'
@@ -1257,14 +1317,23 @@ function TracesView({
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
-	                  <span className="text-[13px] font-semibold">{tracePhaseLabel(trace, t)}</span>
-                  <StatusPill status={trace.status} />
+	                  <span className="line-clamp-2 text-[13px] font-semibold">{run.title}</span>
+                  <StatusPill status={run.status} />
                 </div>
                 <div className="mt-1 text-[12px] text-neutral-500 dark:text-neutral-400">
-                  {formatDate(trace.createdAt)}
+                  {formatDate(run.createdAt)}
                 </div>
-                <div className="mt-1 truncate text-[11px] text-neutral-400">
-	                  {trace.model ? `${trace.model.provider}/${trace.model.model}` : t('traces.noModelRecorded')}
+                {run.subtitle && (
+                  <div className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-neutral-500 dark:text-neutral-400">
+                    {run.subtitle}
+                  </div>
+                )}
+                <div className="mt-1 flex flex-wrap gap-1.5 text-[11px] text-neutral-400">
+                  <span>{pipelineKindLabel(run.kind, t)}</span>
+                  <span>{t('turnFlow.steps', { count: run.traces.length })}</span>
+                  {run.traces.some((trace) => trace.payloadRefs?.modelRequest) && (
+                    <span>{t('traces.hasModelTrace')}</span>
+                  )}
                 </div>
               </button>
             );
@@ -1272,13 +1341,25 @@ function TracesView({
         </div>
       </aside>
       <section className="min-h-0 overflow-y-auto p-4 sm:p-5">
-        {selectedTrace ? (
+        {selectedPipeline && selectedTrace ? (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <GitBranch className="h-4 w-4 text-neutral-500" />
               <h2 className="text-[15px] font-semibold">
-	                {traceKindLabel(selectedTrace.kind, t)} / {tracePhaseLabel(selectedTrace, t)}
+	                {selectedPipeline.title}
               </h2>
+              <StatusPill status={selectedPipeline.status} />
+              <span className="text-[12px] text-neutral-500">{pipelineKindLabel(selectedPipeline.kind, t)}</span>
+            </div>
+            <TracePipelineSteps
+              traces={selectedPipeline.traces}
+              selectedTraceId={selectedTrace.id}
+              onSelectTrace={onSelectTrace}
+            />
+            <div className="flex flex-wrap items-center gap-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+              <h3 className="text-[14px] font-semibold">
+                {formatTraceStepTitle(selectedTrace, t)}
+              </h3>
               <StatusPill status={selectedTrace.status} />
               {selectedTrace.durationMs !== undefined && (
                 <span className="text-[12px] text-neutral-500">{selectedTrace.durationMs}ms</span>
@@ -1312,6 +1393,67 @@ function TracesView({
         )}
       </section>
     </div>
+  );
+}
+
+function TracePipelineSteps({
+  traces,
+  selectedTraceId,
+  onSelectTrace,
+}: {
+  traces: TraceRecord[];
+  selectedTraceId: string;
+  onSelectTrace: (id: string) => void;
+}) {
+  const { t } = useTranslation('projectWiki');
+  return (
+    <section className="rounded-md border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-[12px] font-semibold uppercase tracking-wide text-neutral-500">
+          {t('pipeline.stepsTitle')}
+        </h3>
+        <span className="text-[12px] text-neutral-500 dark:text-neutral-400">
+          {t('turnFlow.steps', { count: traces.length })}
+        </span>
+      </div>
+      <div className="space-y-2">
+        {traces.map((trace, index) => {
+          const active = trace.id === selectedTraceId;
+          return (
+            <button
+              key={trace.id}
+              type="button"
+              onClick={() => onSelectTrace(trace.id)}
+              className={`grid w-full grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 rounded-md border p-2.5 text-left ${
+                active
+                  ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30'
+                  : 'border-neutral-200 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-900'
+              }`}
+            >
+              <div className={`flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-semibold ${
+                active
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-neutral-100 text-neutral-500 dark:bg-neutral-900 dark:text-neutral-300'
+              }`}
+              >
+                {index + 1}
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-[13px] font-semibold text-neutral-900 dark:text-neutral-100">
+                  {formatTraceStepTitle(trace, t)}
+                </div>
+                <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11px] text-neutral-500 dark:text-neutral-400">
+                  <span>{traceKindLabel(trace.kind, t)}</span>
+                  {trace.model && <span>{trace.model.provider}/{trace.model.model}</span>}
+                  {trace.durationMs !== undefined && <span>{trace.durationMs}ms</span>}
+                </div>
+              </div>
+              <StatusPill status={trace.status} />
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -1441,6 +1583,189 @@ function getRelatedTraces(
     });
 }
 
+function buildTracePipelineRuns(
+  tracesByKind: Record<TraceKind, TraceRecord[]> | undefined,
+  t: TFunction<'projectWiki'>,
+): TracePipelineRun[] {
+  if (!tracesByKind) return [];
+  const rows = TRACE_KINDS
+    .flatMap((kind) => tracesByKind[kind.id] ?? [])
+    .sort(compareTraceOrder);
+  const runs = new Map<string, TraceRecord[]>();
+  for (const trace of rows) {
+    const id = trace.pipelineRunId || legacyPipelineId(trace);
+    const existing = runs.get(id) ?? [];
+    existing.push(trace);
+    runs.set(id, existing);
+  }
+  return Array.from(runs.entries())
+    .map(([id, traces]) => {
+      const ordered = traces.sort(compareTraceOrder);
+      const first = ordered[0]!;
+      const kind = inferPipelineKind(ordered);
+      return {
+        id,
+        kind,
+        title: pipelineRunTitle(first, ordered, t),
+        subtitle: pipelineRunSubtitle(kind, ordered, t),
+        createdAt: first.createdAt,
+        sessionId: first.sessionId,
+        turnId: first.turnId,
+        status: summarizeTraceStatus(ordered),
+        traces: ordered,
+      };
+    })
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+}
+
+function legacyPipelineId(trace: TraceRecord): string {
+  const kind = inferLegacyPipelineKind([trace]);
+  const scope = trace.turnId
+    ? `turn:${trace.turnId}`
+    : trace.sessionId
+      ? `session:${trace.sessionId}:${trace.createdAt.slice(0, 16)}`
+      : `trace:${trace.id}`;
+  return `legacy:${kind}:${scope}`;
+}
+
+function compareTraceOrder(left: TraceRecord, right: TraceRecord): number {
+  const leftStep = typeof left.stepIndex === 'number' ? left.stepIndex : legacyTraceStep(left);
+  const rightStep = typeof right.stepIndex === 'number' ? right.stepIndex : legacyTraceStep(right);
+  if (leftStep !== rightStep) return leftStep - rightStep;
+  if (left.createdAt !== right.createdAt) return left.createdAt.localeCompare(right.createdAt);
+  return left.id.localeCompare(right.id);
+}
+
+function legacyTraceStep(trace: TraceRecord): number {
+  if (trace.kind === 'index' && trace.phase === 'repo') return 10;
+  if (trace.kind === 'index' && trace.phase === 'source_freshness') return 20;
+  if (trace.kind === 'retrieval' && trace.phase === 'tool_loop') return 30;
+  if (trace.kind === 'retrieval' && trace.phase === 'read') return 40;
+  if (trace.kind === 'context') return 50;
+  if (trace.kind === 'index' && trace.phase === 'turn') return 60;
+  if (trace.kind === 'index' && trace.phase === 'history_backfill') return 70;
+  if (trace.kind === 'maintain') return 80;
+  if (trace.kind === 'index') return 60;
+  if (trace.kind === 'retrieval') return 30;
+  return 90;
+}
+
+function summarizeTraceStatus(traces: TraceRecord[]): TraceRecord['status'] {
+  if (traces.some((trace) => trace.status === 'error')) return 'error';
+  if (traces.some((trace) => trace.status === 'success')) return 'success';
+  return 'skipped';
+}
+
+function pipelineRunTitle(first: TraceRecord, traces: TraceRecord[], t: TFunction<'projectWiki'>): string {
+  const kind = first.pipelineKind ?? inferLegacyPipelineKind(traces);
+  if (kind === 'retrieval_context') return compactPipelineTitle(extractPipelineQuestion(traces) ?? t('pipelineTitles.userConversation'));
+  if (kind === 'ingestion') return t('pipelineTitles.automaticIndex');
+  if (kind === 'refresh') return t('pipelineTitles.manualIndex');
+  if (kind === 'direct_search') return compactPipelineTitle(extractPipelineQuestion(traces) ?? t('pipelineTitles.directSearch'));
+  return t('pipelineTitles.unknownEvent');
+}
+
+function pipelineRunSubtitle(
+  kind: TracePipelineRun['kind'],
+  traces: TraceRecord[],
+  t: TFunction<'projectWiki'>,
+): string | undefined {
+  const question = extractPipelineQuestion(traces);
+  if ((kind === 'ingestion' || kind === 'refresh') && question) {
+    return t('pipelineSubtitles.fromConversation', { query: compactPipelineTitle(question, 90) });
+  }
+  if (kind === 'retrieval_context') return t('pipelineSubtitles.retrievalContext');
+  return undefined;
+}
+
+function pipelineKindLabel(kind: TracePipelineRun['kind'], t: TFunction<'projectWiki'>): string {
+  if (kind === 'retrieval_context') return t('pipelineKinds.userConversation');
+  if (kind === 'ingestion') return t('pipelineKinds.automaticIndex');
+  if (kind === 'refresh') return t('pipelineKinds.manualIndex');
+  if (kind === 'direct_search') return t('pipelineKinds.directSearch');
+  return t('pipelineKinds.legacy');
+}
+
+function inferPipelineKind(traces: TraceRecord[]): TracePipelineRun['kind'] {
+  const explicit = traces.find((trace) => trace.pipelineKind)?.pipelineKind;
+  if (explicit) return explicit;
+  return inferLegacyPipelineKind(traces);
+}
+
+function inferLegacyPipelineKind(traces: TraceRecord[]): TracePipelineRun['kind'] {
+  if (traces.some((trace) => trace.kind === 'retrieval' || trace.kind === 'context')) {
+    return 'retrieval_context';
+  }
+  if (traces.some(isManualIndexTrace)) return 'refresh';
+  if (traces.some((trace) => trace.kind === 'index' || trace.kind === 'maintain')) return 'ingestion';
+  return 'legacy';
+}
+
+function isManualIndexTrace(trace: TraceRecord): boolean {
+  if (trace.pipelineKind === 'refresh') return true;
+  if (trace.sessionId === '__projectwiki_dashboard__') return true;
+  if (trace.turnId?.startsWith('manual-')) return true;
+  const input = asTraceRecord(trace.input);
+  return Boolean(input && ('chatDir' in input || 'maxTurns' in input));
+}
+
+function extractPipelineQuestion(traces: TraceRecord[]): string | undefined {
+  for (const trace of traces) {
+    const query = getTraceInputString(trace, 'query');
+    if (query) return query;
+  }
+  for (const trace of traces) {
+    const input = asTraceRecord(trace.input);
+    const messages = Array.isArray(input?.messages) ? input.messages : [];
+    const userMessage = messages.find((message) => {
+      const record = asTraceRecord(message);
+      return record?.role === 'user';
+    });
+    const content = asTraceRecord(userMessage)?.content;
+    const text = traceContentToText(content);
+    if (text) return text;
+  }
+  return undefined;
+}
+
+function getTraceInputString(trace: TraceRecord, key: string): string | undefined {
+  const input = asTraceRecord(trace.input);
+  const value = input?.[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function traceContentToText(content: unknown): string | undefined {
+  if (typeof content === 'string') return content.trim() || undefined;
+  if (!Array.isArray(content)) return undefined;
+  const text = content
+    .map((part) => {
+      const record = asTraceRecord(part);
+      const value = record?.text ?? record?.content;
+      return typeof value === 'string' ? value : '';
+    })
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+  return text || undefined;
+}
+
+function asTraceRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function compactPipelineTitle(title: string, maxLength = 120): string {
+  const normalized = title.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength - 1)}…`;
+}
+
+function formatTraceStepTitle(trace: TraceRecord, t: TFunction<'projectWiki'>): string {
+  if (trace.stepName) {
+    return t(`traceSteps.${trace.stepName}`, { defaultValue: trace.stepName });
+  }
+  return `${traceKindLabel(trace.kind, t)} / ${tracePhaseLabel(trace, t)}`;
+}
+
 function traceRoleLabel(kind: TraceKind, t: TFunction<'projectWiki'>): string {
   if (kind === 'retrieval') return t('traceRoles.retrieval');
   if (kind === 'context') return t('traceRoles.context');
@@ -1504,6 +1829,30 @@ type TracePayloadState = {
   error?: string;
 };
 
+const TRACE_PAYLOAD_ORDER: TracePayloadKind[] = [
+  'modelRequest',
+  'modelResponse',
+  'parsedOutput',
+  'toolLoopMessages',
+  'businessInput',
+  'businessOutput',
+  'input',
+  'output',
+];
+
+function payloadRows(
+  refs: TraceRecord['payloadRefs'] | undefined,
+  t: TFunction<'projectWiki'>,
+): Array<{ kind: TracePayloadKind; label: string; path: string }> {
+  if (!refs) return [];
+  return TRACE_PAYLOAD_ORDER
+    .map((kind) => {
+      const path = refs[kind];
+      return path ? { kind, label: t(`payloadKinds.${kind}`), path } : null;
+    })
+    .filter((row): row is { kind: TracePayloadKind; label: string; path: string } => Boolean(row));
+}
+
 function TracePayloadRefs({
   projectPath,
   refs,
@@ -1514,10 +1863,7 @@ function TracePayloadRefs({
   const { t } = useTranslation('projectWiki');
   const [openPath, setOpenPath] = useState<string | null>(null);
   const [payloads, setPayloads] = useState<Record<string, TracePayloadState>>({});
-  const rows = [
-    refs?.input ? { label: t('payload.rawInput'), path: refs.input } : null,
-    refs?.output ? { label: t('payload.rawOutput'), path: refs.output } : null,
-  ].filter((row): row is { label: string; path: string } => Boolean(row));
+  const rows = payloadRows(refs, t);
   if (rows.length === 0) return null;
 
   const loadPayload = async (relativePath: string) => {
@@ -1557,7 +1903,7 @@ function TracePayloadRefs({
 	      <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-neutral-500">{t('payload.title')}</h3>
       <div className="grid gap-2">
         {rows.map((row) => (
-          <div key={row.label} className="min-w-0 rounded-md border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/60">
+          <div key={`${row.kind}-${row.path}`} className="min-w-0 rounded-md border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/60">
             <button
               type="button"
               onClick={() => void loadPayload(row.path)}

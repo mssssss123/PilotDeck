@@ -147,10 +147,60 @@
     "source": "Source"
   },
   "traceKinds": {
+    "all": "All",
     "index": "Index",
     "maintain": "Maintain",
     "retrieval": "Retrieval",
     "context": "Context"
+  },
+  "pipelineTitles": {
+    "userConversation": "User Conversation",
+    "automaticIndex": "Automatic Index Build",
+    "manualIndex": "Manual Index Build",
+    "directSearch": "ProjectWiki Search",
+    "unknownEvent": "ProjectWiki Event"
+  },
+  "pipelineSubtitles": {
+    "retrievalContext": "ProjectWiki retrieved and assembled context for this conversation.",
+    "fromConversation": "From conversation: {{query}}"
+  },
+  "pipelineKinds": {
+    "userConversation": "User conversation",
+    "automaticIndex": "Automatic build",
+    "manualIndex": "Manual build",
+    "directSearch": "Direct search",
+    "legacy": "Legacy record"
+  },
+  "pipeline": {
+    "stepsTitle": "Execution Order"
+  },
+  "traceSteps": {
+    "check_source_freshness": "Check source freshness",
+    "check_source_freshness_failed": "Source freshness check failed",
+    "retrieval_decision": "Retrieval decision",
+    "read_materials": "Read ProjectWiki materials",
+    "assemble_context": "Assemble main-agent context",
+    "retrieval_failed": "Retrieval context failed",
+    "retriever_tool_loop": "Retriever tool loop",
+    "retriever_tool_loop_fallback": "Retriever tool-loop fallback",
+    "tool_catalog_search": "In-tool search decision",
+    "tool_catalog_search_failed": "In-tool search failed",
+    "project_wiki_search": "ProjectWiki search",
+    "project_wiki_search_failed": "ProjectWiki search failed",
+    "capture_queue_failed": "Capture queue failed",
+    "capture_failed": "Capture pipeline failed",
+    "history_backfill": "Historical conversation backfill",
+    "history_backfill_failed": "Historical conversation backfill failed",
+    "index_turn": "Index current turn",
+    "index_turn_failed": "Current turn indexing failed",
+    "repo_index": "Repository material indexing",
+    "repo_index_failed": "Repository indexing failed",
+    "legacy_memory_import": "Import legacy memory",
+    "legacy_memory_import_failed": "Legacy memory import failed",
+    "maintain_wiki": "Refine Wiki pages",
+    "maintain_wiki_failed": "Wiki refinement failed",
+    "maintenance_deferred": "Wiki maintenance deferred",
+    "maintenance_queue_failed": "Wiki maintenance queue failed"
   },
   "traceRoles": {
     "retrieval": "Searcher recall",
@@ -203,6 +253,7 @@
     "outputDecision": "Output / Decision",
     "selectRun": "Select a trace run to inspect model decisions.",
     "artifactCount": "{{count}} artifacts",
+    "hasModelTrace": "model request",
     "noData": "No data",
     "openJson": "Open trace JSON · {{size}}",
     "hideJson": "Hide trace JSON · {{size}}"
@@ -219,6 +270,16 @@
     "loading": "Loading payload...",
     "empty": "No payload content",
     "loadFailed": "Failed to load raw payload"
+  },
+  "payloadKinds": {
+    "modelRequest": "Model request",
+    "modelResponse": "Model response",
+    "parsedOutput": "Structured result",
+    "toolLoopMessages": "Tool-loop messages",
+    "businessInput": "Business input",
+    "businessOutput": "Business output",
+    "input": "Legacy raw input",
+    "output": "Legacy raw output"
   },
   "artifacts": {
     "title": "Artifacts",

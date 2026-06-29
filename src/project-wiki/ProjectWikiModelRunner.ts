@@ -29,6 +29,7 @@ export type ProjectWikiStructuredCallInput = {
 export type ProjectWikiStructuredCallResult<T> = {
   value: T;
   response: CanonicalModelResponse;
+  request: CanonicalModelRequest;
   model: ProjectWikiModelRef;
 };
 
@@ -43,8 +44,25 @@ export type ProjectWikiCompleteCallInput = {
 
 export type ProjectWikiCompleteCallResult = {
   response: CanonicalModelResponse;
+  request: CanonicalModelRequest;
   model: ProjectWikiModelRef;
 };
+
+export class ProjectWikiModelRunnerError extends Error {
+  readonly request: CanonicalModelRequest;
+  readonly cause: unknown;
+
+  constructor(message: string, request: CanonicalModelRequest, cause: unknown) {
+    super(message);
+    this.name = "ProjectWikiModelRunnerError";
+    this.request = request;
+    this.cause = cause;
+  }
+}
+
+export function projectWikiModelRequestFromError(error: unknown): CanonicalModelRequest | undefined {
+  return error instanceof ProjectWikiModelRunnerError ? error.request : undefined;
+}
 
 export class ProjectWikiModelRunner {
   constructor(private readonly options: ProjectWikiModelRunnerOptions) {}
@@ -96,7 +114,9 @@ export class ProjectWikiModelRunner {
       if (!extracted.ok) {
         throw new Error(`ProjectWiki ${input.role} structured output failed: ${extracted.reason}`);
       }
-      return { value: extracted.value as T, response, model };
+      return { value: extracted.value as T, response, request, model };
+    } catch (error) {
+      throw new ProjectWikiModelRunnerError(errorMessage(error), request, error);
     } finally {
       if (timer) clearTimeout(timer);
       detach?.();
@@ -133,12 +153,18 @@ export class ProjectWikiModelRunner {
           }, timeoutMs);
         }),
       ]);
-      return { response, model };
+      return { response, request, model };
+    } catch (error) {
+      throw new ProjectWikiModelRunnerError(errorMessage(error), request, error);
     } finally {
       if (timer) clearTimeout(timer);
       detach?.();
     }
   }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function forwardAbort(source: AbortSignal | undefined, target: AbortController): (() => void) | undefined {

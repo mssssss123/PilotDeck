@@ -128,11 +128,28 @@ export type ProjectWikiSourceHealth = {
 };
 
 export type ProjectWikiTraceKind = "index" | "maintain" | "retrieval" | "context";
+export type ProjectWikiTracePipelineKind = "ingestion" | "retrieval_context" | "refresh" | "direct_search";
+
+export type ProjectWikiTracePayloadRefs = {
+  input?: string;
+  output?: string;
+  businessInput?: string;
+  businessOutput?: string;
+  modelRequest?: string;
+  modelResponse?: string;
+  parsedOutput?: string;
+  toolLoopMessages?: string;
+};
 
 export type ProjectWikiTraceRecord = {
   id: string;
   kind: ProjectWikiTraceKind;
   phase: string;
+  pipelineRunId?: string;
+  pipelineKind?: ProjectWikiTracePipelineKind;
+  stepIndex?: number;
+  stepName?: string;
+  parentTraceId?: string;
   projectRoot: string;
   sessionId?: string;
   turnId?: string;
@@ -145,10 +162,7 @@ export type ProjectWikiTraceRecord = {
   output?: unknown;
   error?: string;
   usage?: CanonicalUsage;
-  payloadRefs?: {
-    input?: string;
-    output?: string;
-  };
+  payloadRefs?: ProjectWikiTracePayloadRefs;
   artifacts?: Array<{
     kind: "source_card" | "wiki_page" | "context" | "trace" | "conflict";
     path?: string;

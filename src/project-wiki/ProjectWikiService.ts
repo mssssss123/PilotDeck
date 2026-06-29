@@ -6,6 +6,7 @@ import type { CanonicalMessage, CanonicalToolSchema, CanonicalUsage } from "../m
 import { readTranscript, type AgentTranscriptEntry } from "../session/index.js";
 import {
   ProjectWikiModelRunner,
+  projectWikiModelRequestFromError,
   type ProjectWikiStructuredCallResult,
 } from "./ProjectWikiModelRunner.js";
 import { ProjectWikiStore, truncateText } from "./ProjectWikiStore.js";
@@ -123,7 +124,18 @@ export type ProjectWikiServiceOptions = {
   now?: () => Date;
 };
 
-type ModelTraceBase = Pick<ProjectWikiTraceRecord, "kind" | "phase" | "projectRoot" | "sessionId" | "turnId" | "language">;
+type ModelTraceBase = Pick<
+  ProjectWikiTraceRecord,
+  "kind" | "phase" | "projectRoot" | "sessionId" | "turnId" | "language"
+>;
+type TracePipelineKind = NonNullable<ProjectWikiTraceRecord["pipelineKind"]>;
+type TracePipelineContext = {
+  pipelineRunId: string;
+  pipelineKind: TracePipelineKind;
+};
+type TraceableProjectWikiCaptureInput = ProjectWikiCaptureTurnInput & {
+  tracePipeline?: TracePipelineContext;
+};
 
 type RepoDigestState = {
   contentHash: string;
@@ -142,7 +154,7 @@ export type RepoDigestMaterial = {
   }>;
 };
 
-type QueuedProjectWikiCaptureInput = ProjectWikiCaptureTurnInput & {
+type QueuedProjectWikiCaptureInput = TraceableProjectWikiCaptureInput & {
   repoMaterial?: RepoDigestMaterial;
 };
 
@@ -151,10 +163,11 @@ type IndexTurnResult = {
   status: "success" | "skipped" | "error";
 };
 
-type HistoricalTurnMaterial = ProjectWikiCaptureTurnInput & {
+type HistoricalTurnMaterial = TraceableProjectWikiCaptureInput & {
   contentHash: string;
   createdAt: string;
   transcriptPath: string;
+  tracePipeline?: TracePipelineContext;
 };
 
 type HistoryBackfillState = {
@@ -276,6 +289,18 @@ export class ProjectWikiService {
     return traceBase(kind, phase, this.projectRoot, input, this.outputLanguage);
   }
 
+  private createTracePipeline(
+    pipelineKind: TracePipelineKind,
+    input: { sessionId?: string; turnId?: string },
+  ): TracePipelineContext {
+    const sessionId = input.sessionId || "no-session";
+    const turnId = input.turnId || `run-${timestampSlug(this.now().toISOString())}`;
+    return {
+      pipelineKind,
+      pipelineRunId: `${pipelineKind}:${hashText(`${this.projectRoot}\n${sessionId}\n${turnId}`).slice(0, 16)}`,
+    };
+  }
+
   private async readRepoDigestState(): Promise<RepoDigestState | undefined> {
     const state = await readJsonFile<RepoDigestState>(this.repoDigestStatePath);
     return state && typeof state.contentHash === "string" && typeof state.indexedAt === "string"
@@ -348,9 +373,10 @@ export class ProjectWikiService {
     }
     await this.store.ensureInitialized();
     const diagnostics: ProjectWikiDiagnostic[] = [];
+    const pipeline = this.createTracePipeline("retrieval_context", input);
 
     try {
-      await this.refreshSourceCardFreshness(input);
+      await this.refreshSourceCardFreshness({ ...input, tracePipeline: pipeline }, 1, "check_source_freshness");
       const catalog = filterRetrievableCatalog(
         await this.store.listCatalog(this.config.limits.maxCatalogChars),
       );
@@ -364,7 +390,7 @@ export class ProjectWikiService {
         catalog: modelCatalog,
         openConflicts,
       };
-      const toolLoopSearch = await this.runRetrieverToolLoop(input, searchInput, modelCatalog);
+      const toolLoopSearch = await this.runRetrieverToolLoop(input, searchInput, modelCatalog, pipeline);
       let searchValue: ProjectWikiSearchOutput;
       if (toolLoopSearch) {
         searchValue = toolLoopSearch.value;
@@ -389,9 +415,11 @@ export class ProjectWikiService {
             status: "error",
             model: this.modelRunner.resolveModel("searcher"),
             durationMs: Date.now() - searchStarted,
+            ...traceStep(pipeline, 2, "retrieval_decision"),
             input: compactTracePayload(searchInput),
             rawInput: searchInput,
             error: message,
+            payloads: modelErrorTracePayloads(error),
           });
           return {
             diagnostics: [{
@@ -411,10 +439,12 @@ export class ProjectWikiService {
           status: "success",
           model: search.model,
           durationMs: Date.now() - searchStarted,
+          ...traceStep(pipeline, 2, "retrieval_decision"),
           input: compactTracePayload(searchInput),
           output: compactTracePayload(searchValue),
           rawInput: searchInput,
           rawOutput: searchValue,
+          payloads: modelTracePayloads(search),
           usage: search.response.usage,
           artifacts: selectedPaths.map(traceArtifactForPath),
         });
@@ -453,6 +483,7 @@ export class ProjectWikiService {
         ...this.traceBase("retrieval", "read", input),
         status: materials.length > 0 ? "success" : "skipped",
         durationMs: Date.now() - readStarted,
+        ...traceStep(pipeline, 3, "read_materials"),
         input: compactTracePayload(readInput),
         output: compactTracePayload(readOutput),
         rawInput: readInput,
@@ -495,9 +526,11 @@ export class ProjectWikiService {
           status: "error",
           model: this.modelRunner.resolveModel("curator"),
           durationMs: Date.now() - curateStarted,
+          ...traceStep(pipeline, 4, "assemble_context"),
           input: compactTracePayload(curateInput),
           rawInput: curateInput,
           error: message,
+          payloads: modelErrorTracePayloads(error),
           artifacts: selectedPaths.map(traceArtifactForPath),
         });
         return {
@@ -515,10 +548,12 @@ export class ProjectWikiService {
         status: context ? "success" : "skipped",
         model: curated.model,
         durationMs: Date.now() - curateStarted,
+        ...traceStep(pipeline, 4, "assemble_context"),
         input: compactTracePayload(curateInput),
         output: compactTracePayload(curated.value),
         rawInput: curateInput,
         rawOutput: curated.value,
+        payloads: modelTracePayloads(curated),
         usage: curated.response.usage,
         artifacts: context ? [
           { kind: "context", title: "project-wiki-context" },
@@ -548,6 +583,7 @@ export class ProjectWikiService {
       await this.store.appendTrace({
         ...this.traceBase("context", "retrieve_failed", input),
         status: "error",
+        ...traceStep(pipeline, 99, "retrieval_failed"),
         error: message,
       });
       return {
@@ -569,6 +605,7 @@ export class ProjectWikiService {
       openConflicts: OpenConflictContext[];
     },
     catalog: ProjectWikiCatalogEntry[],
+    pipeline?: TracePipelineContext,
   ): Promise<RetrieverToolLoopResult | undefined> {
     const started = Date.now();
     const rawInput = {
@@ -620,10 +657,17 @@ export class ProjectWikiService {
             status: value.needsProjectWiki === false || selectedPaths.length === 0 ? "skipped" : "success",
             model,
             durationMs: Date.now() - started,
+            ...traceStep(pipeline, 2, "retriever_tool_loop"),
             input: compactTracePayload(rawInput),
             output: compactTracePayload(rawOutput),
             rawInput,
             rawOutput,
+            payloads: {
+              modelRequest: result.request,
+              modelResponse: result.response,
+              parsedOutput: value,
+              toolLoopMessages: messages,
+            },
             usage,
             artifacts: selectedPaths.map(traceArtifactForPath),
           });
@@ -635,15 +679,17 @@ export class ProjectWikiService {
         if (executableCalls.length === 0) {
           const value = parseSearchOutputFromTextBlocks(result.response.content);
           if (!value) {
-            await this.appendRetrieverToolLoopFallbackTrace({
-              input,
-              rawInput,
-              toolEvents,
-              started,
-              model,
-              usage,
-              reason: "Retriever response did not include a finish call, executable ProjectWiki tool call, or valid JSON search output.",
-            });
+          await this.appendRetrieverToolLoopFallbackTrace({
+            input,
+            rawInput,
+            toolEvents,
+            started,
+            model,
+            usage,
+            pipeline,
+            messages,
+            reason: "Retriever response did not include a finish call, executable ProjectWiki tool call, or valid JSON search output.",
+          });
             return undefined;
           }
           const selectedPaths = normalizeSelectedPaths(value, this.config.limits.maxSourceCardsPerTurn);
@@ -653,10 +699,17 @@ export class ProjectWikiService {
             status: value.needsProjectWiki === false || selectedPaths.length === 0 ? "skipped" : "success",
             model,
             durationMs: Date.now() - started,
+            ...traceStep(pipeline, 2, "retriever_tool_loop"),
             input: compactTracePayload(rawInput),
             output: compactTracePayload(rawOutput),
             rawInput,
             rawOutput,
+            payloads: {
+              modelRequest: result.request,
+              modelResponse: result.response,
+              parsedOutput: value,
+              toolLoopMessages: messages,
+            },
             usage,
             artifacts: selectedPaths.map(traceArtifactForPath),
           });
@@ -671,7 +724,7 @@ export class ProjectWikiService {
 
         const toolResults = [];
         for (const call of executableCalls) {
-          const executed = await this.executeRetrieverTool(call, catalog, input, searchInput);
+          const executed = await this.executeRetrieverTool(call, catalog, input, searchInput, pipeline);
           toolEvents.push({
             step,
             name: call.name,
@@ -703,6 +756,8 @@ export class ProjectWikiService {
         started,
         model,
         usage,
+        pipeline,
+        messages,
         reason: `Retriever tool loop reached the ${RETRIEVER_TOOL_LOOP_MAX_STEPS}-step limit without finishing.`,
       });
       return undefined;
@@ -714,6 +769,8 @@ export class ProjectWikiService {
         started,
         model,
         usage,
+        pipeline,
+        messages,
         reason: `Retriever tool loop fell back to structured search after an error: ${errorMessage(error)}`,
       });
       return undefined;
@@ -727,6 +784,8 @@ export class ProjectWikiService {
     started: number;
     model: ProjectWikiModelRef;
     usage?: CanonicalUsage;
+    pipeline?: TracePipelineContext;
+    messages?: CanonicalMessage[];
     reason: string;
   }): Promise<void> {
     const rawOutput = {
@@ -739,10 +798,12 @@ export class ProjectWikiService {
         status: "skipped",
         model: input.model,
         durationMs: Date.now() - input.started,
+        ...traceStep(input.pipeline, 2, "retriever_tool_loop_fallback"),
         input: compactTracePayload(input.rawInput),
         output: compactTracePayload(rawOutput),
         rawInput: input.rawInput,
         rawOutput,
+        payloads: input.messages ? { toolLoopMessages: input.messages } : undefined,
         usage: input.usage,
       });
     } catch {
@@ -758,6 +819,7 @@ export class ProjectWikiService {
       recentMessages: string;
       openConflicts: OpenConflictContext[];
     },
+    pipeline?: TracePipelineContext,
   ): Promise<{ isError?: boolean; payload: unknown }> {
     if (call.name === "projectwiki_search") {
       const input = isRecord(call.input) ? call.input : {};
@@ -804,10 +866,17 @@ export class ProjectWikiService {
           status: result.value.needsProjectWiki === false || selectedPaths.length === 0 ? "skipped" : "success",
           model: result.model,
           durationMs: Date.now() - started,
+          ...traceStep(pipeline, 2.1, "tool_catalog_search"),
           input: compactTracePayload(modelInput),
           output: compactTracePayload(payload),
           rawInput: modelInput,
           rawOutput: payload,
+          payloads: {
+            modelRequest: result.request,
+            modelResponse: result.response,
+            parsedOutput: result.value,
+            businessOutput: payload,
+          },
           usage: result.response.usage,
           artifacts: selectedPaths.map(traceArtifactForPath),
         });
@@ -819,9 +888,11 @@ export class ProjectWikiService {
           status: "error",
           model: this.modelRunner.resolveModel("searcher"),
           durationMs: Date.now() - started,
+          ...traceStep(pipeline, 2.1, "tool_catalog_search_failed"),
           input: compactTracePayload(modelInput),
           rawInput: modelInput,
           error: message,
+          payloads: modelErrorTracePayloads(error),
         });
         return {
           isError: true,
@@ -886,8 +957,9 @@ export class ProjectWikiService {
     }
     await this.store.ensureInitialized();
     const diagnostics: ProjectWikiDiagnostic[] = [];
+    const pipeline = this.createTracePipeline("direct_search", input);
     try {
-      await this.refreshSourceCardFreshness(input);
+      await this.refreshSourceCardFreshness({ ...input, tracePipeline: pipeline }, 1, "check_source_freshness");
       const catalog = filterRetrievableCatalog(
         await this.store.listCatalog(this.config.limits.maxCatalogChars),
       );
@@ -921,9 +993,11 @@ export class ProjectWikiService {
           status: "error",
           model: this.modelRunner.resolveModel("searcher"),
           durationMs: Date.now() - started,
+          ...traceStep(pipeline, 2, "project_wiki_search"),
           input: compactTracePayload(searchInput),
           rawInput: searchInput,
           error: message,
+          payloads: modelErrorTracePayloads(error),
         });
         return {
           selected: [],
@@ -946,10 +1020,12 @@ export class ProjectWikiService {
         status: search.value.needsProjectWiki === false || selectedPaths.length === 0 ? "skipped" : "success",
         model: search.model,
         durationMs: Date.now() - started,
+        ...traceStep(pipeline, 2, "project_wiki_search"),
         input: compactTracePayload(searchInput),
         output: compactTracePayload(search.value),
         rawInput: searchInput,
         rawOutput: search.value,
+        payloads: modelTracePayloads(search),
         usage: search.response.usage,
         artifacts: selectedPaths.map(traceArtifactForPath),
       });
@@ -995,6 +1071,7 @@ export class ProjectWikiService {
       await this.store.appendTrace({
         ...this.traceBase("retrieval", "tool_search_store_failed", input),
         status: "error",
+        ...traceStep(pipeline, 99, "project_wiki_search_failed"),
         error: message,
       });
       return {
@@ -1043,6 +1120,7 @@ export class ProjectWikiService {
     const captureInput: QueuedProjectWikiCaptureInput = {
       ...input,
       messages: [...input.messages],
+      tracePipeline: this.createTracePipeline("ingestion", input),
     };
     this.indexingQueue = this.indexingQueue
       .catch(() => undefined)
@@ -1054,6 +1132,7 @@ export class ProjectWikiService {
           await this.store.appendTrace({
             ...this.traceBase("index", "capture_queue_failed", captureInput),
             status: "error",
+            ...traceStep(captureInput.tracePipeline, 99, "capture_queue_failed"),
             error: errorMessage(error),
           });
         } catch {
@@ -1082,6 +1161,7 @@ export class ProjectWikiService {
       messages: [],
       errored: false,
     };
+    refreshInput.tracePipeline = this.createTracePipeline("refresh", refreshInput);
     const currentCards = await this.processCaptureTurn(refreshInput);
     const history = await this.backfillHistoricalTurns(refreshInput, input.maxHistoricalTurns);
     await this.flushMaintenance();
@@ -1127,6 +1207,7 @@ export class ProjectWikiService {
       await this.store.appendTrace({
         ...this.traceBase("index", "capture_failed", input),
         status: "error",
+        ...traceStep(input.tracePipeline, 99, "capture_failed"),
         error: error instanceof Error ? error.message : String(error),
       });
       return [];
@@ -1134,7 +1215,7 @@ export class ProjectWikiService {
   }
 
   private async backfillHistoricalTurns(
-    input: ProjectWikiCaptureTurnInput,
+    input: TraceableProjectWikiCaptureInput,
     maxHistoricalTurns?: number,
   ): Promise<HistoryBackfillResult> {
     const started = Date.now();
@@ -1154,6 +1235,7 @@ export class ProjectWikiService {
       await this.store.appendTrace({
         ...this.traceBase("index", "history_backfill", input),
         status: "skipped",
+        ...traceStep(input.tracePipeline, 5, "history_backfill"),
         input: { chatDir, maxTurns, reason: "Conversation and knowledge sources are disabled." },
         output: result,
       });
@@ -1176,6 +1258,7 @@ export class ProjectWikiService {
         ...this.traceBase("index", "history_backfill_failed", input),
         status: "error",
         durationMs: Date.now() - started,
+        ...traceStep(input.tracePipeline, 5, "history_backfill_failed"),
         input: { chatDir, maxTurns },
         error: errorMessage(error),
       });
@@ -1187,6 +1270,7 @@ export class ProjectWikiService {
         ...this.traceBase("index", "history_backfill", input),
         status: "skipped",
         durationMs: Date.now() - started,
+        ...traceStep(input.tracePipeline, 5, "history_backfill"),
         input: { chatDir, maxTurns },
         output: result,
       });
@@ -1201,7 +1285,7 @@ export class ProjectWikiService {
         result.skippedTurns += 1;
         continue;
       }
-      const indexed = await this.indexTurn(turn);
+      const indexed = await this.indexTurn({ ...turn, tracePipeline: input.tracePipeline });
       if (indexed.status === "error") {
         result.failedTurns += 1;
         continue;
@@ -1228,6 +1312,7 @@ export class ProjectWikiService {
       ...this.traceBase("index", "history_backfill", input),
       status: result.indexedTurns > 0 || result.sourceCardsCreated > 0 ? "success" : "skipped",
       durationMs: Date.now() - started,
+      ...traceStep(input.tracePipeline, 5, "history_backfill"),
       input: compactTracePayload({ chatDir, maxTurns }),
       output: compactTracePayload(result),
       rawInput: { chatDir, maxTurns },
@@ -1242,7 +1327,7 @@ export class ProjectWikiService {
     return result;
   }
 
-  private async indexTurn(input: ProjectWikiCaptureTurnInput): Promise<IndexTurnResult> {
+  private async indexTurn(input: TraceableProjectWikiCaptureInput): Promise<IndexTurnResult> {
     const turnSourceTypes = enabledTurnSourceTypes(this.config);
     if (turnSourceTypes.length === 0) return { cards: [], status: "skipped" };
     const digest = canonicalMessagesToTextDigest(input.messages, 16_000);
@@ -1277,10 +1362,12 @@ export class ProjectWikiService {
         status: "success",
         model: result.model,
         durationMs: Date.now() - started,
+        ...traceStep(input.tracePipeline, 4, "index_turn"),
         input: compactTracePayload(modelInput),
         output: compactTracePayload(result.value),
         rawInput: modelInput,
         rawOutput: result.value,
+        payloads: modelTracePayloads(result),
         usage: result.response.usage,
         artifacts: cards.map((card) => ({
           kind: "source_card",
@@ -1296,16 +1383,18 @@ export class ProjectWikiService {
         status: "error",
         model: this.modelRunner.resolveModel("indexer"),
         durationMs: Date.now() - started,
+        ...traceStep(input.tracePipeline, 4, "index_turn_failed"),
         input: compactTracePayload(modelInput),
         rawInput: modelInput,
         error: errorMessage(error),
+        payloads: modelErrorTracePayloads(error),
       });
       return { cards: [], status: "error" };
     }
   }
 
   private async ensureRepoIndexed(
-    input: ProjectWikiCaptureTurnInput,
+    input: TraceableProjectWikiCaptureInput,
     repoMaterial?: RepoDigestMaterial,
   ): Promise<ProjectWikiSourceCardRecord[]> {
     const material = repoMaterial ?? await this.repoDigestBuilder(this.projectRoot);
@@ -1314,6 +1403,7 @@ export class ProjectWikiService {
       await this.store.appendTrace({
         ...this.traceBase("index", "repo", input),
         status: "skipped",
+        ...traceStep(input.tracePipeline, 1, "repo_index"),
         input: { reason: "No readable repository digest material." },
       });
       return [];
@@ -1364,10 +1454,12 @@ export class ProjectWikiService {
         status: "success",
         model: result.model,
         durationMs: Date.now() - started,
+        ...traceStep(input.tracePipeline, 1, "repo_index"),
         input: compactTracePayload(modelInput),
         output: compactTracePayload(result.value),
         rawInput: modelInput,
         rawOutput: result.value,
+        payloads: modelTracePayloads(result),
         usage: result.response.usage,
         artifacts: [...staleCards, ...cards].map((card) => ({
           kind: "source_card",
@@ -1383,15 +1475,17 @@ export class ProjectWikiService {
         status: "error",
         model: this.modelRunner.resolveModel("indexer"),
         durationMs: Date.now() - started,
+        ...traceStep(input.tracePipeline, 1, "repo_index_failed"),
         input: compactTracePayload(modelInput),
         rawInput: modelInput,
         error: errorMessage(error),
+        payloads: modelErrorTracePayloads(error),
       });
       return [];
     }
   }
 
-  private async ensureLegacyMemoryImported(input: ProjectWikiCaptureTurnInput): Promise<ProjectWikiSourceCardRecord[]> {
+  private async ensureLegacyMemoryImported(input: TraceableProjectWikiCaptureInput): Promise<ProjectWikiSourceCardRecord[]> {
     if (!this.legacyMemoryRootDir) return [];
     const legacyFiles = await collectLegacyMemoryMarkdown(this.legacyMemoryRootDir, this.projectRoot);
     const sourceHash = legacyMemorySourceHash(legacyFiles);
@@ -1475,10 +1569,12 @@ export class ProjectWikiService {
         status: "success",
         model: result.model,
         durationMs: Date.now() - started,
+        ...traceStep(input.tracePipeline, 3, "legacy_memory_import"),
         input: compactTracePayload(modelInput),
         output: compactTracePayload(result.value),
         rawInput: modelInput,
         rawOutput: result.value,
+        payloads: modelTracePayloads(result),
         usage: result.response.usage,
         artifacts: cards.map((card) => ({
           kind: "source_card",
@@ -1509,9 +1605,11 @@ export class ProjectWikiService {
         status: "error",
         model: this.modelRunner.resolveModel("indexer"),
         durationMs: Date.now() - started,
+        ...traceStep(input.tracePipeline, 3, "legacy_memory_import_failed"),
         input: compactTracePayload(modelInput),
         rawInput: modelInput,
         error: message,
+        payloads: modelErrorTracePayloads(error),
       });
       return [];
     }
@@ -1532,7 +1630,7 @@ export class ProjectWikiService {
     return cards;
   }
 
-  private async maintainWiki(input: ProjectWikiCaptureTurnInput): Promise<boolean> {
+  private async maintainWiki(input: TraceableProjectWikiCaptureInput): Promise<boolean> {
     const pendingCards = await this.store.readPendingMaintenanceCards(
       Math.max(this.config.limits.maxSourceCardsPerTurn, 12),
     );
@@ -1590,10 +1688,12 @@ export class ProjectWikiService {
         status: updated.length > 0 || conflicts.length > 0 ? "success" : "skipped",
         model: result.model,
         durationMs: Date.now() - started,
+        ...traceStep(input.tracePipeline, 6, "maintain_wiki"),
         input: compactTracePayload(modelInput),
         output: compactTracePayload(result.value),
         rawInput: modelInput,
         rawOutput: result.value,
+        payloads: modelTracePayloads(result),
         usage: result.response.usage,
         artifacts: [
           ...updated.map((page) => ({
@@ -1617,15 +1717,17 @@ export class ProjectWikiService {
         status: "error",
         model: this.modelRunner.resolveModel("maintainer"),
         durationMs: Date.now() - started,
+        ...traceStep(input.tracePipeline, 6, "maintain_wiki_failed"),
         input: compactTracePayload(modelInput),
         rawInput: modelInput,
         error: errorMessage(error),
+        payloads: modelErrorTracePayloads(error),
       });
       return false;
     }
   }
 
-  private scheduleWikiMaintenance(input: ProjectWikiCaptureTurnInput): void {
+  private scheduleWikiMaintenance(input: TraceableProjectWikiCaptureInput): void {
     const maintenanceInput = { ...input };
     this.maintenanceQueue = this.maintenanceQueue
       .then(async () => {
@@ -1637,6 +1739,7 @@ export class ProjectWikiService {
           await this.store.appendTrace({
             ...this.traceBase("maintain", "wiki_backlog_deferred", maintenanceInput),
             status: "skipped",
+            ...traceStep(maintenanceInput.tracePipeline, 7, "maintenance_deferred"),
             input: { reason: "Maintenance backlog still has pending source cards after batch limit." },
           });
         }
@@ -1645,13 +1748,16 @@ export class ProjectWikiService {
         await this.store.appendTrace({
           ...this.traceBase("maintain", "wiki_queue_failed", maintenanceInput),
           status: "error",
+          ...traceStep(maintenanceInput.tracePipeline, 99, "maintenance_queue_failed"),
           error: errorMessage(error),
         });
       });
   }
 
   private async refreshSourceCardFreshness(
-    input: { sessionId?: string; turnId?: string },
+    input: { sessionId?: string; turnId?: string; tracePipeline?: TracePipelineContext },
+    stepIndex = 2,
+    stepName = "check_source_freshness",
   ): Promise<ProjectWikiSourceCardRecord[]> {
     const started = Date.now();
     try {
@@ -1661,6 +1767,7 @@ export class ProjectWikiService {
           ...this.traceBase("index", "source_freshness", input),
           status: "success",
           durationMs: Date.now() - started,
+          ...traceStep(input.tracePipeline, stepIndex, stepName),
           output: compactTracePayload({ staleCards }),
           rawOutput: { staleCards },
           artifacts: staleCards.map((card) => ({
@@ -1677,6 +1784,7 @@ export class ProjectWikiService {
         ...this.traceBase("index", "source_freshness_failed", input),
         status: "error",
         durationMs: Date.now() - started,
+        ...traceStep(input.tracePipeline, stepIndex, `${stepName}_failed`),
         error: errorMessage(error),
       });
       return [];
@@ -1699,6 +1807,38 @@ function traceBase(
     turnId: input.turnId,
     language,
   };
+}
+
+function traceStep(
+  pipeline: TracePipelineContext | undefined,
+  stepIndex: number,
+  stepName: string,
+): Pick<ProjectWikiTraceRecord, "pipelineRunId" | "pipelineKind" | "stepIndex" | "stepName"> {
+  return {
+    ...(pipeline ? {
+      pipelineRunId: pipeline.pipelineRunId,
+      pipelineKind: pipeline.pipelineKind,
+    } : {}),
+    stepIndex,
+    stepName,
+  };
+}
+
+function modelTracePayloads<T>(result: ProjectWikiStructuredCallResult<T>): {
+  modelRequest: unknown;
+  modelResponse: unknown;
+  parsedOutput: unknown;
+} {
+  return {
+    modelRequest: result.request,
+    modelResponse: result.response,
+    parsedOutput: result.value,
+  };
+}
+
+function modelErrorTracePayloads(error: unknown): { modelRequest?: unknown } | undefined {
+  const request = projectWikiModelRequestFromError(error);
+  return request ? { modelRequest: request } : undefined;
 }
 
 function errorMessage(error: unknown): string {
