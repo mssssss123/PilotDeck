@@ -3,18 +3,8 @@
     "waiting": "Waiting for ProjectWiki data"
   },
   "home": {
-    "title": "ProjectWiki",
-    "description": "ProjectWiki entry point and storage map.",
-    "bodyTitle": "ProjectWiki",
-    "bodyDescription": "ProjectWiki is the unified project context layer for this workspace.",
-    "wikiPagesTitle": "Wiki Pages",
-    "sourceCardsTitle": "Source Cards",
-    "sourceCards": {
-      "repo": "model summaries of repository material.",
-      "memory": "imported memory summaries.",
-      "conversations": "summaries of relevant conversation turns.",
-      "knowledge": "reusable high-quality assistant output."
-    }
+    "title": "Project Home",
+    "description": "A project-specific homepage refined from ProjectWiki source material."
   },
   "wikiPages": {
     "projectOverview": {
@@ -74,6 +64,7 @@
     "indexedTurns": "{{count}} indexed turns",
     "skippedTurns": "{{count}} skipped",
     "failedTurns": "{{count}} failed",
+    "reconciledCards": "{{count}} source cards reconciled",
     "sourceCards": "{{count}} source cards",
     "transcripts": "{{count}} transcripts scanned",
     "limit": "limit {{count}} historical turns",
@@ -195,10 +186,14 @@
     "index_turn_failed": "Current turn indexing failed",
     "repo_index": "Repository material indexing",
     "repo_index_failed": "Repository indexing failed",
+    "reconcile_source_changes": "Reconcile source changes",
+    "reconcile_source_changes_failed": "Source-change reconciliation failed",
     "legacy_memory_import": "Import legacy memory",
     "legacy_memory_import_failed": "Legacy memory import failed",
     "maintain_wiki": "Refine Wiki pages",
     "maintain_wiki_failed": "Wiki refinement failed",
+    "source_reconcile": "Reconcile source cards",
+    "source_reconcile_failed": "Source-card reconciliation failed",
     "maintenance_deferred": "Wiki maintenance deferred",
     "maintenance_queue_failed": "Wiki maintenance queue failed"
   },
@@ -231,7 +226,9 @@
     "historyBackfillFailed": "History backfill failed",
     "captureFailed": "Capture failed",
     "wiki": "Wiki maintenance",
-    "wikiFailed": "Wiki maintenance failed"
+    "wikiFailed": "Wiki maintenance failed",
+    "sourceReconcile": "Source-card reconciliation",
+    "sourceReconcileFailed": "Source-card reconciliation failed"
   },
   "traceStatus": {
     "success": "Success",

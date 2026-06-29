@@ -104,6 +104,8 @@ export type ContextRecoveryDecision =
 export type ContextCaptureTurnInput = {
   sessionId: string;
   turnId: string;
+  /** Absolute transcript path for this turn. Subagents may override the parent runtime path. */
+  transcriptPath?: string;
   /** Whole turn-end message history (not the in-flight projection). */
   messages: CanonicalMessage[];
   /** True if the turn ended in error/abort; false on completed success. */

@@ -89,6 +89,7 @@ export type SubAgentSessionOptions = {
 export type SidechainTranscriptWriter = {
   recordAcceptedInput(sessionId: string, turnId: string, messages: CanonicalMessage[]): Promise<void>;
   recordDurableMessage(sessionId: string, turnId: string, message: CanonicalMessage): Promise<void>;
+  transcriptPath?: string;
 };
 
 export type SubagentReport = {
@@ -133,6 +134,7 @@ export class SubAgentSession {
     const generator = loop.run({
       sessionId: this.options.subagentSessionId,
       turnId,
+      transcriptPath: this.options.sidechainTranscript?.transcriptPath,
       messages,
       maxTurns: this.options.maxTurns ?? SUBAGENT_DEFAULT_MAX_TURNS,
       abortSignal: this.options.abortSignal,

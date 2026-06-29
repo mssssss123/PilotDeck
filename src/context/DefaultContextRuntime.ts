@@ -324,6 +324,7 @@ export class DefaultContextRuntime implements ContextRuntime {
 
   async captureTurn(input: ContextCaptureTurnInput): Promise<void> {
     const tasks: Promise<void>[] = [];
+    const transcriptPath = input.transcriptPath ?? this.transcriptPath;
     if (this.userProfileResolver) {
       tasks.push((async () => {
         try {
@@ -331,7 +332,7 @@ export class DefaultContextRuntime implements ContextRuntime {
             sessionId: input.sessionId,
             turnId: input.turnId,
             projectRoot: this.projectRoot ?? "",
-            transcriptPath: this.transcriptPath,
+            transcriptPath,
             messages: input.messages,
             errored: input.errored,
           });
@@ -348,7 +349,7 @@ export class DefaultContextRuntime implements ContextRuntime {
             sessionId: input.sessionId,
             turnId: input.turnId,
             projectRoot: this.projectRoot ?? "",
-            transcriptPath: this.transcriptPath,
+            transcriptPath,
             messages: input.messages,
             errored: input.errored,
           });

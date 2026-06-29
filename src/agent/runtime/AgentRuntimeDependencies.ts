@@ -71,6 +71,7 @@ export type AgentSubagentTranscriptHooks = {
   subagentTranscriptResolver?(subagentId: string): {
     recordAcceptedInput(sessionId: string, turnId: string, messages: CanonicalMessage[]): Promise<void>;
     recordDurableMessage(sessionId: string, turnId: string, message: CanonicalMessage): Promise<void>;
+    transcriptPath?: string;
     transcriptRelativePath: string;
   };
 };

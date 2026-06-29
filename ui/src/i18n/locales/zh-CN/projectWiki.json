@@ -3,18 +3,8 @@
     "waiting": "正在等待 ProjectWiki 数据"
   },
   "home": {
-    "title": "ProjectWiki",
-    "description": "ProjectWiki 入口与存储地图。",
-    "bodyTitle": "ProjectWiki",
-    "bodyDescription": "ProjectWiki 是这个工作区统一的项目上下文层。",
-    "wikiPagesTitle": "项目知识页面",
-    "sourceCardsTitle": "来源卡片",
-    "sourceCards": {
-      "repo": "仓库材料的模型摘要。",
-      "memory": "从旧 memory 导入的摘要。",
-      "conversations": "相关对话回合的摘要。",
-      "knowledge": "可复用的高质量智能体产出。"
-    }
+    "title": "项目首页",
+    "description": "由 ProjectWiki 来源材料整理出的项目首页。"
   },
   "wikiPages": {
     "projectOverview": {
@@ -74,6 +64,7 @@
     "indexedTurns": "已索引 {{count}} 个回合",
     "skippedTurns": "跳过 {{count}} 个",
     "failedTurns": "失败 {{count}} 个",
+    "reconciledCards": "复核 {{count}} 张来源卡片",
     "sourceCards": "生成 {{count}} 张来源卡片",
     "transcripts": "扫描 {{count}} 份 transcript",
     "limit": "历史回合上限 {{count}}",
@@ -195,10 +186,14 @@
     "index_turn_failed": "索引当前回合失败",
     "repo_index": "仓库材料索引",
     "repo_index_failed": "仓库材料索引失败",
+    "reconcile_source_changes": "复核来源变化",
+    "reconcile_source_changes_failed": "复核来源变化失败",
     "legacy_memory_import": "导入旧记忆",
     "legacy_memory_import_failed": "导入旧记忆失败",
     "maintain_wiki": "整理 Wiki 页面",
     "maintain_wiki_failed": "整理 Wiki 页面失败",
+    "source_reconcile": "复核来源卡片",
+    "source_reconcile_failed": "复核来源卡片失败",
     "maintenance_deferred": "Wiki 维护延后",
     "maintenance_queue_failed": "Wiki 维护队列失败"
   },
@@ -231,7 +226,9 @@
     "historyBackfillFailed": "历史回填失败",
     "captureFailed": "捕获失败",
     "wiki": "Wiki 维护",
-    "wikiFailed": "Wiki 维护失败"
+    "wikiFailed": "Wiki 维护失败",
+    "sourceReconcile": "来源卡片复核",
+    "sourceReconcileFailed": "来源卡片复核失败"
   },
   "traceStatus": {
     "success": "成功",

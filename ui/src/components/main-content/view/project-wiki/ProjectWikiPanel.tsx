@@ -164,6 +164,7 @@ type RefreshProjectWikiResult = {
   scannedTranscripts?: number;
   discoveredTurns?: number;
   sourceCardsCreated?: number;
+  sourceCardsReconciled?: number;
   diagnostics?: Array<{ severity?: string; message?: string }>;
 };
 
@@ -557,6 +558,7 @@ function formatRefreshResult(result: RefreshProjectWikiResult, t: TFunction<'pro
     typeof result.indexedTurns === 'number' ? t('refreshResult.indexedTurns', { count: result.indexedTurns }) : '',
     typeof result.skippedTurns === 'number' ? t('refreshResult.skippedTurns', { count: result.skippedTurns }) : '',
     typeof result.failedTurns === 'number' && result.failedTurns > 0 ? t('refreshResult.failedTurns', { count: result.failedTurns }) : '',
+    typeof result.sourceCardsReconciled === 'number' && result.sourceCardsReconciled > 0 ? t('refreshResult.reconciledCards', { count: result.sourceCardsReconciled }) : '',
     typeof result.sourceCardsCreated === 'number' ? t('refreshResult.sourceCards', { count: result.sourceCardsCreated }) : '',
     typeof result.scannedTranscripts === 'number' ? t('refreshResult.transcripts', { count: result.scannedTranscripts }) : '',
     typeof result.maxHistoricalTurns === 'number' ? t('refreshResult.limit', { count: result.maxHistoricalTurns }) : '',
@@ -682,9 +684,7 @@ function WikiView({
               />
             )}
             {!selectedPage.isPlaceholder && (
-              selectedPage.relativePath === 'home.md'
-                ? <ProjectWikiHomeBody />
-                : <Markdown content={selectedPage.content} />
+              <Markdown content={selectedPage.content} />
             )}
           </>
         ) : (
@@ -813,36 +813,6 @@ function WikiPageSources({
         ))}
       </div>
     </section>
-  );
-}
-
-function ProjectWikiHomeBody() {
-  const { t } = useTranslation('projectWiki');
-  return (
-    <div className="max-w-3xl space-y-5 text-[14px] leading-relaxed text-neutral-700 dark:text-neutral-200">
-      <section>
-        <h2 className="mb-2 text-[18px] font-semibold text-neutral-950 dark:text-neutral-50">{t('home.bodyTitle')}</h2>
-        <p>{t('home.bodyDescription')}</p>
-      </section>
-      <section>
-        <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-neutral-500">{t('home.wikiPagesTitle')}</h3>
-        <ul className="space-y-1">
-          <li><code>wiki/project-overview.md</code>: {t('wikiPages.projectOverview.description')}</li>
-          <li><code>wiki/project-status.md</code>: {t('wikiPages.projectStatus.description')}</li>
-          <li><code>wiki/project-feedback.md</code>: {t('wikiPages.projectFeedback.description')}</li>
-          <li><code>wiki/knowledge.md</code>: {t('wikiPages.knowledge.description')}</li>
-        </ul>
-      </section>
-      <section>
-        <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-neutral-500">{t('home.sourceCardsTitle')}</h3>
-        <ul className="space-y-1">
-          <li><code>source_cards/repo/</code>: {t('home.sourceCards.repo')}</li>
-          <li><code>source_cards/memory/</code>: {t('home.sourceCards.memory')}</li>
-          <li><code>source_cards/conversations/</code>: {t('home.sourceCards.conversations')}</li>
-          <li><code>source_cards/knowledge/</code>: {t('home.sourceCards.knowledge')}</li>
-        </ul>
-      </section>
-    </div>
   );
 }
 
@@ -1819,6 +1789,8 @@ function tracePhaseLabel(trace: Pick<TraceRecord, 'kind' | 'phase'>, t: TFunctio
   if (trace.kind === 'maintain') {
     if (phase === 'wiki') return t('tracePhases.wiki');
     if (phase === 'wiki_failed') return t('tracePhases.wikiFailed');
+    if (phase === 'source_reconcile') return t('tracePhases.sourceReconcile');
+    if (phase === 'source_reconcile_failed') return t('tracePhases.sourceReconcileFailed');
   }
   return sourceTypeLabel(phase, t);
 }
@@ -2265,7 +2237,7 @@ function wikiPageIdLabel(pageId: string, t: TFunction<'projectWiki'>): string {
 
 function wikiPageDisplayTitle(page: MarkdownItem, t: TFunction<'projectWiki'>): string {
   const pageId = page.pageId || page.relativePath.replace(/^wiki\//, '').replace(/\.md$/, '');
-  if (page.relativePath === 'home.md') return t('home.title');
+  if (page.relativePath === 'home.md') return page.title || t('home.title');
   if (pageId === 'project-overview') return t('wikiPages.projectOverview.title');
   if (pageId === 'project-status') return t('wikiPages.projectStatus.title');
   if (pageId === 'project-feedback') return t('wikiPages.projectFeedback.title');
@@ -2275,7 +2247,7 @@ function wikiPageDisplayTitle(page: MarkdownItem, t: TFunction<'projectWiki'>): 
 
 function wikiPageDisplayDescription(page: MarkdownItem, t: TFunction<'projectWiki'>): string {
   const pageId = page.pageId || page.relativePath.replace(/^wiki\//, '').replace(/\.md$/, '');
-  if (page.relativePath === 'home.md') return t('home.description');
+  if (page.relativePath === 'home.md') return page.description || t('home.description');
   if (pageId === 'project-overview') return t('wikiPages.projectOverview.description');
   if (pageId === 'project-status') return t('wikiPages.projectStatus.description');
   if (pageId === 'project-feedback') return t('wikiPages.projectFeedback.description');

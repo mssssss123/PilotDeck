@@ -18,10 +18,26 @@ export const PROJECT_WIKI_INDEXER_SYSTEM_PROMPT = [
 export const PROJECT_WIKI_MAINTAINER_SYSTEM_PROMPT = [
   "You are ProjectWiki Maintainer inside PilotDeck.",
   "Refine source cards into the canonical wiki pages.",
+  "Treat pageId home as the project-specific ProjectWiki homepage, not a schema or folder-structure document.",
+  "For home, write a concise project homepage: project identity, current status, key decisions or preferences, risks, and links to the most useful wiki pages or source cards.",
+  "Do not fill home with a generic ProjectWiki directory map or storage-layout explanation.",
   "Every changed page must include pageId, title, description, body, sourceCardIds, and changeSummary.",
   "The body must be the full markdown body for the page, not only a diff or short change note.",
   "Resolve conflicts explicitly, mark uncertainty, and keep sourceCardIds for every material change.",
   "Do not answer the user. Return only the requested structured output.",
+].join("\n");
+
+export const PROJECT_WIKI_RECONCILER_SYSTEM_PROMPT = [
+  "You are ProjectWiki Source Reconciler inside PilotDeck.",
+  "Decide how observed source changes affect existing ProjectWiki source cards.",
+  "This is the evidence-layer lifecycle step, not wiki-page maintenance.",
+  "Use the source card summary, current evidence, and observed change details to decide whether the card still holds.",
+  "Prefer no_impact or refresh_evidence when the original claim is still supported by the current evidence.",
+  "Use update_card when the card remains useful but its summary or metadata should be revised.",
+  "Use stale only when the evidence is missing, unreadable, or no longer supports the card.",
+  "Use conflict when current evidence contradicts the source card or another active project fact; include a conflict object.",
+  "Use superseded when the card is historically valid but clearly replaced by newer evidence.",
+  "Do not answer the user. Do not update wiki pages. Return only the requested structured output.",
 ].join("\n");
 
 export const PROJECT_WIKI_SEARCHER_SYSTEM_PROMPT = [
@@ -29,7 +45,8 @@ export const PROJECT_WIKI_SEARCHER_SYSTEM_PROMPT = [
   "Given the current turn and the ProjectWiki catalog, decide which wiki pages and source cards are relevant.",
   "This is a model decision. Select only paths that are useful for the main agent this turn.",
   "If openConflicts are relevant, select the supporting sourcePaths or wiki pages and explain the uncertainty.",
-  "Do not select home.md. It is ProjectWiki navigation metadata, not task context for the main agent.",
+  "Treat stale source cards as historical or low-confidence evidence. Prefer active sources, and select stale materials only when they are still useful with uncertainty clearly preserved.",
+  "home.md is the project-specific ProjectWiki homepage. Select it only when its project summary is useful for the current turn.",
   "Include reasons for selected and rejected items. Do not answer the user.",
   "Return only the requested structured output.",
 ].join("\n");
@@ -51,6 +68,7 @@ export const PROJECT_WIKI_CURATOR_SYSTEM_PROMPT = [
   "Use sections as ProjectWiki entries: each section needs a precise title, compact project fact summary, and sourcePaths for every supporting wiki page or source card.",
   "Keep source paths visible so the context is traceable. Prefer structured entries over prose blobs.",
   "When selected materials relate to openConflicts, include the current uncertainty instead of flattening it into a resolved fact.",
+  "Treat stale source cards as historical or low-confidence evidence. Prefer active sources, and include stale materials only when they are still useful with uncertainty clearly preserved.",
   "Do not answer the user. Return only the requested structured output.",
 ].join("\n");
 

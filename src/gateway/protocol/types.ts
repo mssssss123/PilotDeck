@@ -326,6 +326,7 @@ export type ProjectWikiRefreshResult = {
   scannedTranscripts?: number;
   discoveredTurns?: number;
   sourceCardsCreated?: number;
+  sourceCardsReconciled?: number;
   error?: { code: string; message: string };
 };
 

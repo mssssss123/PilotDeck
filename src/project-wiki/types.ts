@@ -3,10 +3,13 @@ import type { CanonicalMessage, CanonicalUsage } from "../model/index.js";
 export type ProjectWikiSourceType = "repo" | "memory" | "conversations" | "knowledge";
 
 export type ProjectWikiPageId =
+  | "home"
   | "project-overview"
   | "project-status"
   | "project-feedback"
   | "knowledge";
+
+export type ProjectWikiWikiPageId = Exclude<ProjectWikiPageId, "home">;
 
 export type ProjectWikiModelRole = "indexer" | "maintainer" | "searcher" | "curator";
 export type ProjectWikiPromptLanguage = "en" | "zh-CN";
@@ -82,6 +85,32 @@ export type ProjectWikiSourceCardRecord = ProjectWikiSourceCardDraft & {
   relativePath: string;
   createdAt: string;
   updatedAt: string;
+};
+
+export type ProjectWikiSourceChangeKind =
+  | "modified"
+  | "missing"
+  | "unreadable"
+  | "unverifiable"
+  | "recheck"
+  | "inconsistent";
+
+export type ProjectWikiSourceRefChange = {
+  kind: ProjectWikiSourceChangeKind;
+  reason: string;
+  sourceRef: ProjectWikiSourceRef;
+  currentSourceRef?: ProjectWikiSourceRef;
+  currentEvidence?: string;
+};
+
+export type ProjectWikiSourceChangeEvent = {
+  sourceCard: ProjectWikiSourceCardRecord;
+  sourceCardId: string;
+  relativePath: string;
+  sourceType: ProjectWikiSourceType;
+  observedAt: string;
+  changes: ProjectWikiSourceRefChange[];
+  suggestedSourceRefs: ProjectWikiSourceRef[];
 };
 
 export type ProjectWikiPageDraft = {
@@ -258,6 +287,7 @@ export type ProjectWikiRefreshResult = {
   scannedTranscripts?: number;
   discoveredTurns?: number;
   sourceCardsCreated?: number;
+  sourceCardsReconciled?: number;
 };
 
 export type ProjectWikiDiagnostic = {
@@ -277,11 +307,16 @@ export type ProjectWikiResolver = {
   read?(input: ProjectWikiReadInput): Promise<ProjectWikiReadResult | undefined>;
 };
 
-export const PROJECT_WIKI_PAGE_IDS: ProjectWikiPageId[] = [
+export const PROJECT_WIKI_PAGE_IDS: ProjectWikiWikiPageId[] = [
   "project-overview",
   "project-status",
   "project-feedback",
   "knowledge",
+];
+
+export const PROJECT_WIKI_MAINTAINABLE_PAGE_IDS: ProjectWikiPageId[] = [
+  "home",
+  ...PROJECT_WIKI_PAGE_IDS,
 ];
 
 export const PROJECT_WIKI_SOURCE_TYPES: ProjectWikiSourceType[] = [

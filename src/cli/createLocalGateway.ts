@@ -720,6 +720,7 @@ class ProjectRuntimeRegistry {
         scannedTranscripts: result.scannedTranscripts,
         discoveredTurns: result.discoveredTurns,
         sourceCardsCreated: result.sourceCardsCreated,
+        sourceCardsReconciled: result.sourceCardsReconciled,
       };
     } catch (error) {
       return {
@@ -1087,6 +1088,7 @@ class ProjectRuntimeRegistry {
               handle.writer.recordAcceptedInput(sessionId, turnId, messages),
             recordDurableMessage: (sessionId, turnId, message) =>
               handle.writer.recordDurableMessage(sessionId, turnId, message),
+            transcriptPath: handle.transcriptPath,
             transcriptRelativePath: storage.transcript.relativeSubagentPath(subagentId),
           };
         },

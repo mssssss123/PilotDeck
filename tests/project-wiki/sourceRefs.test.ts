@@ -102,7 +102,7 @@ test("ProjectWiki structured validators reject malformed retrieval and curator p
     rejected: [],
   }), true);
   assert.equal(isSearchOutput({
-    selected: [{ relativePath: "home.md", reason: "Navigation should not be injected." }],
+    selected: [{ relativePath: "home.md", reason: "Project homepage summary is relevant." }],
   }), true);
   assert.equal(isSearchOutput({
     selected: [{ relativePath: "../outside.md", reason: "Escapes the wiki root." }],
@@ -666,7 +666,7 @@ test("ProjectWiki retrieval uses model search and curator to assemble traceable 
               needsProjectWiki: true,
               intent: "Find the testing stack.",
               selected: [
-                { relativePath: "home.md", reason: "Navigation entry should not become context.", priority: 99 },
+                { relativePath: "home.md", reason: "Project homepage summary.", priority: 99 },
                 { relativePath: "wiki/knowledge.md", reason: "Canonical testing stack page.", priority: 10 },
                 { relativePath: sourceCard.relativePath, reason: "Traceable source card.", priority: 9 },
               ],
@@ -745,7 +745,7 @@ test("ProjectWiki retrieval uses model search and curator to assemble traceable 
     assert.equal(retrievalTrace.stepName, "retrieval_decision");
     assert.equal(contextTrace.stepName, "assemble_context");
     assert.equal(readTrace.status, "success");
-    assert.equal(readTrace.artifacts?.length, 2);
+    assert.equal(readTrace.artifacts?.length, 3);
     assert.deepEqual(
       (readTrace.output as { missingPaths?: string[] }).missingPaths,
       [],
@@ -789,20 +789,22 @@ test("ProjectWiki retrieval uses model search and curator to assemble traceable 
     const modelCuratorRequest = await readFile(join(wikiRoot, modelCuratorRequestPath), "utf8");
     const modelCuratorResponse = await readFile(join(wikiRoot, modelCuratorResponsePath), "utf8");
     assert.match(rawSearchInput, /What is the test stack/);
-    assert.doesNotMatch(rawSearchInput, /home\.md/);
+    assert.match(rawSearchInput, /home\.md/);
     assert.match(rawSearchOutput, /Canonical testing stack page/);
     assert.match(rawSearchOutput, /home\.md/);
     assert.match(modelSearchRequest, /You are ProjectWiki Searcher inside PilotDeck/);
+    assert.match(modelSearchRequest, /stale source cards as historical or low-confidence evidence/);
     assert.match(modelSearchRequest, /project_wiki_search/);
     assert.match(modelSearchResponse, /Canonical testing stack page/);
     assert.match(parsedSearchOutput, /Find the testing stack/);
+    assert.match(rawReadInput, /home\.md/);
     assert.match(rawReadInput, /wiki\/knowledge\.md/);
-    assert.doesNotMatch(rawReadInput, /home\.md/);
     assert.match(rawReadOutput, /TaskFlow uses Jest with Supertest/);
+    assert.match(rawCuratorInput, /home\.md/);
     assert.match(rawCuratorInput, new RegExp(escapeRegExp(sourceCard.relativePath)));
-    assert.doesNotMatch(rawCuratorInput, /home\.md/);
     assert.match(rawCuratorOutput, /TaskFlow uses Jest with Supertest/);
     assert.match(modelCuratorRequest, /You are ProjectWiki Curator inside PilotDeck/);
+    assert.match(modelCuratorRequest, /stale source cards as historical or low-confidence evidence/);
     assert.match(modelCuratorResponse, /TaskFlow uses Jest with Supertest/);
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -1086,7 +1088,7 @@ test("ProjectWiki propagates stale source-card health into search and curator in
   }
 });
 
-test("ProjectWiki marks changed and missing source references stale before search", async () => {
+test("ProjectWiki reconciles changed and missing source references during maintenance", async () => {
   const root = await mkdtemp(join(tmpdir(), "pilotdeck-project-wiki-source-freshness-"));
   const projectRoot = join(root, "project");
   const wikiRoot = join(root, "project_wiki");
@@ -1201,11 +1203,53 @@ test("ProjectWiki marks changed and missing source references stale before searc
       store,
       modelRunner: new ProjectWikiModelRunner({
         modelRuntime: modelRuntimeForSchemas({
+          project_wiki_source_reconcile: (request: CanonicalModelRequest) => {
+            const text = request.messages[0]?.content[0]?.type === "text"
+              ? request.messages[0].content[0].text
+              : "{}";
+            const parsed = JSON.parse(text) as {
+              changes?: Array<{ sourceCard?: { id?: string; title?: string } }>;
+            };
+            return {
+              decisions: (parsed.changes ?? []).map((change) => {
+                const sourceCardId = change.sourceCard?.id;
+                const title = change.sourceCard?.title ?? "";
+                if (title === "Repo Stack File") {
+                  return {
+                    sourceCardId,
+                    outcome: "update_card",
+                    summary: "src/app.ts currently records Vitest as the test stack.",
+                    evidenceLevel: "high",
+                    confidence: 0.9,
+                    qualitySignals: ["Repository file was reread after modification."],
+                  };
+                }
+                if (title === "Changed Conversation Evidence") {
+                  return {
+                    sourceCardId,
+                    outcome: "conflict",
+                    statusReason: "The transcript now says Vitest while this card says Jest.",
+                    conflict: {
+                      topic: "Conflicting test stack",
+                      summary: "The old source card says Jest, but the current transcript evidence says Vitest.",
+                      sourceCardIds: sourceCardId ? [sourceCardId] : [],
+                    },
+                  };
+                }
+                return {
+                  sourceCardId,
+                  outcome: "stale",
+                  statusReason: `${title} no longer has readable supporting evidence.`,
+                };
+              }),
+            };
+          },
           project_wiki_tool_search: {
             needsProjectWiki: true,
             selected: [{ relativePath: "wiki/knowledge.md", reason: "Testing knowledge.", priority: 10 }],
             rejected: [],
           },
+          project_wiki_maintain: { pages: [] },
         }),
         models: {},
         fallbackModel: { provider: "test", model: "model" },
@@ -1213,6 +1257,13 @@ test("ProjectWiki marks changed and missing source references stale before searc
       }),
       config: projectWikiConfig({ repo: false, memory: false, conversations: false, knowledge: false }),
     });
+
+    await service.captureTurn({
+      ...captureInput(projectRoot, "turn-freshness"),
+      sessionId: "session-freshness",
+      messages: [],
+    });
+    await service.flushMaintenance();
 
     const search = await service.search({
       query: "testing stack",
@@ -1225,25 +1276,202 @@ test("ProjectWiki marks changed and missing source references stale before searc
       }],
     });
 
-    assert.equal(search.selected[0]?.sourceHealth?.stale, 4);
-    assert.match(search.selected[0]?.sourceHealth?.warnings?.join("\n") ?? "", /content changed/);
-    assert.match(search.selected[0]?.sourceHealth?.warnings?.join("\n") ?? "", /missing/);
+    assert.equal(search.selected[0]?.sourceHealth?.active, 1);
+    assert.equal(search.selected[0]?.sourceHealth?.stale, 2);
+    assert.equal(search.selected[0]?.sourceHealth?.conflict, 1);
+    assert.match(search.selected[0]?.sourceHealth?.warnings?.join("\n") ?? "", /no longer has readable supporting evidence/);
+    assert.match(search.selected[0]?.sourceHealth?.warnings?.join("\n") ?? "", /marked conflict/);
     const repoCardText = await readFile(join(wikiRoot, repoCard.relativePath), "utf8");
     const toolCardText = await readFile(join(wikiRoot, toolCard.relativePath), "utf8");
     const transcriptCardText = await readFile(join(wikiRoot, transcriptCard.relativePath), "utf8");
     const changedTranscriptCardText = await readFile(join(wikiRoot, changedTranscriptCard.relativePath), "utf8");
-    assert.match(repoCardText, /status: "stale"/);
-    assert.match(repoCardText, /repo_file src\/app\.ts .* content changed/);
+    assert.match(repoCardText, /status: "active"/);
+    assert.match(repoCardText, /src\/app\.ts currently records Vitest/);
     assert.match(toolCardText, /status: "stale"/);
-    assert.match(toolCardText, /tool_result_reference tool-call-1 .* is missing/);
+    assert.match(toolCardText, /Missing Tool Evidence no longer has readable supporting evidence/);
     assert.match(transcriptCardText, /status: "stale"/);
-    assert.match(transcriptCardText, /transcript missing-session turn-1 .* is missing/);
-    assert.match(changedTranscriptCardText, /status: "stale"/);
-    assert.match(changedTranscriptCardText, /transcript changed-session turn-1 .* content changed/);
-    const traces = await store.readTrace("index");
-    const freshnessTrace = traces.find((trace) => trace.phase === "source_freshness");
-    assert.ok(freshnessTrace);
-    assert.equal(freshnessTrace.artifacts?.length, 4);
+    assert.match(transcriptCardText, /Missing Conversation Evidence no longer has readable supporting evidence/);
+    assert.match(changedTranscriptCardText, /status: "conflict"/);
+    assert.match(changedTranscriptCardText, /transcript now says Vitest/);
+    const traces = await store.readTrace("maintain");
+    const reconcileTrace = traces.find((trace) => trace.phase === "source_reconcile");
+    assert.ok(reconcileTrace);
+    assert.equal(reconcileTrace.artifacts?.filter((artifact) => artifact.kind === "source_card").length, 4);
+    assert.ok(reconcileTrace.payloadRefs?.input);
+    assert.ok(reconcileTrace.payloadRefs?.output);
+    assert.ok(reconcileTrace.payloadRefs?.modelRequest);
+    const rawInput = await readFile(join(wikiRoot, reconcileTrace.payloadRefs.input), "utf8");
+    const modelRequest = await readFile(join(wikiRoot, reconcileTrace.payloadRefs.modelRequest), "utf8");
+    assert.match(rawInput, /Repo Stack File/);
+    assert.match(rawInput, /content changed/);
+    assert.match(modelRequest, /Source Reconciler/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("ProjectWiki manual refresh rechecks stale source cards with the Reconciler", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pilotdeck-project-wiki-stale-recheck-"));
+  const projectRoot = join(root, "project");
+  const wikiRoot = join(root, "project_wiki");
+  const repoFile = join(projectRoot, "src", "app.ts");
+  let reconcileInput: string | undefined;
+
+  try {
+    await mkdir(join(projectRoot, "src"), { recursive: true });
+    await writeFile(repoFile, "export const stack = 'vitest';\n", "utf8");
+    const store = new ProjectWikiStore({ rootDir: wikiRoot, projectRoot });
+    await store.ensureInitialized();
+    const staleCard = await store.writeSourceCard({
+      sourceType: "repo",
+      title: "Stale Repo Stack",
+      description: "Repository evidence that was marked stale by an older freshness pass.",
+      summary: "src/app.ts records Jest as the test stack.",
+      status: "stale",
+      statusReason: "Source reference is no longer fresh: repo_file src/app.ts content changed.",
+      sourceRefs: [{
+        kind: "repo_file",
+        label: "src/app.ts",
+        path: repoFile,
+        contentHash: sha256("export const stack = 'jest';\n"),
+      }],
+    });
+    const service = new ProjectWikiService({
+      projectRoot,
+      store,
+      modelRunner: new ProjectWikiModelRunner({
+        modelRuntime: modelRuntimeForSchemas({
+          project_wiki_source_reconcile: (request: CanonicalModelRequest) => {
+            reconcileInput = request.messages[0]?.content[0]?.type === "text"
+              ? request.messages[0].content[0].text
+              : "";
+            return {
+              decisions: [{
+                sourceCardId: staleCard.id,
+                outcome: "update_card",
+                summary: "src/app.ts now records Vitest as the test stack.",
+                evidenceLevel: "high",
+                confidence: 0.9,
+                qualitySignals: ["manual_refresh_rechecked_stale_card"],
+              }],
+            };
+          },
+          project_wiki_maintain: { pages: [] },
+        }),
+        models: {},
+        fallbackModel: { provider: "test", model: "model" },
+        timeoutMs: 1_000,
+      }),
+      config: projectWikiConfig({ repo: false, memory: false, conversations: false, knowledge: false }),
+    });
+
+    const result = await service.refresh({ reason: "dashboard_refresh", maxHistoricalTurns: 1 });
+
+    assert.equal(result.sourceCardsCreated, 0);
+    assert.equal(result.sourceCardsReconciled, 1);
+    assert.match(reconcileInput ?? "", /Stale Repo Stack/);
+    assert.match(reconcileInput ?? "", /content changed/);
+    const after = await readFile(join(wikiRoot, staleCard.relativePath), "utf8");
+    assert.match(after, /status: "active"/);
+    assert.match(after, /Vitest as the test stack/);
+    const traces = await store.readTrace("maintain");
+    assert.ok(traces.some((trace) => trace.phase === "source_reconcile"));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("ProjectWiki resolves subagent transcript refs through parent sidechain metadata", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pilotdeck-project-wiki-subagent-ref-"));
+  try {
+    const projectRoot = join(root, "project");
+    const wikiRoot = join(root, "project_wiki");
+    const chatDir = join(root, "chats");
+    await mkdir(projectRoot, { recursive: true });
+    await mkdir(chatDir, { recursive: true });
+
+    const parentSessionId = "web:s_parent";
+    const parentTurnId = "parent-turn";
+    const subagentId = "4dfe33a7-63f4-4eef-b966-8eafb82efb8f";
+    const subagentSessionId = `${projectRoot}::sub::${subagentId}`;
+    const subagentTurnId = `${subagentId}-t0`;
+    const parentTranscriptPath = join(chatDir, `${parentSessionId}.jsonl`);
+    const sidechainRelativePath = join(parentSessionId, "subagents", `${subagentId}.jsonl`);
+    const sidechainTranscriptPath = join(chatDir, sidechainRelativePath);
+    await mkdir(join(chatDir, parentSessionId, "subagents"), { recursive: true });
+
+    const messages: CanonicalMessage[] = [
+      {
+        role: "user",
+        content: [{ type: "text", text: "请实现一个魂斗罗风格横版射击游戏。" }],
+      },
+      {
+        role: "assistant",
+        content: [{ type: "text", text: "已完成 index.html 和 README.md。" }],
+      },
+    ];
+
+    await writeFile(parentTranscriptPath, [
+      JSON.stringify(transcriptEntry({
+        type: "subagent_started",
+        sessionId: parentSessionId,
+        turnId: parentTurnId,
+        sequence: 1,
+        createdAt: "2026-06-29T02:09:27.000Z",
+        subagentId,
+        subagentType: "general-purpose",
+        promptPreview: "实现魂斗罗风格游戏",
+        promptTruncated: false,
+        transcriptRelativePath: sidechainRelativePath,
+        subagentSessionId,
+      })),
+      "",
+    ].join("\n"), "utf8");
+
+    await writeFile(sidechainTranscriptPath, [
+      JSON.stringify(transcriptEntry({
+        type: "accepted_input",
+        sessionId: subagentSessionId,
+        turnId: subagentTurnId,
+        sequence: 1,
+        createdAt: "2026-06-29T02:09:28.000Z",
+        messages: [messages[0]!],
+      })),
+      JSON.stringify(transcriptEntry({
+        type: "assistant_message",
+        sessionId: subagentSessionId,
+        turnId: subagentTurnId,
+        sequence: 2,
+        createdAt: "2026-06-29T02:13:29.000Z",
+        message: messages[1]!,
+      })),
+      "",
+    ].join("\n"), "utf8");
+
+    const store = new ProjectWikiStore({ rootDir: wikiRoot, projectRoot });
+    const card = await store.writeSourceCard({
+      sourceType: "conversations",
+      title: "Subagent Conversation",
+      description: "Conversation evidence produced by a sidechain subagent transcript.",
+      summary: "The subagent implemented the requested Contra-style game.",
+      status: "stale",
+      statusReason: `Source reference is no longer fresh: transcript ${subagentSessionId} ${subagentTurnId} at ${parentTranscriptPath} turn ${subagentTurnId} was not found.`,
+      sourceRefs: [{
+        kind: "transcript",
+        label: `${subagentSessionId} ${subagentTurnId}`,
+        path: parentTranscriptPath,
+        sessionId: subagentSessionId,
+        turnId: subagentTurnId,
+        contentHash: sha256(freshnessDigest(messages, 16_000)),
+      }],
+    });
+
+    await store.ensureInitialized();
+    const repaired = await readFile(join(wikiRoot, card.relativePath), "utf8");
+    assert.match(repaired, /status: "active"/);
+    assert.match(repaired, new RegExp(escapeRegExp(sidechainTranscriptPath)));
+    assert.doesNotMatch(repaired, /turn .* was not found/);
+    assert.deepEqual(await store.refreshSourceCardFreshness(), []);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -1298,7 +1526,7 @@ test("ProjectWiki tools expose model search and markdown reads", async () => {
   }
 });
 
-test("ProjectWiki repo indexing detects digest changes and marks older repo cards stale", async () => {
+test("ProjectWiki repo indexing asks Reconciler to retire older repo cards after digest changes", async () => {
   const root = await mkdtemp(join(tmpdir(), "pilotdeck-project-wiki-repo-"));
   const projectRoot = join(root, "project");
   const wikiRoot = join(root, "project_wiki");
@@ -1306,9 +1534,10 @@ test("ProjectWiki repo indexing detects digest changes and marks older repo card
   try {
     await mkdir(projectRoot, { recursive: true });
     await writeFile(join(projectRoot, "README.md"), "# First\n", "utf8");
+    const store = new ProjectWikiStore({ rootDir: wikiRoot, projectRoot });
     const service = new ProjectWikiService({
       projectRoot,
-      store: new ProjectWikiStore({ rootDir: wikiRoot, projectRoot }),
+      store,
       modelRunner: new ProjectWikiModelRunner({
         modelRuntime: createRepoIndexModelRuntime(),
         models: {},
@@ -1329,7 +1558,9 @@ test("ProjectWiki repo indexing detects digest changes and marks older repo card
     const first = await readFile(join(wikiRoot, "source_cards", "repo", cards[0]!), "utf8");
     const second = await readFile(join(wikiRoot, "source_cards", "repo", cards[1]!), "utf8");
     assert.match(first + second, /status: "stale"/);
-    assert.match(first + second, /Repository digest changed/);
+    assert.match(first + second, /Superseded by a newer repository snapshot/);
+    const traces = await store.readTrace("maintain");
+    assert.ok(traces.some((trace) => trace.phase === "source_reconcile"));
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -1623,17 +1854,31 @@ test("ProjectWiki refresh runs repo indexer and maintainer before returning", as
               const prompt = first?.type === "text" ? first.text : "";
               const maintainerInput = JSON.parse(prompt) as {
                 newSourceCards?: Array<{ id: string }>;
+                wikiPages?: Array<{ relativePath: string }>;
+                allowedPageIds?: string[];
               };
               const cardId = maintainerInput.newSourceCards?.[0]?.id;
+              assert.ok(maintainerInput.allowedPageIds?.includes("home"));
+              assert.ok(maintainerInput.wikiPages?.some((page) => page.relativePath === "home.md"));
               return jsonResponse({
-                pages: [{
-                  pageId: "project-overview",
-                  title: "Project Overview",
-                  description: "Repository overview refined during manual refresh.",
-                  body: "## Repository\nThe ProjectWiki refresh path indexed the repository README.",
-                  sourceCardIds: cardId ? [cardId] : [],
-                  changeSummary: "Manual refresh folded repo evidence into the overview.",
-                }],
+                pages: [
+                  {
+                    pageId: "home",
+                    title: "Refresh Fixture Home",
+                    description: "Project-specific homepage refined during manual refresh.",
+                    body: "## Current Snapshot\nThe ProjectWiki refresh path indexed the repository README.",
+                    sourceCardIds: cardId ? [cardId] : [],
+                    changeSummary: "Manual refresh updated the project homepage.",
+                  },
+                  {
+                    pageId: "project-overview",
+                    title: "Project Overview",
+                    description: "Repository overview refined during manual refresh.",
+                    body: "## Repository\nThe ProjectWiki refresh path indexed the repository README.",
+                    sourceCardIds: cardId ? [cardId] : [],
+                    changeSummary: "Manual refresh folded repo evidence into the overview.",
+                  },
+                ],
               });
             }
             throw new Error(`Unexpected schema ${schemaName}`);
@@ -1683,6 +1928,10 @@ test("ProjectWiki refresh runs repo indexer and maintainer before returning", as
     const overview = await readFile(join(wikiRoot, "wiki", "project-overview.md"), "utf8");
     assert.match(overview, /ProjectWiki refresh path indexed the repository README/);
     assert.match(overview, /sourceCardIds:/);
+    const home = await readFile(join(wikiRoot, "home.md"), "utf8");
+    assert.match(home, /Refresh Fixture Home/);
+    assert.match(home, /ProjectWiki refresh path indexed the repository README/);
+    assert.match(home, /sourceCardIds:/);
     const indexTraces = await store.readTrace("index");
     const maintainTraces = await store.readTrace("maintain");
     assert.ok(indexTraces.some((trace) => trace.phase === "repo"));
@@ -2902,7 +3151,8 @@ test("ProjectWiki catalog keeps canonical wiki pages visible when source cards e
 
     const catalog = await store.listCatalog(4_000);
     const paths = catalog.map((entry) => entry.relativePath);
-    assert.deepEqual(paths.slice(0, 4), [
+    assert.deepEqual(paths.slice(0, 5), [
+      "home.md",
       "wiki/project-overview.md",
       "wiki/project-status.md",
       "wiki/project-feedback.md",
@@ -3308,6 +3558,21 @@ function createRepoIndexModelRuntime(): ModelRuntime {
           description: "Repository digest summary.",
           summary: `Repository snapshot ${count}.`,
         }],
+      };
+    },
+    project_wiki_source_reconcile: (request: CanonicalModelRequest) => {
+      const text = request.messages[0]?.content[0]?.type === "text"
+        ? request.messages[0].content[0].text
+        : "{}";
+      const parsed = JSON.parse(text) as {
+        changes?: Array<{ sourceCard?: { id?: string; title?: string } }>;
+      };
+      return {
+        decisions: (parsed.changes ?? []).map((change) => ({
+          sourceCardId: change.sourceCard?.id,
+          outcome: "superseded",
+          statusReason: "Superseded by a newer repository snapshot.",
+        })),
       };
     },
     project_wiki_maintain: { pages: [] },

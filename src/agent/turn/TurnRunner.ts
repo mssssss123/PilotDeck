@@ -106,6 +106,7 @@ export class TurnRunner {
       const runResult = yield* this.loop.run({
         sessionId: options.sessionId,
         turnId: options.turnId,
+        transcriptPath: this.runtimeContext.transcriptPath,
         messages,
         maxTurns: options.maxTurns,
         permissionMode: options.permissionMode,

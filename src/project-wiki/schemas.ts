@@ -2,6 +2,7 @@ import type {
   ProjectWikiPageId,
   ProjectWikiSourceType,
 } from "./types.js";
+import { PROJECT_WIKI_MAINTAINABLE_PAGE_IDS } from "./types.js";
 
 export type ProjectWikiIndexOutput = {
   cards?: Array<{
@@ -45,6 +46,39 @@ export type ProjectWikiMaintainOutput = {
     changeSummary?: string;
   }>;
   conflicts?: Array<{ topic?: string; summary?: string; sourceCardIds?: string[] }>;
+};
+
+export type ProjectWikiSourceReconcileOutput = {
+  decisions?: Array<{
+    sourceCardId?: string;
+    relativePath?: string;
+    outcome?: "no_impact" | "refresh_evidence" | "update_card" | "stale" | "conflict" | "superseded";
+    statusReason?: string;
+    title?: string;
+    description?: string;
+    summary?: string;
+    tags?: string[];
+    evidenceLevel?: "low" | "medium" | "high";
+    confidence?: number;
+    qualitySignals?: string[];
+    sourceRefs?: Array<{
+      kind?: string;
+      label?: string;
+      path?: string;
+      sessionId?: string;
+      turnId?: string;
+      messageId?: string;
+      excerpt?: string;
+      range?: {
+        startLine?: number;
+        endLine?: number;
+        messageIndex?: number;
+      };
+      contentHash?: string;
+    }>;
+    conflict?: { topic?: string; summary?: string; sourceCardIds?: string[] };
+    notes?: string;
+  }>;
 };
 
 export type ProjectWikiSearchOutput = {
@@ -139,12 +173,7 @@ export const maintainOutputSchema = {
         properties: {
           pageId: {
             type: "string",
-            enum: [
-              "project-overview",
-              "project-status",
-              "project-feedback",
-              "knowledge",
-            ],
+            enum: PROJECT_WIKI_MAINTAINABLE_PAGE_IDS,
           },
           title: { type: "string" },
           description: { type: "string" },
@@ -165,6 +194,73 @@ export const maintainOutputSchema = {
           summary: { type: "string" },
           sourceCardIds: { type: "array", items: { type: "string" } },
         },
+      },
+    },
+  },
+};
+
+export const sourceReconcileOutputSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    decisions: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          sourceCardId: { type: "string" },
+          relativePath: { type: "string" },
+          outcome: {
+            type: "string",
+            enum: ["no_impact", "refresh_evidence", "update_card", "stale", "conflict", "superseded"],
+          },
+          statusReason: { type: "string" },
+          title: { type: "string" },
+          description: { type: "string" },
+          summary: { type: "string" },
+          tags: { type: "array", items: { type: "string" } },
+          evidenceLevel: { type: "string", enum: ["low", "medium", "high"] },
+          confidence: { type: "number" },
+          qualitySignals: { type: "array", items: { type: "string" } },
+          sourceRefs: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                kind: { type: "string" },
+                label: { type: "string" },
+                path: { type: "string" },
+                sessionId: { type: "string" },
+                turnId: { type: "string" },
+                messageId: { type: "string" },
+                excerpt: { type: "string" },
+                range: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    startLine: { type: "number" },
+                    endLine: { type: "number" },
+                    messageIndex: { type: "number" },
+                  },
+                },
+                contentHash: { type: "string" },
+              },
+            },
+          },
+          conflict: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              topic: { type: "string" },
+              summary: { type: "string" },
+              sourceCardIds: { type: "array", items: { type: "string" } },
+            },
+          },
+          notes: { type: "string" },
+        },
+        required: ["outcome"],
       },
     },
   },
@@ -249,6 +345,12 @@ export function isMaintainOutput(value: unknown): value is ProjectWikiMaintainOu
   return true;
 }
 
+export function isSourceReconcileOutput(value: unknown): value is ProjectWikiSourceReconcileOutput {
+  if (!isRecord(value)) return false;
+  if (value.decisions !== undefined && !isArrayOf(value.decisions, isSourceReconcileDecision)) return false;
+  return true;
+}
+
 export function isSearchOutput(value: unknown): value is ProjectWikiSearchOutput {
   if (!isRecord(value)) return false;
   if (value.needsProjectWiki !== undefined && typeof value.needsProjectWiki !== "boolean") return false;
@@ -303,7 +405,7 @@ function isIndexCard(value: unknown): boolean {
 
 function isMaintainPage(value: unknown): boolean {
   if (!isRecord(value)) return false;
-  return ["project-overview", "project-status", "project-feedback", "knowledge"].includes(String(value.pageId))
+  return PROJECT_WIKI_MAINTAINABLE_PAGE_IDS.includes(value.pageId as ProjectWikiPageId)
     && isString(value.title)
     && isString(value.description)
     && isString(value.body)
@@ -316,6 +418,24 @@ function isConflictItem(value: unknown): boolean {
   return (value.topic === undefined || isString(value.topic))
     && (value.summary === undefined || isString(value.summary))
     && (value.sourceCardIds === undefined || isStringArray(value.sourceCardIds));
+}
+
+function isSourceReconcileDecision(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return (value.sourceCardId === undefined || isString(value.sourceCardId))
+    && (value.relativePath === undefined || isString(value.relativePath))
+    && ["no_impact", "refresh_evidence", "update_card", "stale", "conflict", "superseded"].includes(String(value.outcome))
+    && (value.statusReason === undefined || isString(value.statusReason))
+    && (value.title === undefined || isString(value.title))
+    && (value.description === undefined || isString(value.description))
+    && (value.summary === undefined || isString(value.summary))
+    && (value.tags === undefined || isStringArray(value.tags))
+    && (value.evidenceLevel === undefined || ["low", "medium", "high"].includes(String(value.evidenceLevel)))
+    && (value.confidence === undefined || isNumber(value.confidence))
+    && (value.qualitySignals === undefined || isStringArray(value.qualitySignals))
+    && (value.sourceRefs === undefined || isArrayOf(value.sourceRefs, isSourceRef))
+    && (value.conflict === undefined || isConflictItem(value.conflict))
+    && (value.notes === undefined || isString(value.notes));
 }
 
 function isSearchSelectedItem(value: unknown): boolean {

@@ -14,8 +14,11 @@ import type {
   ProjectWikiPageDraft,
   ProjectWikiPageId,
   ProjectWikiPageRecord,
+  ProjectWikiWikiPageId,
   ProjectWikiSourceCardDraft,
   ProjectWikiSourceCardRecord,
+  ProjectWikiSourceChangeEvent,
+  ProjectWikiSourceRefChange,
   ProjectWikiSourceHealth,
   ProjectWikiSourceRef,
   ProjectWikiSourceRange,
@@ -66,7 +69,7 @@ type ProjectWikiAppendTraceInput =
     payloads?: Partial<Record<keyof ProjectWikiTracePayloadRefs, unknown>>;
   };
 
-const DEFAULT_PAGE_TITLES: Record<ProjectWikiPageId, { title: string; description: string }> = {
+const DEFAULT_PAGE_TITLES: Record<ProjectWikiWikiPageId, { title: string; description: string }> = {
   "project-overview": {
     title: "Project Overview",
     description: "What this project is, how it is structured, and what major parts matter.",
@@ -166,10 +169,12 @@ export class ProjectWikiStore {
           ? "wiki"
           : "source_card";
       const preview = truncateText(parsed.body.replace(/\s+/g, " ").trim(), 900);
-      const sourceCardIds = kind === "wiki" ? normalizeStringArray(frontmatter.sourceCardIds) : [];
+      const sourceCardIds = kind === "wiki" || kind === "home"
+        ? normalizeStringArray(frontmatter.sourceCardIds)
+        : [];
       const status = kind === "source_card" ? normalizeSourceCardStatus(frontmatter.status) : undefined;
       const statusReason = kind === "source_card" ? optionalString(frontmatter.statusReason) : undefined;
-      const sourceHealth = kind === "wiki" && sourceCardIds.length > 0
+      const sourceHealth = (kind === "wiki" || kind === "home") && sourceCardIds.length > 0
         ? computeSourceHealth(sourceCardIds, sourceCardsById)
         : undefined;
       const entry: ProjectWikiCatalogEntry = {
@@ -191,7 +196,7 @@ export class ProjectWikiStore {
         preview,
       };
       totalChars += JSON.stringify(entry).length;
-      if (totalChars > limitChars && entries.length > 0) {
+      if (totalChars > limitChars && entries.length > 0 && !isCoreCatalogMarkdownPath(relativePath)) {
         break;
       }
       entries.push(entry);
@@ -369,6 +374,48 @@ export class ProjectWikiStore {
     return staleCards;
   }
 
+  async observeSourceCardChanges(options: { includeStale?: boolean } = {}): Promise<ProjectWikiSourceChangeEvent[]> {
+    await this.ensureInitialized();
+    const events: ProjectWikiSourceChangeEvent[] = [];
+    for (const sourceType of PROJECT_WIKI_SOURCE_TYPES) {
+      const dir = join(this.rootDir, "source_cards", sourceType);
+      let entries;
+      try {
+        entries = await readdir(dir, { withFileTypes: true });
+      } catch {
+        continue;
+      }
+      for (const entry of entries) {
+        if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
+        const relativePath = toPosix(join("source_cards", sourceType, entry.name));
+        const record = await this.readSourceCardRecord(relativePath);
+        if (!record || record.status === "conflict") continue;
+        if (record.status === "stale" && !options.includeStale) continue;
+        const event = await observeSourceCardChange(record, {
+          forceRecheck: record.status === "stale" && options.includeStale,
+        });
+        if (event) events.push({ ...event, observedAt: this.now().toISOString() });
+      }
+    }
+    return events;
+  }
+
+  async updateSourceCardRecord(card: ProjectWikiSourceCardRecord): Promise<ProjectWikiSourceCardRecord> {
+    await this.ensureInitialized();
+    const record: ProjectWikiSourceCardRecord = {
+      ...card,
+      tags: normalizeStringArray(card.tags),
+      qualitySignals: normalizeStringArray(card.qualitySignals),
+      sourceRefs: card.sourceRefs ?? [],
+      updatedAt: this.now().toISOString(),
+    };
+    await writeFile(join(this.rootDir, record.relativePath), renderSourceCardMarkdown(record), {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    return record;
+  }
+
   async refreshSourceCardFreshness(): Promise<ProjectWikiSourceCardRecord[]> {
     await this.ensureInitialized();
     const staleCards: ProjectWikiSourceCardRecord[] = [];
@@ -406,7 +453,37 @@ export class ProjectWikiStore {
   async writeWikiPage(page: ProjectWikiPageDraft): Promise<ProjectWikiPageRecord> {
     await this.ensureInitialized();
     const now = this.now().toISOString();
-    const pageId = PROJECT_WIKI_PAGE_IDS.includes(page.pageId) ? page.pageId : "knowledge";
+    if (page.pageId === "home") {
+      const record: ProjectWikiPageRecord = {
+        ...page,
+        pageId: "home",
+        sourceCardIds: page.sourceCardIds ?? [],
+        relativePath: "home.md",
+        updatedAt: now,
+      };
+      await writeFile(
+        this.homePath,
+        renderMarkdown({
+          frontmatter: {
+            type: "project_wiki_home",
+            pageId: "home",
+            title: record.title,
+            description: record.description,
+            projectRoot: this.projectRoot,
+            updatedAt: now,
+            sourceCardIds: record.sourceCardIds,
+            changeSummary: record.changeSummary ?? "",
+          },
+          title: record.title,
+          body: record.body,
+        }),
+        { encoding: "utf8", mode: 0o600 },
+      );
+      return record;
+    }
+    const pageId = PROJECT_WIKI_PAGE_IDS.includes(page.pageId as ProjectWikiWikiPageId)
+      ? page.pageId as ProjectWikiWikiPageId
+      : "knowledge";
     const relativePath = toPosix(join("wiki", `${pageId}.md`));
     const absolutePath = join(this.rootDir, relativePath);
     const record: ProjectWikiPageRecord = {
@@ -754,26 +831,23 @@ export class ProjectWikiStore {
     return renderMarkdown({
       frontmatter: {
         type: "project_wiki_home",
-        title: "ProjectWiki",
-        description: "Model-maintained project memory, source cards, and traceable context assembly.",
+        pageId: "home",
+        title: "Project Home",
+        description: "Project-specific homepage maintained from ProjectWiki source cards.",
         projectRoot: this.projectRoot,
         updatedAt: this.now().toISOString(),
+        sourceCardIds: [],
       },
-      title: "ProjectWiki",
+      title: "Project Home",
       body: [
-        "ProjectWiki is the unified project context layer for this workspace.",
+        "ProjectWiki has not built a project-specific homepage yet.",
         "",
-        "## Wiki Pages",
-        "- `wiki/project-overview.md`: project identity and architecture.",
-        "- `wiki/project-status.md`: current project state and next steps.",
-        "- `wiki/project-feedback.md`: project-specific user feedback and constraints.",
-        "- `wiki/knowledge.md`: reusable knowledge produced or validated by the agent.",
+        "After project material is indexed, the maintainer will turn source cards into a concise project homepage with:",
         "",
-        "## Source Cards",
-        "- `source_cards/repo/`: model summaries of repository material.",
-        "- `source_cards/memory/`: imported memory summaries.",
-        "- `source_cards/conversations/`: summaries of relevant conversation turns.",
-        "- `source_cards/knowledge/`: reusable high-quality assistant output.",
+        "- the project's current identity and purpose",
+        "- the most important current status",
+        "- key decisions, preferences, or risks",
+        "- links to the most useful ProjectWiki pages or source cards",
       ].join("\n"),
     });
   }
@@ -790,8 +864,11 @@ export class ProjectWikiStore {
     const body = parsed.body;
     const stale =
       body.includes("wiki/collaboration-context.md") ||
-      !body.includes("wiki/project-feedback.md") ||
-      !body.includes("source_cards/memory/");
+      (
+        body.includes("ProjectWiki is the unified project context layer")
+        && body.includes("## Wiki Pages")
+        && body.includes("source_cards/repo/")
+      );
     if (!stale) return;
     await writeFile(this.homePath, this.buildHomeMarkdown(), { encoding: "utf8", mode: 0o600 });
   }
@@ -855,13 +932,26 @@ export class ProjectWikiStore {
     if (readString(parsed.frontmatter.type) !== "source_card") return;
     const sourceRefs = readSourceRefs(parsed.frontmatter.sourceRefs);
     let changed = false;
-    const repairedRefs = sourceRefs.map((ref) => {
-      if (ref.kind !== "transcript" || ref.path || !ref.sessionId) return ref;
-      const transcriptPath = this.resolveSiblingTranscriptPath(ref.sessionId);
-      if (!transcriptPath) return ref;
-      changed = true;
-      return { ...ref, path: transcriptPath };
-    });
+    const repairedRefs: ProjectWikiSourceRef[] = [];
+    for (const ref of sourceRefs) {
+      let repaired = ref;
+      if (ref.kind === "transcript" && ref.sessionId) {
+        if (!ref.path) {
+          const transcriptPath = this.resolveSiblingTranscriptPath(ref.sessionId);
+          if (transcriptPath) {
+            repaired = { ...ref, path: transcriptPath };
+            changed = true;
+          }
+        } else {
+          const transcriptPath = await resolveSubagentTranscriptPathForSourceRef(ref, ref.path);
+          if (transcriptPath && transcriptPath !== ref.path) {
+            repaired = { ...ref, path: transcriptPath };
+            changed = true;
+          }
+        }
+      }
+      repairedRefs.push(repaired);
+    }
 
     const relativePath = toPosix(relative(this.rootDir, sourceCardPath));
     const pathSourceType = readSourceType(relativePath.split("/")[1]);
@@ -882,6 +972,19 @@ export class ProjectWikiStore {
     } else if (consistencyIssue && !statusReason) {
       statusReason = consistencyIssue;
       changed = true;
+    }
+    if (status === "stale" && statusReason?.startsWith("Source reference is no longer fresh:") && !consistencyIssue) {
+      const freshnessIssue = await findSourceRefsFreshnessIssue(repairedRefs);
+      if (freshnessIssue) {
+        if (statusReason !== freshnessIssue) {
+          statusReason = freshnessIssue;
+          changed = true;
+        }
+      } else {
+        status = "active";
+        statusReason = "";
+        changed = true;
+      }
     }
     if (!changed) return;
 
@@ -968,6 +1071,11 @@ function isCatalogMarkdownPath(relativePath: string): boolean {
   return PROJECT_WIKI_PAGE_IDS.some((pageId) => relativePath === `wiki/${pageId}.md`);
 }
 
+function isCoreCatalogMarkdownPath(relativePath: string): boolean {
+  return relativePath === "home.md"
+    || PROJECT_WIKI_PAGE_IDS.some((pageId) => relativePath === `wiki/${pageId}.md`);
+}
+
 function compareCatalogPaths(left: string, right: string): number {
   const leftRank = catalogPathRank(left);
   const rightRank = catalogPathRank(right);
@@ -979,21 +1087,244 @@ function compareCatalogPaths(left: string, right: string): number {
 }
 
 function catalogPathRank(relativePath: string): number {
-  if (relativePath.startsWith("wiki/")) return 0;
-  if (relativePath.startsWith("source_cards/")) return 1;
-  if (relativePath === "home.md") return 2;
+  if (relativePath === "home.md") return 0;
+  if (relativePath.startsWith("wiki/")) return 1;
+  if (relativePath.startsWith("source_cards/")) return 2;
   return 3;
 }
 
 function wikiPageOrder(relativePath: string): number {
-  const pageId = relativePath.replace(/^wiki\//, "").replace(/\.md$/, "") as ProjectWikiPageId;
+  const pageId = relativePath.replace(/^wiki\//, "").replace(/\.md$/, "") as ProjectWikiWikiPageId;
   const index = PROJECT_WIKI_PAGE_IDS.indexOf(pageId);
   return index >= 0 ? index : PROJECT_WIKI_PAGE_IDS.length;
 }
 
+async function observeSourceCardChange(
+  card: ProjectWikiSourceCardRecord,
+  options: { forceRecheck?: boolean } = {},
+): Promise<ProjectWikiSourceChangeEvent | undefined> {
+  const originalRefs = card.sourceRefs ?? [];
+  const suggestedSourceRefs = [...originalRefs];
+  const changes: ProjectWikiSourceRefChange[] = [];
+  const consistencyIssue = sourceCardConsistencyIssue(card.sourceType, originalRefs);
+  if (consistencyIssue) {
+    changes.push({
+      kind: "inconsistent",
+      reason: consistencyIssue,
+      sourceRef: originalRefs[0] ?? { kind: "source_card", label: card.id },
+    });
+  }
+
+  for (let index = 0; index < originalRefs.length; index += 1) {
+    const ref = originalRefs[index]!;
+    const change = await observeSourceRefChange(ref);
+    if (!change) continue;
+    changes.push(change);
+    if (change.currentSourceRef) suggestedSourceRefs[index] = change.currentSourceRef;
+  }
+
+  if (changes.length === 0 && options.forceRecheck) {
+    const recheck = await sourceRefRecheckEvidence(originalRefs[0]);
+    changes.push(recheck ?? {
+      kind: "recheck",
+      reason: "Source card is currently marked stale and needs model re-evaluation, but no current source evidence could be read.",
+      sourceRef: originalRefs[0] ?? { kind: "source_card", label: card.id },
+    });
+    if (recheck?.currentSourceRef) suggestedSourceRefs[0] = recheck.currentSourceRef;
+  }
+
+  if (changes.length === 0) return undefined;
+  return {
+    sourceCard: card,
+    sourceCardId: card.id,
+    relativePath: card.relativePath,
+    sourceType: card.sourceType,
+    observedAt: "",
+    changes,
+    suggestedSourceRefs,
+  };
+}
+
+async function sourceRefRecheckEvidence(ref: ProjectWikiSourceRef | undefined): Promise<ProjectWikiSourceRefChange | undefined> {
+  if (!ref || !isFreshnessCheckedSourceRef(ref)) return undefined;
+  const refPath = ref.path?.trim();
+  if (!refPath) return undefined;
+  let info;
+  try {
+    info = await stat(refPath);
+  } catch {
+    return undefined;
+  }
+  if (!info.isFile()) return undefined;
+  if (ref.kind === "transcript" && ref.turnId) {
+    const evidence = await transcriptSourceRefCurrentEvidence(ref, refPath);
+    if (!evidence) return undefined;
+    return {
+      kind: "recheck",
+      reason: "Source card is currently marked stale; current transcript evidence is available for model re-evaluation.",
+      sourceRef: ref,
+      currentSourceRef: evidence.sourceRef,
+      currentEvidence: evidence.evidence,
+    };
+  }
+  let content: string;
+  try {
+    content = await readFile(refPath, "utf8");
+  } catch {
+    return undefined;
+  }
+  return {
+    kind: "recheck",
+    reason: "Source card is currently marked stale; current file evidence is available for model re-evaluation.",
+    sourceRef: ref,
+    currentSourceRef: isContentHashCheckedSourceRef(ref)
+      ? { ...ref, contentHash: hashText(content) }
+      : ref,
+    currentEvidence: truncateText(content, 6_000),
+  };
+}
+
+async function observeSourceRefChange(ref: ProjectWikiSourceRef): Promise<ProjectWikiSourceRefChange | undefined> {
+  if (!isFreshnessCheckedSourceRef(ref)) return undefined;
+  const refPath = ref.path?.trim();
+  if (!refPath) return undefined;
+  let info;
+  try {
+    info = await stat(refPath);
+  } catch {
+    return {
+      kind: "missing",
+      reason: `${formatSourceRefForFreshness(ref)} is missing.`,
+      sourceRef: ref,
+    };
+  }
+  if (!info.isFile()) {
+    return {
+      kind: "unreadable",
+      reason: `${formatSourceRefForFreshness(ref)} is not a readable file.`,
+      sourceRef: ref,
+    };
+  }
+  if (ref.kind === "transcript" && ref.contentHash) {
+    return await observeTranscriptSourceRefChange(ref, refPath);
+  }
+  if (!isContentHashCheckedSourceRef(ref) || !ref.contentHash) return undefined;
+  let content: string;
+  try {
+    content = await readFile(refPath, "utf8");
+  } catch {
+    return {
+      kind: "unreadable",
+      reason: `${formatSourceRefForFreshness(ref)} could not be read.`,
+      sourceRef: ref,
+    };
+  }
+  const currentHash = hashText(content);
+  if (currentHash === normalizeContentHash(ref.contentHash)) return undefined;
+  return {
+    kind: "modified",
+    reason: `${formatSourceRefForFreshness(ref)} content changed.`,
+    sourceRef: ref,
+    currentSourceRef: { ...ref, contentHash: currentHash },
+    currentEvidence: truncateText(content, 6_000),
+  };
+}
+
+async function transcriptSourceRefCurrentEvidence(
+  ref: ProjectWikiSourceRef,
+  refPath: string,
+  seenPaths = new Set<string>(),
+): Promise<{ sourceRef: ProjectWikiSourceRef; evidence: string } | undefined> {
+  if (!ref.turnId) return undefined;
+  seenPaths.add(refPath);
+  let transcript;
+  try {
+    transcript = await readTranscript(refPath);
+  } catch {
+    return undefined;
+  }
+  const messages = transcriptMessagesForSourceRef(transcript.entries, ref);
+  if (messages.length === 0) {
+    const sidechainPath = resolveSubagentTranscriptPath(ref, refPath, transcript.entries);
+    if (sidechainPath && !seenPaths.has(sidechainPath)) {
+      return transcriptSourceRefCurrentEvidence({ ...ref, path: sidechainPath }, sidechainPath, seenPaths);
+    }
+    return undefined;
+  }
+  const digest = canonicalMessagesToFreshnessDigest(messages, 16_000);
+  return {
+    sourceRef: { ...ref, path: refPath, contentHash: hashText(digest) },
+    evidence: digest,
+  };
+}
+
+async function observeTranscriptSourceRefChange(
+  ref: ProjectWikiSourceRef,
+  refPath: string,
+  seenPaths = new Set<string>(),
+): Promise<ProjectWikiSourceRefChange | undefined> {
+  if (!ref.turnId) return undefined;
+  seenPaths.add(refPath);
+  let transcript;
+  try {
+    transcript = await readTranscript(refPath);
+  } catch {
+    return {
+      kind: "unreadable",
+      reason: `${formatSourceRefForFreshness(ref)} could not be read.`,
+      sourceRef: ref,
+    };
+  }
+  const messages = transcriptMessagesForSourceRef(transcript.entries, ref);
+  if (messages.length === 0) {
+    const sidechainPath = resolveSubagentTranscriptPath(ref, refPath, transcript.entries);
+    if (sidechainPath && !seenPaths.has(sidechainPath)) {
+      const sidechainChange = await observeTranscriptSourceRefChange(ref, sidechainPath, seenPaths);
+      if (!sidechainChange) {
+        return {
+          kind: "modified",
+          reason: `${formatSourceRefForFreshness(ref)} moved to sidechain transcript.`,
+          sourceRef: ref,
+          currentSourceRef: { ...ref, path: sidechainPath },
+        };
+      }
+      return {
+        ...sidechainChange,
+        sourceRef: ref,
+        currentSourceRef: {
+          ...(sidechainChange.currentSourceRef ?? ref),
+          path: sidechainPath,
+        },
+      };
+    }
+    const parseIssue = transcript.diagnostics.find((diagnostic) => diagnostic.severity === "error");
+    return {
+      kind: parseIssue ? "unreadable" : "missing",
+      reason: parseIssue
+        ? `${formatSourceRefForFreshness(ref)} could not be parsed: ${parseIssue.message}`
+        : `${formatSourceRefForFreshness(ref)} turn ${ref.turnId} was not found.`,
+      sourceRef: ref,
+    };
+  }
+  const digest = canonicalMessagesToFreshnessDigest(messages, 16_000);
+  const currentHash = hashText(digest);
+  if (currentHash === normalizeContentHash(ref.contentHash ?? "")) return undefined;
+  return {
+    kind: "modified",
+    reason: `${formatSourceRefForFreshness(ref)} content changed.`,
+    sourceRef: ref,
+    currentSourceRef: { ...ref, path: refPath, contentHash: currentHash },
+    currentEvidence: digest,
+  };
+}
+
 async function findSourceCardFreshnessIssue(card: ProjectWikiSourceCardRecord): Promise<string | undefined> {
+  return findSourceRefsFreshnessIssue(card.sourceRefs ?? []);
+}
+
+async function findSourceRefsFreshnessIssue(sourceRefs: ProjectWikiSourceRef[]): Promise<string | undefined> {
   const issues: string[] = [];
-  for (const ref of card.sourceRefs ?? []) {
+  for (const ref of sourceRefs) {
     const issue = await sourceRefFreshnessIssue(ref);
     if (issue) issues.push(issue);
     if (issues.length >= 3) break;
@@ -1035,8 +1366,10 @@ async function sourceRefFreshnessIssue(ref: ProjectWikiSourceRef): Promise<strin
 async function transcriptSourceRefFreshnessIssue(
   ref: ProjectWikiSourceRef,
   refPath: string,
+  seenPaths = new Set<string>(),
 ): Promise<string | undefined> {
   if (!ref.turnId) return undefined;
+  seenPaths.add(refPath);
   let transcript;
   try {
     transcript = await readTranscript(refPath);
@@ -1045,6 +1378,10 @@ async function transcriptSourceRefFreshnessIssue(
   }
   const messages = transcriptMessagesForSourceRef(transcript.entries, ref);
   if (messages.length === 0) {
+    const sidechainPath = resolveSubagentTranscriptPath(ref, refPath, transcript.entries);
+    if (sidechainPath && !seenPaths.has(sidechainPath)) {
+      return transcriptSourceRefFreshnessIssue(ref, sidechainPath, seenPaths);
+    }
     const parseIssue = transcript.diagnostics.find((diagnostic) => diagnostic.severity === "error");
     if (parseIssue) {
       return `${formatSourceRefForFreshness(ref)} could not be parsed: ${parseIssue.message}`;
@@ -1054,6 +1391,65 @@ async function transcriptSourceRefFreshnessIssue(
   const digest = canonicalMessagesToFreshnessDigest(messages, 16_000);
   if (hashText(digest) !== normalizeContentHash(ref.contentHash ?? "")) {
     return `${formatSourceRefForFreshness(ref)} content changed.`;
+  }
+  return undefined;
+}
+
+async function resolveSubagentTranscriptPathForSourceRef(
+  ref: ProjectWikiSourceRef,
+  refPath: string,
+): Promise<string | undefined> {
+  if (ref.kind !== "transcript" || !ref.turnId) return undefined;
+  let parentTranscript;
+  try {
+    parentTranscript = await readTranscript(refPath);
+  } catch {
+    return undefined;
+  }
+  if (transcriptMessagesForSourceRef(parentTranscript.entries, ref).length > 0) return undefined;
+  const sidechainPath = resolveSubagentTranscriptPath(ref, refPath, parentTranscript.entries);
+  if (!sidechainPath || sidechainPath === refPath) return undefined;
+  let sidechainTranscript;
+  try {
+    sidechainTranscript = await readTranscript(sidechainPath);
+  } catch {
+    return undefined;
+  }
+  return transcriptMessagesForSourceRef(sidechainTranscript.entries, ref).length > 0
+    ? sidechainPath
+    : undefined;
+}
+
+function resolveSubagentTranscriptPath(
+  ref: ProjectWikiSourceRef,
+  parentTranscriptPath: string,
+  entries: AgentTranscriptEntry[],
+): string | undefined {
+  const subagentId = subagentIdFromSourceRef(ref);
+  if (!subagentId && !ref.sessionId) return undefined;
+  for (const entry of entries) {
+    if (entry.type !== "subagent_started") continue;
+    const matchesSession = Boolean(ref.sessionId && entry.subagentSessionId === ref.sessionId);
+    const matchesId = Boolean(subagentId && entry.subagentId === subagentId);
+    if (!matchesSession && !matchesId) continue;
+    if (!entry.transcriptRelativePath) continue;
+    return resolve(dirname(parentTranscriptPath), entry.transcriptRelativePath);
+  }
+  return undefined;
+}
+
+function subagentIdFromSourceRef(ref: ProjectWikiSourceRef): string | undefined {
+  if (ref.sessionId) {
+    const marker = "::sub::";
+    const index = ref.sessionId.lastIndexOf(marker);
+    if (index >= 0) {
+      const subagentId = ref.sessionId.slice(index + marker.length).trim();
+      if (subagentId) return subagentId;
+    }
+  }
+  if (ref.turnId?.endsWith("-t0")) {
+    const subagentId = ref.turnId.slice(0, -"-t0".length).trim();
+    if (subagentId) return subagentId;
   }
   return undefined;
 }

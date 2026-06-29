@@ -59,6 +59,7 @@ type ActiveSubagentStatus = {
 export type AgentLoopInput = {
   sessionId: string;
   turnId: string;
+  transcriptPath?: string;
   messages: CanonicalMessage[];
   maxTurns?: number;
   permissionMode?: PermissionMode;
@@ -117,6 +118,7 @@ export class AgentLoop {
         await hook.call(this.dependencies.context, {
           sessionId: input.sessionId,
           turnId: input.turnId,
+          transcriptPath: input.transcriptPath,
           messages,
           errored,
         });
@@ -1262,6 +1264,7 @@ export class AgentLoop {
             ? {
                 recordAcceptedInput: sidechain.recordAcceptedInput.bind(sidechain),
                 recordDurableMessage: sidechain.recordDurableMessage.bind(sidechain),
+                transcriptPath: sidechain.transcriptPath,
               }
             : undefined,
         });

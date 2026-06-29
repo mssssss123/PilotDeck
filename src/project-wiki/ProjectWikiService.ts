@@ -14,6 +14,7 @@ import {
   PROJECT_WIKI_CURATOR_SYSTEM_PROMPT,
   PROJECT_WIKI_INDEXER_SYSTEM_PROMPT,
   PROJECT_WIKI_MAINTAINER_SYSTEM_PROMPT,
+  PROJECT_WIKI_RECONCILER_SYSTEM_PROMPT,
   PROJECT_WIKI_RETRIEVER_AGENT_SYSTEM_PROMPT,
   PROJECT_WIKI_SEARCHER_SYSTEM_PROMPT,
   projectWikiLanguageName,
@@ -26,12 +27,15 @@ import {
   isIndexOutput,
   isMaintainOutput,
   isSearchOutput,
+  isSourceReconcileOutput,
   maintainOutputSchema,
   searchOutputSchema,
+  sourceReconcileOutputSchema,
   type ProjectWikiCurateOutput,
   type ProjectWikiIndexOutput,
   type ProjectWikiMaintainOutput,
   type ProjectWikiSearchOutput,
+  type ProjectWikiSourceReconcileOutput,
 } from "./schemas.js";
 import type {
   ProjectWikiCaptureTurnInput,
@@ -52,11 +56,12 @@ import type {
   ProjectWikiSearchResult,
   ProjectWikiSourceCardDraft,
   ProjectWikiSourceCardRecord,
+  ProjectWikiSourceChangeEvent,
   ProjectWikiSourceRef,
   ProjectWikiSourceType,
   ProjectWikiTraceRecord,
 } from "./types.js";
-import { PROJECT_WIKI_PAGE_IDS, PROJECT_WIKI_SOURCE_TYPES } from "./types.js";
+import { PROJECT_WIKI_MAINTAINABLE_PAGE_IDS, PROJECT_WIKI_PAGE_IDS, PROJECT_WIKI_SOURCE_TYPES } from "./types.js";
 
 const TRACE_PREVIEW_CHARS = 1_200;
 const TRACE_FIELD_PREVIEW_CHARS = 700;
@@ -156,11 +161,18 @@ export type RepoDigestMaterial = {
 
 type QueuedProjectWikiCaptureInput = TraceableProjectWikiCaptureInput & {
   repoMaterial?: RepoDigestMaterial;
+  recheckStaleSources?: boolean;
 };
 
 type IndexTurnResult = {
   cards: ProjectWikiSourceCardRecord[];
   status: "success" | "skipped" | "error";
+};
+
+type ProcessCaptureTurnResult = {
+  cards: ProjectWikiSourceCardRecord[];
+  sourceCardsCreated: number;
+  sourceCardsReconciled: number;
 };
 
 type HistoricalTurnMaterial = TraceableProjectWikiCaptureInput & {
@@ -376,7 +388,6 @@ export class ProjectWikiService {
     const pipeline = this.createTracePipeline("retrieval_context", input);
 
     try {
-      await this.refreshSourceCardFreshness({ ...input, tracePipeline: pipeline }, 1, "check_source_freshness");
       const catalog = filterRetrievableCatalog(
         await this.store.listCatalog(this.config.limits.maxCatalogChars),
       );
@@ -959,7 +970,6 @@ export class ProjectWikiService {
     const diagnostics: ProjectWikiDiagnostic[] = [];
     const pipeline = this.createTracePipeline("direct_search", input);
     try {
-      await this.refreshSourceCardFreshness({ ...input, tracePipeline: pipeline }, 1, "check_source_freshness");
       const catalog = filterRetrievableCatalog(
         await this.store.listCatalog(this.config.limits.maxCatalogChars),
       );
@@ -1160,9 +1170,10 @@ export class ProjectWikiService {
       projectRoot: this.projectRoot,
       messages: [],
       errored: false,
+      recheckStaleSources: true,
     };
     refreshInput.tracePipeline = this.createTracePipeline("refresh", refreshInput);
-    const currentCards = await this.processCaptureTurn(refreshInput);
+    const current = await this.processCaptureTurn(refreshInput);
     const history = await this.backfillHistoricalTurns(refreshInput, input.maxHistoricalTurns);
     await this.flushMaintenance();
     return {
@@ -1174,7 +1185,8 @@ export class ProjectWikiService {
       failedTurns: history.failedTurns,
       scannedTranscripts: history.scannedTranscripts,
       discoveredTurns: history.discoveredTurns,
-      sourceCardsCreated: currentCards.length + history.sourceCardsCreated,
+      sourceCardsCreated: current.sourceCardsCreated + history.sourceCardsCreated,
+      sourceCardsReconciled: current.sourceCardsReconciled,
     };
   }
 
@@ -1183,18 +1195,29 @@ export class ProjectWikiService {
     await this.maintenanceQueue;
   }
 
-  private async processCaptureTurn(input: QueuedProjectWikiCaptureInput): Promise<ProjectWikiSourceCardRecord[]> {
+  private async processCaptureTurn(input: QueuedProjectWikiCaptureInput): Promise<ProcessCaptureTurnResult> {
     await this.store.ensureInitialized();
     try {
       const createdCards: ProjectWikiSourceCardRecord[] = [];
+      let sourceCardsCreated = 0;
+      let sourceCardsReconciled = 0;
       if (this.config.sources.repo) {
-        createdCards.push(...await this.ensureRepoIndexed(input, input.repoMaterial));
+        const repoCards = await this.ensureRepoIndexed(input, input.repoMaterial);
+        sourceCardsCreated += repoCards.length;
+        createdCards.push(...repoCards);
       }
-      createdCards.push(...await this.refreshSourceCardFreshness(input));
+      const reconciledCards = await this.reconcileSourceChanges(input, {
+        includeStale: input.recheckStaleSources === true,
+      });
+      sourceCardsReconciled += reconciledCards.length;
+      createdCards.push(...reconciledCards);
       if (this.config.sources.memory) {
-        createdCards.push(...await this.ensureLegacyMemoryImported(input));
+        const legacyCards = await this.ensureLegacyMemoryImported(input);
+        sourceCardsCreated += legacyCards.length;
+        createdCards.push(...legacyCards);
       }
       const turnIndex = await this.indexTurn(input);
+      sourceCardsCreated += turnIndex.cards.length;
       createdCards.push(...turnIndex.cards);
       if (createdCards.length > 0) {
         await this.store.enqueueMaintenanceCards(createdCards, input);
@@ -1202,7 +1225,7 @@ export class ProjectWikiService {
       if (createdCards.length > 0 || await this.store.hasPendingMaintenanceCards()) {
         this.scheduleWikiMaintenance(input);
       }
-      return createdCards;
+      return { cards: createdCards, sourceCardsCreated, sourceCardsReconciled };
     } catch (error) {
       await this.store.appendTrace({
         ...this.traceBase("index", "capture_failed", input),
@@ -1210,7 +1233,7 @@ export class ProjectWikiService {
         ...traceStep(input.tracePipeline, 99, "capture_failed"),
         error: error instanceof Error ? error.message : String(error),
       });
-      return [];
+      return { cards: [], sourceCardsCreated: 0, sourceCardsReconciled: 0 };
     }
   }
 
@@ -1416,9 +1439,6 @@ export class ProjectWikiService {
       return [];
     }
     if (hasRepoCards && repoState?.contentHash === digestHash) return [];
-    const staleCards = hasRepoCards
-      ? await this.store.markSourceCardsStale("repo", "Repository digest changed; this card may describe an older repository state.")
-      : [];
     const sourceRefs: ProjectWikiSourceRef[] = material.sourceRefs.length > 0
       ? material.sourceRefs
       : [{
@@ -1461,14 +1481,14 @@ export class ProjectWikiService {
         rawOutput: result.value,
         payloads: modelTracePayloads(result),
         usage: result.response.usage,
-        artifacts: [...staleCards, ...cards].map((card) => ({
+        artifacts: cards.map((card) => ({
           kind: "source_card",
           id: card.id,
           path: card.relativePath,
           title: card.title,
         })),
       });
-      return [...staleCards, ...cards];
+      return cards;
     } catch (error) {
       await this.store.appendTrace({
         ...this.traceBase("index", "repo_failed", input),
@@ -1635,11 +1655,16 @@ export class ProjectWikiService {
       Math.max(this.config.limits.maxSourceCardsPerTurn, 12),
     );
     if (pendingCards.length === 0) return false;
+    const home = await this.store.readRelative("home.md");
     const wikiPages = await this.store.readWikiPages();
+    const maintainablePages = [
+      ...(home ? [home] : []),
+      ...wikiPages,
+    ];
     const modelInput = {
       ...this.outputLanguageInput,
       projectRoot: this.projectRoot,
-      wikiPages: wikiPages.map((page) => ({
+      wikiPages: maintainablePages.map((page) => ({
         relativePath: page.relativePath,
         frontmatter: page.frontmatter,
         content: truncateText(page.content, 6_000),
@@ -1658,7 +1683,7 @@ export class ProjectWikiService {
         confidence: card.confidence,
         qualitySignals: card.qualitySignals,
       })),
-      allowedPageIds: PROJECT_WIKI_PAGE_IDS,
+      allowedPageIds: PROJECT_WIKI_MAINTAINABLE_PAGE_IDS,
     };
     const started = Date.now();
     const traceCreatedAt = this.now().toISOString();
@@ -1754,41 +1779,106 @@ export class ProjectWikiService {
       });
   }
 
-  private async refreshSourceCardFreshness(
+  private async reconcileSourceChanges(
     input: { sessionId?: string; turnId?: string; tracePipeline?: TracePipelineContext },
+    options: { includeStale?: boolean } = {},
     stepIndex = 2,
-    stepName = "check_source_freshness",
+    stepName = "reconcile_source_changes",
   ): Promise<ProjectWikiSourceCardRecord[]> {
     const started = Date.now();
     try {
-      const staleCards = await this.store.refreshSourceCardFreshness();
-      if (staleCards.length > 0) {
-        await this.store.appendTrace({
-          ...this.traceBase("index", "source_freshness", input),
-          status: "success",
-          durationMs: Date.now() - started,
-          ...traceStep(input.tracePipeline, stepIndex, stepName),
-          output: compactTracePayload({ staleCards }),
-          rawOutput: { staleCards },
-          artifacts: staleCards.map((card) => ({
+      const changes = await this.store.observeSourceCardChanges({ includeStale: options.includeStale });
+      if (changes.length === 0) return [];
+      const modelInput = {
+        ...this.outputLanguageInput,
+        projectRoot: this.projectRoot,
+        changes: changes.map(sourceChangeForModel),
+      };
+      const result = await this.modelRunner.structured<ProjectWikiSourceReconcileOutput>({
+        role: "maintainer",
+        systemPrompt: this.systemPrompt(PROJECT_WIKI_RECONCILER_SYSTEM_PROMPT),
+        userPrompt: JSON.stringify(modelInput, null, 2),
+        schema: sourceReconcileOutputSchema,
+        schemaName: "project_wiki_source_reconcile",
+        maxOutputTokens: 4096,
+        validate: isSourceReconcileOutput,
+      });
+      const traceCreatedAt = this.now().toISOString();
+      const traceId = this.store.createTraceId(traceCreatedAt);
+      const applied = await this.applySourceReconcileDecisions(changes, result.value, traceId);
+      await this.store.appendTrace({
+        id: traceId,
+        createdAt: traceCreatedAt,
+        ...this.traceBase("maintain", "source_reconcile", input),
+        status: applied.updated.length > 0 || applied.conflicts.length > 0 ? "success" : "skipped",
+        model: result.model,
+        durationMs: Date.now() - started,
+        ...traceStep(input.tracePipeline, stepIndex, stepName),
+        input: compactTracePayload(modelInput),
+        output: compactTracePayload(result.value),
+        rawInput: modelInput,
+        rawOutput: result.value,
+        payloads: modelTracePayloads(result),
+        usage: result.response.usage,
+        artifacts: [
+          ...applied.updated.map((card) => ({
             kind: "source_card" as const,
             id: card.id,
             path: card.relativePath,
             title: card.title,
           })),
-        });
-      }
-      return staleCards;
+          ...applied.conflicts.map((conflict) => ({
+            kind: "conflict" as const,
+            id: conflict.id,
+            title: conflict.topic,
+          })),
+        ],
+      });
+      return applied.updated;
     } catch (error) {
       await this.store.appendTrace({
-        ...this.traceBase("index", "source_freshness_failed", input),
+        ...this.traceBase("maintain", "source_reconcile_failed", input),
         status: "error",
+        model: this.modelRunner.resolveModel("maintainer"),
         durationMs: Date.now() - started,
         ...traceStep(input.tracePipeline, stepIndex, `${stepName}_failed`),
         error: errorMessage(error),
+        payloads: modelErrorTracePayloads(error),
       });
       return [];
     }
+  }
+
+  private async applySourceReconcileDecisions(
+    changes: ProjectWikiSourceChangeEvent[],
+    output: ProjectWikiSourceReconcileOutput,
+    traceId: string,
+  ): Promise<{ updated: ProjectWikiSourceCardRecord[]; conflicts: ProjectWikiConflictRecord[] }> {
+    const changesById = new Map(changes.map((event) => [event.sourceCardId, event]));
+    const changesByPath = new Map(changes.map((event) => [event.relativePath, event]));
+    const updated: ProjectWikiSourceCardRecord[] = [];
+    const conflictDrafts: Array<{ topic?: string; summary?: string; sourceCardIds?: string[] }> = [];
+    for (const decision of output.decisions ?? []) {
+      const event = (decision.sourceCardId ? changesById.get(decision.sourceCardId) : undefined)
+        ?? (decision.relativePath ? changesByPath.get(decision.relativePath) : undefined);
+      if (!event) continue;
+      const next = sourceCardForReconcileDecision(event, decision);
+      if (!next) continue;
+      updated.push(await this.store.updateSourceCardRecord(next));
+      if (decision.outcome === "conflict") {
+        const conflictSourceCardIds = readStringArray(decision.conflict?.sourceCardIds);
+        conflictDrafts.push(decision.conflict ? {
+          ...decision.conflict,
+          sourceCardIds: conflictSourceCardIds.length > 0 ? conflictSourceCardIds : [next.id],
+        } : {
+          topic: next.title,
+          summary: decision.statusReason ?? "Source evidence conflicts with this ProjectWiki source card.",
+          sourceCardIds: [next.id],
+        });
+      }
+    }
+    const conflicts = await this.store.appendConflicts(conflictDrafts, traceId);
+    return { updated, conflicts };
   }
 }
 
@@ -2006,6 +2096,100 @@ function enabledTurnSourceTypes(config: ProjectWikiRuntimeConfig): ProjectWikiSo
     .filter((type) => config.sources[type]);
 }
 
+function sourceChangeForModel(event: ProjectWikiSourceChangeEvent): Record<string, unknown> {
+  const card = event.sourceCard;
+  return {
+    sourceCard: {
+      id: card.id,
+      relativePath: card.relativePath,
+      sourceType: card.sourceType,
+      title: card.title,
+      description: card.description,
+      summary: card.summary,
+      status: card.status,
+      statusReason: card.statusReason,
+      evidenceLevel: card.evidenceLevel,
+      confidence: card.confidence,
+      qualitySignals: card.qualitySignals,
+      sourceRefs: card.sourceRefs,
+    },
+    observedAt: event.observedAt,
+    changes: event.changes.map((change) => ({
+      kind: change.kind,
+      reason: change.reason,
+      sourceRef: change.sourceRef,
+      currentSourceRef: change.currentSourceRef,
+      currentEvidence: change.currentEvidence ? truncateText(change.currentEvidence, 6_000) : undefined,
+    })),
+    suggestedSourceRefs: event.suggestedSourceRefs,
+  };
+}
+
+function sourceCardForReconcileDecision(
+  event: ProjectWikiSourceChangeEvent,
+  decision: NonNullable<ProjectWikiSourceReconcileOutput["decisions"]>[number],
+): ProjectWikiSourceCardRecord | undefined {
+  const outcome = decision.outcome;
+  if (!outcome) return undefined;
+  const card = event.sourceCard;
+  const decisionRefs = Array.isArray(decision.sourceRefs)
+    ? decision.sourceRefs.map(normalizeSourceRef).filter((ref): ref is ProjectWikiSourceRef => Boolean(ref))
+    : [];
+  const refreshedRefs = decisionRefs.length > 0 ? decisionRefs : event.suggestedSourceRefs;
+  const statusReason = optionalString(decision.statusReason);
+  if (outcome === "no_impact" || outcome === "refresh_evidence") {
+    return {
+      ...card,
+      sourceRefs: refreshedRefs,
+      status: card.status === "draft" ? "draft" : "active",
+      statusReason: card.status === "draft" ? card.statusReason : undefined,
+    };
+  }
+  if (outcome === "update_card") {
+    const summary = readString(decision.summary).trim();
+    return {
+      ...card,
+      title: readString(decision.title).trim() || card.title,
+      description: readString(decision.description).trim() || card.description,
+      summary: summary || card.summary,
+      tags: readStringArray(decision.tags).length > 0 ? readStringArray(decision.tags) : card.tags,
+      evidenceLevel: readEvidenceLevel(decision.evidenceLevel) ?? card.evidenceLevel,
+      confidence: readConfidence(decision.confidence) ?? card.confidence,
+      qualitySignals: readStringArray(decision.qualitySignals).length > 0
+        ? readStringArray(decision.qualitySignals)
+        : card.qualitySignals,
+      sourceRefs: refreshedRefs,
+      status: card.status === "draft" ? "draft" : "active",
+      statusReason: card.status === "draft" ? card.statusReason : undefined,
+    };
+  }
+  if (outcome === "conflict") {
+    return {
+      ...card,
+      sourceRefs: refreshedRefs,
+      status: "conflict",
+      statusReason: statusReason ?? "Current source evidence conflicts with this source card.",
+    };
+  }
+  if (outcome === "superseded") {
+    return {
+      ...card,
+      sourceRefs: refreshedRefs,
+      status: "stale",
+      statusReason: statusReason ? `Superseded: ${statusReason}` : "Superseded by newer source evidence.",
+    };
+  }
+  if (outcome === "stale") {
+    return {
+      ...card,
+      sourceRefs: refreshedRefs,
+      status: "stale",
+      statusReason: statusReason ?? event.changes[0]?.reason ?? "Source evidence no longer supports this card.",
+    };
+  }
+  return undefined;
+}
+
 function normalizeSourceCardDraft(
   value: unknown,
   fallbackSourceRefs: ProjectWikiSourceRef[],
@@ -2153,7 +2337,7 @@ function normalizePageDraft(value: unknown, fallbackSourceCardIds: string[] = []
   changeSummary?: string;
 } | undefined {
   if (!isRecord(value)) return undefined;
-  if (!PROJECT_WIKI_PAGE_IDS.includes(value.pageId as ProjectWikiPageId)) return undefined;
+  if (!PROJECT_WIKI_MAINTAINABLE_PAGE_IDS.includes(value.pageId as ProjectWikiPageId)) return undefined;
   const title = readString(value.title).trim();
   const description = readString(value.description).trim();
   const explicitSourceCardIds = readStringArray(value.sourceCardIds);
@@ -2251,6 +2435,9 @@ function normalizeRetrievableProjectWikiPath(value: string): string | undefined 
   ) {
     return undefined;
   }
+  if (path === "home.md") {
+    return path;
+  }
   if (PROJECT_WIKI_PAGE_IDS.some((pageId) => path === `wiki/${pageId}.md`)) {
     return path;
   }
@@ -2341,7 +2528,7 @@ function normalizeCuratedSourcePaths(value: unknown): string[] {
 }
 
 function projectWikiEntryType(path: string): "wiki_page" | "source_card" | "curated_section" {
-  if (path.startsWith("wiki/")) return "wiki_page";
+  if (path === "home.md" || path.startsWith("wiki/")) return "wiki_page";
   if (path.startsWith("source_cards/")) return "source_card";
   return "curated_section";
 }
