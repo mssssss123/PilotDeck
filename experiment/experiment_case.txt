@@ -1,0 +1,10 @@
+Summarize the current project purpose in three concise bullet points. Do not modify files.
+List three possible risks in this workspace based only on visible project context. Do not modify files.
+Explain how you would test a simple command-line integration for this project. Do not modify files.
+Review the repository at a high level and identify one likely entry point. Do not modify files.
+Suggest a naming convention for ten repeated experiment runs. Do not modify files.
+Draft a short checklist for validating that an automation run completed successfully. Do not modify files.
+Identify what information would be useful to log during a batch run. Do not modify files.
+Write a brief status update as if reporting one completed smoke test. Do not modify files.
+Suggest three ways to make repeated prompts easier to compare. Do not modify files.
+Explain what you would verify before trusting generated test results. Do not modify files.

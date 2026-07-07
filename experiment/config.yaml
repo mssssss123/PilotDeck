@@ -1,0 +1,29 @@
+# PilotDeck experiment runner config.
+# This file is safe to commit as long as you keep pilotdeck_api_key empty.
+#
+# Environment variables always override these values:
+#   PILOTDECK_API_KEY, PROJECT_PATH, CASE_FILE, PILOTDECK_SERVER_URL,
+#   LOG_ROOT, NO_STREAM, VIEW, TOOL_RESULT_LIMIT, TIMEOUT
+
+# Required. Generate this from your local PilotDeck server, then paste it here
+# or export PILOTDECK_API_KEY instead.
+pilotdeck_api_key: ""
+
+# Required. Absolute or experiment-folder-relative path to the workspace/project
+# that PilotDeck should open for each case.
+project_path: ""
+
+# PilotDeck Web server.
+server_url: "http://127.0.0.1:3001"
+
+# Prompt cases. One prompt per line.
+case_file: "experiment_case.txt"
+
+# Logs are written under this folder with a timestamped subdirectory.
+log_dir: "experiment_logs"
+
+# Runtime behavior.
+no_stream: false
+view: "compact"
+tool_result_limit: 600
+timeout: 3600
