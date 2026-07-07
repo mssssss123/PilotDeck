@@ -116,6 +116,8 @@
     "selectedCount": "{{count}} 个选中",
     "readCount": "{{count}} 个已读",
     "contextSectionsCount": "{{count}} 段上下文",
+    "showDetails": "展开详情",
+    "hideDetails": "收起详情",
     "availableMaterials": "可用 WikiCard",
     "selectedMaterials": "选中材料",
     "skippedMaterials": "略过材料",

@@ -116,6 +116,8 @@
     "selectedCount": "{{count}} selected",
     "readCount": "{{count}} read",
     "contextSectionsCount": "{{count}} context sections",
+    "showDetails": "Show details",
+    "hideDetails": "Hide details",
     "availableMaterials": "Available WikiCards",
     "selectedMaterials": "Selected materials",
     "skippedMaterials": "Skipped materials",

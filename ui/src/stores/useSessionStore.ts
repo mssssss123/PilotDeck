@@ -372,6 +372,43 @@ function forceRecomputeMerged(slot: SessionSlot): void {
   slot.merged = computeMerged(slot.serverMessages, slot.realtimeMessages);
 }
 
+function splitActivityMessages(messages: NormalizedMessage[]): {
+  messages: NormalizedMessage[];
+  activities: NormalizedMessage[];
+} {
+  const activities: NormalizedMessage[] = [];
+  const visibleMessages: NormalizedMessage[] = [];
+  for (const message of messages) {
+    if (message.kind === 'agent_activity') {
+      activities.push(message);
+    } else {
+      visibleMessages.push(message);
+    }
+  }
+  return { messages: visibleMessages, activities };
+}
+
+function upsertActivityMessages(
+  existing: NormalizedMessage[],
+  incoming: NormalizedMessage[],
+): NormalizedMessage[] {
+  if (incoming.length === 0) return existing;
+  const byKey = new Map<string, NormalizedMessage>();
+  for (const message of existing) {
+    if (message.kind !== 'agent_activity') continue;
+    byKey.set(message.activityId || message.id, message);
+  }
+  for (const message of incoming) {
+    if (message.kind !== 'agent_activity') continue;
+    byKey.set(message.activityId || message.id, message);
+  }
+  return Array.from(byKey.values()).sort((a, b) => {
+    const aMs = parseTimestampMs(a.startedAt || a.timestamp) ?? 0;
+    const bMs = parseTimestampMs(b.startedAt || b.timestamp) ?? 0;
+    return aMs - bMs;
+  });
+}
+
 /**
  * Patch a single streaming row in `slot.merged` without recomputing the full list.
  * Returns true when the merged row was updated in place.
@@ -397,7 +434,6 @@ export function patchMergedStreamingMessage(
     content,
     ...(msgProvider != null ? { provider: msgProvider } : {}),
   };
-  slot.merged = slot.merged.slice();
   return true;
 }
 
@@ -532,9 +568,11 @@ export function useSessionStore() {
       }
 
       const data = await response.json();
-      const messages: NormalizedMessage[] = data.messages || [];
+      const rawMessages: NormalizedMessage[] = data.messages || [];
+      const { messages, activities } = splitActivityMessages(rawMessages);
 
       slot.serverMessages = messages;
+      slot.activityMessages = upsertActivityMessages(slot.activityMessages, activities);
       slot.total = data.total ?? messages.length;
       slot.hasMore = Boolean(data.hasMore);
       slot.offset = (opts.offset ?? 0) + messages.length;
@@ -617,10 +655,12 @@ export function useSessionStore() {
       const response = await authenticatedFetch(url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      const olderMessages: NormalizedMessage[] = data.messages || [];
+      const rawOlderMessages: NormalizedMessage[] = data.messages || [];
+      const { messages: olderMessages, activities } = splitActivityMessages(rawOlderMessages);
 
       // Prepend older messages (they're earlier in the conversation)
       slot.serverMessages = [...olderMessages, ...slot.serverMessages];
+      slot.activityMessages = upsertActivityMessages(slot.activityMessages, activities);
       slot.hasMore = Boolean(data.hasMore);
       slot.offset = slot.offset + olderMessages.length;
       recomputeMergedIfNeeded(slot);
@@ -902,11 +942,15 @@ export function useSessionStore() {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
 
-      const incomingMessages = data.messages || [];
+      const rawIncomingMessages: NormalizedMessage[] = data.messages || [];
+      const { messages: incomingMessages, activities } = splitActivityMessages(rawIncomingMessages);
       // Don't overwrite existing server messages with empty response
       // (race condition: server hasn't committed yet after stop/complete).
       if (incomingMessages.length > 0 || slot.serverMessages.length === 0) {
         slot.serverMessages = incomingMessages;
+      }
+      if (activities.length > 0) {
+        slot.activityMessages = upsertActivityMessages(slot.activityMessages, activities);
       }
       slot.total = data.total ?? slot.serverMessages.length;
       slot.hasMore = Boolean(data.hasMore);

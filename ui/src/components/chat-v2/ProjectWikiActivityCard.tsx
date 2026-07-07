@@ -133,6 +133,7 @@ export default function ProjectWikiActivityCard({
   const isSkipped = state === 'skipped';
   const userTouchedExpandedRef = useRef(false);
   const [expanded, setExpanded] = useState(() => isRunning);
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [snapshotMaterials, setSnapshotMaterials] = useState<ProjectWikiMaterial[]>([]);
   const [openMaterial, setOpenMaterial] = useState<MaterialLoadState | null>(null);
 
@@ -147,6 +148,7 @@ export default function ProjectWikiActivityCard({
   const catalogCount = activity.stats?.catalogCount ?? allMaterials.length;
   const readCount = activity.stats?.readCount ?? read.length;
   const contextCount = activity.stats?.contextSectionCount ?? activity.contextSections?.length ?? 0;
+  const hasDetails = events.length > 0 || pending || Boolean(activity.contextPreview);
   const summary = makeSummary({
     t,
     isRunning,
@@ -275,32 +277,44 @@ export default function ProjectWikiActivityCard({
             onOpenMaterial={loadMaterial}
           />
 
-          <ProjectWikiEventRail
-            events={events}
-            pending={pending}
-            currentPhase={activity.phase}
-            isRunning={isRunning}
-          />
-
           <div className="border-t border-neutral-100 px-3 py-2 dark:border-neutral-900">
-            <div className="flex flex-wrap items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400">
-              <InfoPill label={t('projectWiki.catalogCount', {
-                count: catalogCount,
-                defaultValue: '{{count}} available',
-              })} />
-              <InfoPill tone="green" label={t('projectWiki.selectedCount', {
-                count: selectedCount,
-                defaultValue: '{{count}} selected',
-              })} />
-              <InfoPill label={t('projectWiki.readCount', {
-                count: readCount,
-                defaultValue: '{{count}} read',
-              })} />
-              {contextCount > 0 ? (
-                <InfoPill tone="green" label={t('projectWiki.contextSectionsCount', {
-                  count: contextCount,
-                  defaultValue: '{{count}} context sections',
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-neutral-500 dark:text-neutral-400">
+              <div className="flex flex-wrap items-center gap-2">
+                <InfoPill label={t('projectWiki.catalogCount', {
+                  count: catalogCount,
+                  defaultValue: '{{count}} available',
                 })} />
+                <InfoPill tone="green" label={t('projectWiki.selectedCount', {
+                  count: selectedCount,
+                  defaultValue: '{{count}} selected',
+                })} />
+                <InfoPill label={t('projectWiki.readCount', {
+                  count: readCount,
+                  defaultValue: '{{count}} read',
+                })} />
+                {contextCount > 0 ? (
+                  <InfoPill tone="green" label={t('projectWiki.contextSectionsCount', {
+                    count: contextCount,
+                    defaultValue: '{{count}} context sections',
+                  })} />
+                ) : null}
+              </div>
+              {hasDetails ? (
+                <button
+                  type="button"
+                  aria-expanded={detailsExpanded}
+                  onClick={() => setDetailsExpanded((value) => !value)}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-200"
+                >
+                  {detailsExpanded ? (
+                    <ChevronDown className="h-3 w-3" strokeWidth={1.9} />
+                  ) : (
+                    <ChevronRight className="h-3 w-3" strokeWidth={1.9} />
+                  )}
+                  {detailsExpanded
+                    ? t('projectWiki.hideDetails', { defaultValue: 'Hide details' })
+                    : t('projectWiki.showDetails', { defaultValue: 'Show details' })}
+                </button>
               ) : null}
             </div>
           </div>
@@ -309,15 +323,26 @@ export default function ProjectWikiActivityCard({
             <MaterialPreview material={openMaterial} onClose={() => setOpenMaterial(null)} />
           ) : null}
 
-          {activity.contextPreview ? (
-            <div className="border-t border-neutral-100 px-3 py-3 dark:border-neutral-900">
-              <div className="mb-1 text-[12px] font-semibold text-neutral-600 dark:text-neutral-300">
-                {t('projectWiki.contextPreview', { defaultValue: 'Context sent to the main agent' })}
-              </div>
-              <div className="max-h-[160px] overflow-auto rounded-lg bg-neutral-50 p-3 text-[12px] leading-5 text-neutral-600 dark:bg-neutral-900/70 dark:text-neutral-300">
-                {activity.contextPreview}
-              </div>
-            </div>
+          {detailsExpanded ? (
+            <>
+              <ProjectWikiEventRail
+                events={events}
+                pending={pending}
+                currentPhase={activity.phase}
+                isRunning={isRunning}
+              />
+
+              {activity.contextPreview ? (
+                <div className="border-t border-neutral-100 px-3 py-3 dark:border-neutral-900">
+                  <div className="mb-1 text-[12px] font-semibold text-neutral-600 dark:text-neutral-300">
+                    {t('projectWiki.contextPreview', { defaultValue: 'Context sent to the main agent' })}
+                  </div>
+                  <div className="max-h-[160px] overflow-auto rounded-lg bg-neutral-50 p-3 text-[12px] leading-5 text-neutral-600 dark:bg-neutral-900/70 dark:text-neutral-300">
+                    {activity.contextPreview}
+                  </div>
+                </div>
+              ) : null}
+            </>
           ) : null}
 
           {activity.error ? (
