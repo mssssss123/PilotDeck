@@ -163,7 +163,9 @@
     "legacy": "Legacy record"
   },
   "pipeline": {
-    "stepsTitle": "Execution Order"
+    "stepsTitle": "Execution Order",
+    "recallAttempt": "Recall Attempt {{index}}",
+    "recallAttemptSubtitle": "Retriever / Searcher selects ProjectWiki materials"
   },
   "traceSteps": {
     "check_source_freshness": "Check source freshness",
@@ -234,6 +236,7 @@
   },
   "traceStatus": {
     "success": "Success",
+    "recovered": "Recovered",
     "error": "Error",
     "skipped": "Skipped",
     "failed": "failed",

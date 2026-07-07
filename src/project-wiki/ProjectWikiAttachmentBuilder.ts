@@ -24,13 +24,21 @@ export class ProjectWikiAttachmentBuilder {
     const controller = new AbortController();
     const detachAbort = forwardAbort(input.signal, controller);
     const timeoutMs = input.timeoutMs;
-    const timer = timeoutMs && timeoutMs > 0
-      ? setTimeout(() => controller.abort(new Error(`ProjectWiki retrieval timed out after ${timeoutMs}ms.`)), timeoutMs)
+    let timedOut = false;
+    let timer: NodeJS.Timeout | undefined;
+    const timeoutPromise = timeoutMs && timeoutMs > 0
+      ? new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          timedOut = true;
+          reject(new Error(`ProjectWiki.retrieve timed out after ${timeoutMs}ms.`));
+        }, timeoutMs);
+      })
       : undefined;
     try {
       const result = await Promise.race([
         this.resolver.retrieve({ ...input, signal: controller.signal }),
         waitForAbort(controller.signal),
+        ...(timeoutPromise ? [timeoutPromise] : []),
       ]);
       if (!result.systemContext || result.systemContext.trim().length === 0) {
         return { attachments: [], diagnostics: result.diagnostics ?? [] };
@@ -48,6 +56,16 @@ export class ProjectWikiAttachmentBuilder {
       ];
       return { attachments, diagnostics: result.diagnostics ?? [] };
     } catch (error) {
+      if (timedOut) {
+        return {
+          attachments: [],
+          diagnostics: [{
+            code: "project_wiki_model_error",
+            severity: "warning",
+            message: `ProjectWiki.retrieve timed out after ${timeoutMs}ms.`,
+          }],
+        };
+      }
       if (controller.signal.aborted) {
         if (input.signal?.aborted) {
           return { attachments: [], diagnostics: [] };

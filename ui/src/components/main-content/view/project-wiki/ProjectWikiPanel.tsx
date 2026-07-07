@@ -81,6 +81,8 @@ type TracePayloadKind =
   | 'input'
   | 'output';
 
+type TracePipelineStatus = TraceRecord['status'] | 'recovered';
+
 type TracePipelineRun = {
   id: string;
   kind: NonNullable<TraceRecord['pipelineKind']> | 'legacy';
@@ -89,7 +91,7 @@ type TracePipelineRun = {
   createdAt: string;
   sessionId?: string;
   turnId?: string;
-  status: TraceRecord['status'];
+  status: TracePipelineStatus;
   traces: TraceRecord[];
 };
 
@@ -1383,6 +1385,7 @@ function TracePipelineSteps({
   onSelectTrace: (id: string) => void;
 }) {
   const { t } = useTranslation('projectWiki');
+  const groups = useMemo(() => buildTraceStepGroups(traces, t), [traces, t]);
   return (
     <section className="rounded-md border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -1393,40 +1396,71 @@ function TracePipelineSteps({
           {t('turnFlow.steps', { count: traces.length })}
         </span>
       </div>
-      <div className="space-y-2">
-        {traces.map((trace, index) => {
-          const active = trace.id === selectedTraceId;
+      <div className="space-y-3">
+        {groups.map((group, groupIndex) => {
+          const activeGroup = group.traces.some((trace) => trace.id === selectedTraceId);
           return (
-            <button
-              key={trace.id}
-              type="button"
-              onClick={() => onSelectTrace(trace.id)}
-              className={`grid w-full grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 rounded-md border p-2.5 text-left ${
-                active
-                  ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30'
-                  : 'border-neutral-200 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-900'
+            <div
+              key={group.id}
+              className={`rounded-md border p-2.5 ${
+                activeGroup
+                  ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/20'
+                  : 'border-neutral-200 bg-neutral-50/60 dark:border-neutral-800 dark:bg-neutral-900/30'
               }`}
             >
-              <div className={`flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-semibold ${
-                active
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-neutral-100 text-neutral-500 dark:bg-neutral-900 dark:text-neutral-300'
-              }`}
-              >
-                {index + 1}
-              </div>
-              <div className="min-w-0">
-                <div className="truncate text-[13px] font-semibold text-neutral-900 dark:text-neutral-100">
-                  {formatTraceStepTitle(trace, t)}
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold ${
+                    activeGroup
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-neutral-100 text-neutral-500 dark:bg-neutral-900 dark:text-neutral-300'
+                  }`}
+                  >
+                    {groupIndex + 1}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-[13px] font-semibold text-neutral-900 dark:text-neutral-100">
+                      {group.title}
+                    </div>
+                    {group.subtitle && (
+                      <div className="mt-0.5 truncate text-[11px] text-neutral-500 dark:text-neutral-400">
+                        {group.subtitle}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11px] text-neutral-500 dark:text-neutral-400">
-                  <span>{traceKindLabel(trace.kind, t)}</span>
-                  {trace.model && <span>{trace.model.provider}/{trace.model.model}</span>}
-                  {trace.durationMs !== undefined && <span>{trace.durationMs}ms</span>}
-                </div>
+                <StatusPill status={group.status} />
               </div>
-              <StatusPill status={trace.status} />
-            </button>
+              <div className="space-y-1.5">
+                {group.traces.map((trace) => {
+                  const active = trace.id === selectedTraceId;
+                  return (
+                    <button
+                      key={trace.id}
+                      type="button"
+                      onClick={() => onSelectTrace(trace.id)}
+                      className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded border p-2 text-left ${
+                        active
+                          ? 'border-emerald-300 bg-white dark:border-emerald-800 dark:bg-neutral-950'
+                          : 'border-neutral-200 bg-white hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className="truncate text-[12px] font-semibold text-neutral-900 dark:text-neutral-100">
+                          {formatTraceStepTitle(trace, t)}
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11px] text-neutral-500 dark:text-neutral-400">
+                          <span>{traceKindLabel(trace.kind, t)}</span>
+                          {trace.model && <span>{trace.model.provider}/{trace.model.model}</span>}
+                          {trace.durationMs !== undefined && <span>{trace.durationMs}ms</span>}
+                        </div>
+                      </div>
+                      <StatusPill status={trace.status} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </div>
@@ -1902,6 +1936,78 @@ function buildTracePipelineRuns(
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
 
+type TraceStepGroup = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  status: TracePipelineStatus;
+  traces: TraceRecord[];
+};
+
+function buildTraceStepGroups(traces: TraceRecord[], t: TFunction<'projectWiki'>): TraceStepGroup[] {
+  const groups: TraceStepGroup[] = [];
+  let attemptIndex = 0;
+  let currentAttempt: TraceStepGroup | null = null;
+
+  for (const trace of traces) {
+    if (!isRecallAttemptTrace(trace)) {
+      currentAttempt = null;
+      groups.push(singleTraceGroup(trace, t));
+      continue;
+    }
+
+    if (!currentAttempt || shouldStartNewRecallAttempt(currentAttempt, trace)) {
+      attemptIndex += 1;
+      currentAttempt = {
+        id: `recall-attempt-${attemptIndex}-${trace.id}`,
+        title: t('pipeline.recallAttempt', { index: attemptIndex }),
+        subtitle: t('pipeline.recallAttemptSubtitle'),
+        status: trace.status,
+        traces: [],
+      };
+      groups.push(currentAttempt);
+    }
+
+    currentAttempt.traces.push(trace);
+    currentAttempt.status = summarizeTraceStatus(currentAttempt.traces);
+  }
+
+  return groups;
+}
+
+function singleTraceGroup(trace: TraceRecord, t: TFunction<'projectWiki'>): TraceStepGroup {
+  return {
+    id: `trace-group-${trace.id}`,
+    title: formatTraceStepTitle(trace, t),
+    subtitle: traceKindLabel(trace.kind, t),
+    status: trace.status,
+    traces: [trace],
+  };
+}
+
+function isRecallAttemptTrace(trace: TraceRecord): boolean {
+  if (trace.kind !== 'retrieval') return false;
+  return [
+    'retriever_tool_call',
+    'retriever_finish',
+    'retriever_fallback',
+    'tool_catalog_search',
+    'tool_catalog_search_failed',
+    'search',
+    'search_failed',
+  ].includes(trace.phase);
+}
+
+function shouldStartNewRecallAttempt(current: TraceStepGroup, nextTrace: TraceRecord): boolean {
+  const hasFallback = current.traces.some((trace) => trace.phase === 'retriever_fallback');
+  const hasTerminal = current.traces.some((trace) =>
+    trace.phase === 'retriever_finish'
+    || trace.phase === 'search'
+    || trace.phase === 'search_failed');
+  if (hasTerminal) return true;
+  return hasFallback && nextTrace.phase === 'retriever_tool_call';
+}
+
 function legacyPipelineId(trace: TraceRecord): string {
   const kind = inferLegacyPipelineKind([trace]);
   const scope = trace.turnId
@@ -1913,6 +2019,14 @@ function legacyPipelineId(trace: TraceRecord): string {
 }
 
 function compareTraceOrder(left: TraceRecord, right: TraceRecord): number {
+  if (
+    left.pipelineRunId
+    && right.pipelineRunId
+    && left.pipelineRunId === right.pipelineRunId
+    && left.createdAt !== right.createdAt
+  ) {
+    return left.createdAt.localeCompare(right.createdAt);
+  }
   const leftStep = typeof left.stepIndex === 'number' ? left.stepIndex : legacyTraceStep(left);
   const rightStep = typeof right.stepIndex === 'number' ? right.stepIndex : legacyTraceStep(right);
   if (leftStep !== rightStep) return leftStep - rightStep;
@@ -1937,9 +2051,17 @@ function legacyTraceStep(trace: TraceRecord): number {
   return 90;
 }
 
-function summarizeTraceStatus(traces: TraceRecord[]): TraceRecord['status'] {
-  if (traces.some((trace) => trace.status === 'error')) return 'error';
-  if (traces.some((trace) => trace.status === 'success')) return 'success';
+function summarizeTraceStatus(traces: TraceRecord[]): TracePipelineStatus {
+  const meaningful = traces.filter((trace) => trace.status !== 'skipped');
+  const finalMeaningful = meaningful[meaningful.length - 1];
+  if (meaningful.some((trace) => trace.status === 'error')) {
+    return finalMeaningful?.status === 'success' ? 'recovered' : 'error';
+  }
+  if (finalMeaningful?.status === 'success') {
+    return traces.some((trace) => trace.kind === 'retrieval' && trace.phase === 'retriever_fallback')
+      ? 'recovered'
+      : 'success';
+  }
   return 'skipped';
 }
 
@@ -2861,13 +2983,15 @@ function describeTraceDecision(trace: TraceRecord, t: TFunction<'projectWiki'>):
   return null;
 }
 
-function StatusPill({ status }: { status: TraceRecord['status'] }) {
+function StatusPill({ status }: { status: TracePipelineStatus }) {
   const { t } = useTranslation('projectWiki');
   const className = status === 'success'
     ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-    : status === 'error'
-      ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
-      : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300';
+    : status === 'recovered'
+      ? 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
+      : status === 'error'
+        ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
+        : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300';
   return (
     <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${className}`}>
       {statusLabel(status, t)}
@@ -2875,8 +2999,9 @@ function StatusPill({ status }: { status: TraceRecord['status'] }) {
   );
 }
 
-function statusLabel(status: TraceRecord['status'], t: TFunction<'projectWiki'>): string {
+function statusLabel(status: TracePipelineStatus, t: TFunction<'projectWiki'>): string {
   if (status === 'success') return t('traceStatus.success');
+  if (status === 'recovered') return t('traceStatus.recovered');
   if (status === 'error') return t('traceStatus.error');
   return t('traceStatus.skipped');
 }

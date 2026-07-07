@@ -67,6 +67,8 @@ const TRACE_PREVIEW_CHARS = 1_200;
 const TRACE_FIELD_PREVIEW_CHARS = 700;
 const TRACE_ARRAY_LIMIT = 40;
 const RETRIEVER_MAX_STEPS = 4;
+const RETRIEVER_MAX_SEARCH_CALLS = 1;
+const RETRIEVER_MAX_READ_CALLS = 2;
 const HISTORY_BACKFILL_MAX_TRANSCRIPTS = 40;
 const HISTORY_BACKFILL_MAX_TURNS = 120;
 const HISTORY_BACKFILL_STATE_VERSION = 1;
@@ -229,6 +231,7 @@ type RetrieverToolCall = Extract<CanonicalMessage["content"][number], { type: "t
 
 type RetrieverLoopResult = {
   value: ProjectWikiSearchOutput;
+  traceOutput: unknown;
   model: ProjectWikiModelRef;
   usage?: CanonicalUsage;
 };
@@ -408,6 +411,7 @@ export class ProjectWikiService {
       } else {
         const searchStarted = Date.now();
         let search: ProjectWikiStructuredCallResult<ProjectWikiSearchOutput>;
+        const fallbackSignal = createLinkedAbortSignal(input.signal);
         try {
           search = await this.modelRunner.structured<ProjectWikiSearchOutput>({
             role: "searcher",
@@ -416,7 +420,7 @@ export class ProjectWikiService {
             schema: searchOutputSchema,
             schemaName: "project_wiki_search",
             maxOutputTokens: 2048,
-            signal: input.signal,
+            signal: fallbackSignal.signal,
             validate: isSearchOutput,
           });
         } catch (error) {
@@ -439,12 +443,16 @@ export class ProjectWikiService {
               message: `ProjectWiki Searcher failed: ${message}`,
             }],
           };
+        } finally {
+          fallbackSignal.cleanup();
         }
-        searchValue = search.value;
-        const selectedPaths = normalizeSelectedPaths(
-          searchValue,
+        const selection = validateSearchOutputSelection(
+          search.value,
+          modelCatalog,
           this.config.limits.maxSourceCardsPerTurn,
         );
+        searchValue = selection.value;
+        const selectedPaths = selection.selectedPaths;
         await this.store.appendTrace({
           ...this.traceBase("retrieval", "search", input),
           status: "success",
@@ -452,18 +460,24 @@ export class ProjectWikiService {
           durationMs: Date.now() - searchStarted,
           ...traceStep(pipeline, 2, "retrieval_decision"),
           input: compactTracePayload(searchInput),
-          output: compactTracePayload(searchValue),
+          output: compactTracePayload(selection.traceOutput),
           rawInput: searchInput,
-          rawOutput: searchValue,
-          payloads: modelTracePayloads(search),
+          rawOutput: selection.traceOutput,
+          payloads: {
+            ...modelTracePayloads(search),
+            businessOutput: selection.traceOutput,
+          },
           usage: search.response.usage,
           artifacts: selectedPaths.map(traceArtifactForPath),
         });
       }
-      const selectedPaths = normalizeSelectedPaths(
+      const finalSelection = validateSearchOutputSelection(
         searchValue,
+        modelCatalog,
         this.config.limits.maxSourceCardsPerTurn,
       );
+      searchValue = finalSelection.value;
+      const selectedPaths = finalSelection.selectedPaths;
 
       if (searchValue.needsProjectWiki === false || selectedPaths.length === 0) {
         diagnostics.push({
@@ -638,6 +652,9 @@ export class ProjectWikiService {
     const toolEvents: Array<Record<string, unknown>> = [];
     let usage: CanonicalUsage | undefined;
     let model = this.modelRunner.resolveModel("searcher");
+    let searchCallCount = 0;
+    let readCallCount = 0;
+    const readPaths = new Set<string>();
 
     try {
       for (let step = 0; step < RETRIEVER_MAX_STEPS; step += 1) {
@@ -658,10 +675,15 @@ export class ProjectWikiService {
           if (!isSearchOutput(finishCall.input)) {
             throw new Error("ProjectWiki Retriever finish payload did not match search output shape.");
           }
-          const value = finishCall.input;
-          const selectedPaths = normalizeSelectedPaths(value, this.config.limits.maxSourceCardsPerTurn);
+          const selection = validateSearchOutputSelection(
+            finishCall.input,
+            catalog,
+            this.config.limits.maxSourceCardsPerTurn,
+          );
+          const value = selection.value;
+          const selectedPaths = selection.selectedPaths;
           const rawOutput = {
-            ...value,
+            ...selection.traceOutput,
             toolEvents,
           };
           await this.store.appendTrace({
@@ -677,13 +699,13 @@ export class ProjectWikiService {
             payloads: {
               modelRequest: result.request,
               modelResponse: result.response,
-              parsedOutput: value,
+              parsedOutput: selection.value,
               retrieverMessages: messages,
             },
             usage: result.response.usage,
             artifacts: selectedPaths.map(traceArtifactForPath),
           });
-          return { value, model, usage };
+          return { value, traceOutput: rawOutput, model, usage };
         }
 
         const executableCalls = toolCalls
@@ -704,11 +726,16 @@ export class ProjectWikiService {
             });
             return undefined;
           }
-          const selectedPaths = normalizeSelectedPaths(value, this.config.limits.maxSourceCardsPerTurn);
-          const rawOutput = { ...value, toolEvents };
+          const selection = validateSearchOutputSelection(
+            value,
+            catalog,
+            this.config.limits.maxSourceCardsPerTurn,
+          );
+          const selectedPaths = selection.selectedPaths;
+          const rawOutput = { ...selection.traceOutput, toolEvents };
           await this.store.appendTrace({
             ...this.traceBase("retrieval", "retriever_finish", input),
-            status: value.needsProjectWiki === false || selectedPaths.length === 0 ? "skipped" : "success",
+            status: selection.value.needsProjectWiki === false || selectedPaths.length === 0 ? "skipped" : "success",
             model,
             durationMs: Date.now() - roundStarted,
             ...traceStep(pipeline, retrieverRoundStepIndex(step, 0), "retriever_finish"),
@@ -725,7 +752,27 @@ export class ProjectWikiService {
             usage: result.response.usage,
             artifacts: selectedPaths.map(traceArtifactForPath),
           });
-          return { value, model, usage };
+          return { value: selection.value, traceOutput: rawOutput, model, usage };
+        }
+
+        const guardReason = retrieverToolGuardReason(executableCalls, {
+          searchCallCount,
+          readCallCount,
+          readPaths,
+        });
+        if (guardReason) {
+          await this.appendRetrieverFallbackTrace({
+            input,
+            rawInput,
+            toolEvents,
+            started,
+            model,
+            usage,
+            pipeline,
+            messages,
+            reason: guardReason,
+          });
+          return undefined;
         }
 
         const toolCallOutput = {
@@ -760,6 +807,15 @@ export class ProjectWikiService {
 
         const toolResults = [];
         for (const call of executableCalls) {
+          if (call.name === "projectwiki_search") {
+            searchCallCount += 1;
+          } else if (call.name === "projectwiki_read") {
+            readCallCount += 1;
+            const relativePath = isRecord(call.input)
+              ? normalizeRetrievableProjectWikiPath(readString(call.input.relativePath))
+              : undefined;
+            if (relativePath) readPaths.add(relativePath);
+          }
           const executed = await this.executeRetrieverTool(
             call,
             catalog,
@@ -891,23 +947,25 @@ export class ProjectWikiService {
           signal: retrievalInput.signal,
           validate: isSearchOutput,
         });
-        const selectedPaths = normalizeSelectedPaths(result.value, limit);
+        const selection = validateSearchOutputSelection(result.value, toolCatalog, limit);
+        const selectedPaths = selection.selectedPaths;
         const catalogByPath = new Map(toolCatalog.map((entry) => [entry.relativePath, entry]));
         const payload = {
           query,
-          needsProjectWiki: result.value.needsProjectWiki,
-          intent: result.value.intent,
-          notes: result.value.notes,
+          needsProjectWiki: selection.value.needsProjectWiki,
+          intent: selection.value.intent,
+          notes: selection.value.notes,
           selected: selectedPaths.map((relativePath) => ({
             ...catalogByPath.get(relativePath),
             relativePath,
-            reason: result.value.selected?.find((item) => item.relativePath === relativePath)?.reason,
+            reason: selection.value.selected?.find((item) => item.relativePath === relativePath)?.reason,
           })),
-          rejected: result.value.rejected ?? [],
+          rejected: selection.value.rejected ?? [],
+          ...(selection.invalidSelected.length > 0 ? { invalidSelected: selection.invalidSelected } : {}),
         };
         await this.store.appendTrace({
           ...this.traceBase("retrieval", "tool_catalog_search", retrievalInput),
-          status: result.value.needsProjectWiki === false || selectedPaths.length === 0 ? "skipped" : "success",
+          status: selection.value.needsProjectWiki === false || selectedPaths.length === 0 ? "skipped" : "success",
           model: result.model,
           durationMs: Date.now() - started,
           ...traceStep(pipeline, stepIndex, "tool_catalog_search"),
@@ -1053,27 +1111,32 @@ export class ProjectWikiService {
         };
       }
 
-      const selectedPaths = normalizeSelectedPaths(
+      const selection = validateSearchOutputSelection(
         search.value,
+        modelCatalog,
         input.limit ?? this.config.limits.maxSourceCardsPerTurn,
       );
+      const selectedPaths = selection.selectedPaths;
       const catalogByPath = new Map(modelCatalog.map((entry) => [entry.relativePath, entry]));
       await this.store.appendTrace({
         ...this.traceBase("retrieval", "tool_search", input),
-        status: search.value.needsProjectWiki === false || selectedPaths.length === 0 ? "skipped" : "success",
+        status: selection.value.needsProjectWiki === false || selectedPaths.length === 0 ? "skipped" : "success",
         model: search.model,
         durationMs: Date.now() - started,
         ...traceStep(pipeline, 2, "project_wiki_search"),
         input: compactTracePayload(searchInput),
-        output: compactTracePayload(search.value),
+        output: compactTracePayload(selection.traceOutput),
         rawInput: searchInput,
-        rawOutput: search.value,
-        payloads: modelTracePayloads(search),
+        rawOutput: selection.traceOutput,
+        payloads: {
+          ...modelTracePayloads(search),
+          businessOutput: selection.traceOutput,
+        },
         usage: search.response.usage,
         artifacts: selectedPaths.map(traceArtifactForPath),
       });
 
-      if (search.value.needsProjectWiki === false || selectedPaths.length === 0) {
+      if (selection.value.needsProjectWiki === false || selectedPaths.length === 0) {
         diagnostics.push({
           code: "project_wiki_context_empty",
           severity: "info",
@@ -1098,15 +1161,15 @@ export class ProjectWikiService {
             preview: catalogEntry?.preview,
           };
         }),
-        rejected: (search.value.rejected ?? [])
+        rejected: (selection.value.rejected ?? [])
           .map((item) => ({
             relativePath: typeof item.relativePath === "string" ? item.relativePath : "",
             reason: item.reason,
           }))
           .filter((item) => item.relativePath.length > 0),
-        needsProjectWiki: search.value.needsProjectWiki,
-        intent: search.value.intent,
-        notes: search.value.notes,
+        needsProjectWiki: selection.value.needsProjectWiki,
+        intent: selection.value.intent,
+        notes: selection.value.notes,
         diagnostics,
       };
     } catch (error) {
@@ -2431,14 +2494,125 @@ function stripLeadingWikiTitle(body: string, title: string): string {
   return body.trim().replace(new RegExp(`^#\\s+${escapedTitle}\\s*\\n+`, "i"), "").trim();
 }
 
-function normalizeSelectedPaths(output: ProjectWikiSearchOutput, limit: number): string[] {
-  const paths = (output.selected ?? [])
-    .filter((item): item is { relativePath: string; priority?: number } =>
-      typeof item.relativePath === "string" && item.relativePath.endsWith(".md"))
-    .sort((left, right) => (right.priority ?? 0) - (left.priority ?? 0))
-    .map((item) => normalizeRetrievableProjectWikiPath(item.relativePath))
-    .filter((path): path is string => Boolean(path));
-  return [...new Set(paths)].slice(0, Math.max(1, limit));
+type ValidatedSearchOutputSelection = {
+  value: ProjectWikiSearchOutput;
+  selectedPaths: string[];
+  invalidSelected: Array<{ relativePath: string; reason: string }>;
+  traceOutput: ProjectWikiSearchOutput & {
+    invalidSelected?: Array<{ relativePath: string; reason: string }>;
+  };
+};
+
+function validateSearchOutputSelection(
+  output: ProjectWikiSearchOutput,
+  catalog: ProjectWikiCatalogEntry[],
+  limit: number,
+): ValidatedSearchOutputSelection {
+  const catalogPaths = new Set(catalog.map((entry) => entry.relativePath));
+  const invalidSelected: Array<{ relativePath: string; reason: string }> = [];
+  const selected: NonNullable<ProjectWikiSearchOutput["selected"]> = [];
+  const seen = new Set<string>();
+  const max = Math.max(1, limit);
+  const candidates = [...(output.selected ?? [])]
+    .sort((left, right) => (right.priority ?? 0) - (left.priority ?? 0));
+  for (const item of candidates) {
+    const rawPath = typeof item.relativePath === "string" ? item.relativePath : "";
+    const relativePath = normalizeRetrievableProjectWikiPath(rawPath);
+    if (!relativePath || !catalogPaths.has(relativePath)) {
+      if (rawPath) {
+        invalidSelected.push({
+          relativePath: rawPath,
+          reason: "Ignored selected path because it is not present in the current ProjectWiki catalog.",
+        });
+      }
+      continue;
+    }
+    if (seen.has(relativePath)) continue;
+    seen.add(relativePath);
+    if (selected.length < max) {
+      selected.push({
+        ...item,
+        relativePath,
+      });
+    }
+  }
+  const value: ProjectWikiSearchOutput = {
+    ...output,
+    selected,
+    rejected: [
+      ...(output.rejected ?? []),
+      ...invalidSelected,
+    ],
+  };
+  const traceOutput = invalidSelected.length > 0
+    ? { ...value, invalidSelected }
+    : value;
+  return {
+    value,
+    selectedPaths: selected
+      .map((item) => item.relativePath)
+      .filter((path): path is string => Boolean(path)),
+    invalidSelected,
+    traceOutput,
+  };
+}
+
+function retrieverToolGuardReason(
+  calls: RetrieverToolCall[],
+  state: {
+    searchCallCount: number;
+    readCallCount: number;
+    readPaths: Set<string>;
+  },
+): string | undefined {
+  let nextSearchCount = state.searchCallCount;
+  let nextReadCount = state.readCallCount;
+  const nextReadPaths = new Set(state.readPaths);
+  for (const call of calls) {
+    if (call.name === "projectwiki_search") {
+      nextSearchCount += 1;
+      if (nextSearchCount > RETRIEVER_MAX_SEARCH_CALLS) {
+        return "Retriever exceeded the one-search limit; falling back to structured search.";
+      }
+      continue;
+    }
+    if (call.name === "projectwiki_read") {
+      nextReadCount += 1;
+      if (nextReadCount > RETRIEVER_MAX_READ_CALLS) {
+        return "Retriever exceeded the two-read limit; falling back to structured search.";
+      }
+      const relativePath = isRecord(call.input)
+        ? normalizeRetrievableProjectWikiPath(readString(call.input.relativePath))
+        : undefined;
+      if (relativePath) {
+        if (nextReadPaths.has(relativePath)) {
+          return `Retriever attempted to read ${relativePath} more than once; falling back to structured search.`;
+        }
+        nextReadPaths.add(relativePath);
+      }
+    }
+  }
+  return undefined;
+}
+
+function createLinkedAbortSignal(source: AbortSignal | undefined): {
+  signal: AbortSignal | undefined;
+  cleanup: () => void;
+} {
+  if (!source) {
+    return { signal: undefined, cleanup: () => {} };
+  }
+  const controller = new AbortController();
+  if (source.aborted) {
+    controller.abort(source.reason);
+    return { signal: controller.signal, cleanup: () => {} };
+  }
+  const onAbort = () => controller.abort(source.reason);
+  source.addEventListener("abort", onAbort, { once: true });
+  return {
+    signal: controller.signal,
+    cleanup: () => source.removeEventListener("abort", onAbort),
+  };
 }
 
 function filterRetrievableCatalog(catalog: ProjectWikiCatalogEntry[]): ProjectWikiCatalogEntry[] {

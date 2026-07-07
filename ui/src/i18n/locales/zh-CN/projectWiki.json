@@ -163,7 +163,9 @@
     "legacy": "旧记录"
   },
   "pipeline": {
-    "stepsTitle": "执行顺序"
+    "stepsTitle": "执行顺序",
+    "recallAttempt": "召回尝试 {{index}}",
+    "recallAttemptSubtitle": "Retriever / Searcher 选择 ProjectWiki 材料"
   },
   "traceSteps": {
     "check_source_freshness": "检查来源新鲜度",
@@ -234,6 +236,7 @@
   },
   "traceStatus": {
     "success": "成功",
+    "recovered": "已恢复",
     "error": "错误",
     "skipped": "跳过",
     "failed": "失败",

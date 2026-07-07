@@ -17,6 +17,7 @@ import { parseProjectWikiConfig } from "../../src/pilot/config/parseProjectWikiC
 import { resolveProjectStorageId } from "../../src/pilot/paths.js";
 import { isCurateOutput, isSearchOutput } from "../../src/project-wiki/schemas.js";
 import {
+  ProjectWikiAttachmentBuilder,
   ProjectWikiModelRunner,
   ProjectWikiService,
   ProjectWikiStore,
@@ -181,6 +182,40 @@ test("DefaultContextRuntime caches ProjectWiki context within one agent turn", a
 
   await prepare("turn-2");
   assert.equal(retrieveCalls, 3);
+});
+
+test("ProjectWiki attachment timeout does not abort in-flight resolver work", async () => {
+  let resolverSignalAborted: boolean | undefined;
+  let resolverCompleted = false;
+  const resolver: ProjectWikiResolver = {
+    async retrieve(input) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      resolverSignalAborted = input.signal?.aborted ?? false;
+      resolverCompleted = true;
+      return {
+        systemContext: "late ProjectWiki context",
+        diagnostics: [],
+      };
+    },
+    async captureTurn() {},
+  };
+  const builder = new ProjectWikiAttachmentBuilder(resolver);
+
+  const result = await builder.build({
+    query: "slow project wiki",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    projectRoot: "/tmp/project",
+    recentMessages: [],
+    timeoutMs: 5,
+  });
+
+  assert.deepEqual(result.attachments, []);
+  assert.match(result.diagnostics[0]?.message ?? "", /timed out/);
+
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.equal(resolverCompleted, true);
+  assert.equal(resolverSignalAborted, false);
 });
 
 test("ProjectWiki source cards keep fallback transcript paths when model refs omit them", async () => {
@@ -978,6 +1013,98 @@ test("ProjectWiki retrieval can use a Retriever loop before curator assembly", a
     assert.match(JSON.stringify(readTrace.output), new RegExp(escapeRegExp(sourceCard.relativePath)));
     const contextTraces = await store.readTrace("context");
     assert.equal(contextTraces[0]?.phase, "assemble");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("ProjectWiki retrieval filters selected paths that are not in the catalog", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pilotdeck-project-wiki-selected-paths-"));
+  const projectRoot = join(root, "project");
+  const wikiRoot = join(root, "project_wiki");
+
+  try {
+    await mkdir(projectRoot, { recursive: true });
+    const store = new ProjectWikiStore({ rootDir: wikiRoot, projectRoot });
+    await store.ensureInitialized();
+    await store.writeWikiPage({
+      pageId: "knowledge",
+      title: "Knowledge",
+      description: "Reusable project knowledge.",
+      body: "## Testing\nTaskFlow uses Jest with Supertest.",
+      sourceCardIds: [],
+      changeSummary: "Seeded test knowledge.",
+    });
+
+    const service = new ProjectWikiService({
+      projectRoot,
+      store,
+      modelRunner: new ProjectWikiModelRunner({
+        modelRuntime: {
+          async *stream() {
+            throw new Error("stream should not be called");
+          },
+          async complete(request: CanonicalModelRequest): Promise<CanonicalModelResponse> {
+            if (request.outputSchema?.name === "project_wiki_curate") {
+              return jsonResponse({
+                sections: [{
+                  title: "Testing Stack",
+                  content: "TaskFlow uses Jest with Supertest.",
+                  sourcePaths: ["wiki/knowledge.md"],
+                }],
+              });
+            }
+            assert.ok(request.tools?.some((tool) => tool.name === "projectwiki_finish"));
+            return toolCallResponse("projectwiki_finish", {
+              needsProjectWiki: true,
+              intent: "Find the testing stack.",
+              selected: [
+                { relativePath: "wiki/knowledge.md", reason: "Valid catalog page.", priority: 10 },
+                { relativePath: "source_cards/knowledge/missing.md", reason: "Missing source card.", priority: 9 },
+              ],
+              rejected: [],
+            }, "tc-finish");
+          },
+          getCapabilities() {
+            return {} as ReturnType<ModelRuntime["getCapabilities"]>;
+          },
+          getMultimodal() {
+            return {} as ReturnType<ModelRuntime["getMultimodal"]>;
+          },
+          getProviderBaseUrl() {
+            return undefined;
+          },
+        },
+        models: {},
+        fallbackModel: { provider: "test", model: "retriever-model" },
+        timeoutMs: 1_000,
+      }),
+      config: projectWikiConfig({ repo: false, memory: false, conversations: false, knowledge: true }),
+    });
+
+    const result = await service.retrieve({
+      query: "What is the test stack?",
+      sessionId: "session-1",
+      turnId: "turn-1",
+      projectRoot,
+      recentMessages: [{
+        role: "user",
+        content: [{ type: "text", text: "What is the test stack?" }],
+      }],
+    });
+
+    assert.equal(result.diagnostics.length, 0);
+    assert.match(result.systemContext ?? "", /TaskFlow uses Jest/);
+    const retrievalTraces = await store.readTrace("retrieval");
+    const finishTrace = retrievalTraces.find((trace) => trace.phase === "retriever_finish");
+    const readTrace = retrievalTraces.find((trace) => trace.phase === "read");
+    assert.ok(finishTrace);
+    assert.ok(readTrace);
+    assert.deepEqual((readTrace.input as { selectedPaths?: string[] }).selectedPaths, ["wiki/knowledge.md"]);
+    assert.deepEqual((readTrace.output as { missingPaths?: string[] }).missingPaths, []);
+    assert.match(JSON.stringify(finishTrace.output), /invalidSelected/);
+    assert.match(JSON.stringify(finishTrace.output), /source_cards\/knowledge\/missing\.md/);
+    assert.doesNotMatch(JSON.stringify(readTrace.input), /missing\\.md/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
