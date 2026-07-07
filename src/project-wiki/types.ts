@@ -200,6 +200,52 @@ export type ProjectWikiTraceRecord = {
   }>;
 };
 
+export type ProjectWikiActivityMaterial = {
+  relativePath: string;
+  title?: string;
+  description?: string;
+  kind?: "home" | "wiki" | "source_card" | "context";
+  sourceType?: ProjectWikiSourceType;
+  status?: ProjectWikiSourceCardRecord["status"];
+  reason?: string;
+  priority?: number;
+  preview?: string;
+};
+
+export type ProjectWikiActivityEvent = {
+  phase:
+    | "started"
+    | "catalog"
+    | "retriever"
+    | "search"
+    | "selected"
+    | "read"
+    | "curator"
+    | "assembled"
+    | "skipped"
+    | "error";
+  state: "running" | "completed" | "skipped" | "failed";
+  title: string;
+  detail?: string;
+  query?: string;
+  pipelineRunId?: string;
+  projectRoot?: string;
+  catalog?: ProjectWikiActivityMaterial[];
+  selected?: ProjectWikiActivityMaterial[];
+  rejected?: ProjectWikiActivityMaterial[];
+  read?: ProjectWikiActivityMaterial[];
+  contextPreview?: string;
+  contextSections?: Array<{ title?: string; sourcePaths?: string[] }>;
+  stats?: {
+    catalogCount?: number;
+    selectedCount?: number;
+    rejectedCount?: number;
+    readCount?: number;
+    contextSectionCount?: number;
+  };
+  error?: string;
+};
+
 export type ProjectWikiConflictRecord = {
   id: string;
   topic: string;
@@ -218,6 +264,7 @@ export type ProjectWikiRetrieveInput = {
   projectRoot: string;
   recentMessages: CanonicalMessage[];
   signal?: AbortSignal;
+  onActivity?: (event: ProjectWikiActivityEvent) => void;
 };
 
 export type ProjectWikiRetrieveResult = {

@@ -45,6 +45,7 @@ import { LargeFileRepair, type LargeFileRepairDecision } from "./LargeFileRepair
 import { projectToolResults } from "./projectToolResults.js";
 
 const TOOL_EVENT_PUMP_INTERVAL_MS = 500;
+const CONTEXT_EVENT_PUMP_INTERVAL_MS = 250;
 const SUBAGENT_STATUS_HEARTBEAT_MS = 2_000;
 
 type ActiveSubagentStatus = {
@@ -267,7 +268,7 @@ export class AgentLoop {
         yield* this.drainEventBuffer();
       }
 
-      let request = await this.createModelRequest(messages, input);
+      let request = yield* this.createModelRequestWithEventPump(messages, input);
       if (input.abortSignal?.aborted) {
         const result = this.createTurnResult(input, {
           type: "aborted",
@@ -317,7 +318,7 @@ export class AgentLoop {
             });
             if (recompact.type === "compacted") {
               messages = recompact.messages;
-              request = await this.createModelRequest(messages, input);
+              request = yield* this.createModelRequestWithEventPump(messages, input);
               yield {
                 type: "turn_continued",
                 sessionId: input.sessionId,
@@ -1090,6 +1091,14 @@ export class AgentLoop {
       customSystemPrompt: this.config.systemPrompt,
       appendSystemPrompt: planTodo?.buildPromptAddendum(),
       abortSignal: input.abortSignal,
+      onProjectWikiActivity: (activity) => {
+        this.dependencies.eventEmitter?.({
+          type: "project_wiki_activity",
+          sessionId: input.sessionId,
+          turnId: input.turnId,
+          activity,
+        });
+      },
     });
 
     this.dispatchLifecycle(input, "InstructionsLoaded", {
@@ -1124,6 +1133,34 @@ export class AgentLoop {
       metadata: this.config.metadata,
       cacheBreakpoints: prepared.cacheBreakpoints,
     };
+  }
+
+  private async *createModelRequestWithEventPump(
+    messages: CanonicalMessage[],
+    input: AgentLoopInput,
+  ): AsyncGenerator<AgentEvent, CanonicalModelRequest, unknown> {
+    let request: CanonicalModelRequest | undefined;
+    let error: unknown;
+    let settled = false;
+
+    const preparing = this.createModelRequest(messages, input)
+      .then((value) => {
+        request = value;
+      }, (err) => {
+        error = err;
+      })
+      .finally(() => {
+        settled = true;
+      });
+
+    while (!settled) {
+      await Promise.race([preparing, sleep(CONTEXT_EVENT_PUMP_INTERVAL_MS)]);
+      yield* this.drainEventBuffer();
+    }
+
+    yield* this.drainEventBuffer();
+    if (error) throw error;
+    return request!;
   }
 
   private createToolContext(

@@ -105,6 +105,55 @@
     },
     "noSteps": "没有记录详细步骤。"
   },
+  "projectWiki": {
+    "title": "ProjectWiki",
+    "running": "探索中",
+    "completed": "已组装",
+    "skipped": "已跳过",
+    "failed": "失败",
+    "defaultDetail": "正在为本轮对话准备项目上下文。",
+    "catalogCount": "{{count}} 个可用",
+    "selectedCount": "{{count}} 个选中",
+    "readCount": "{{count}} 个已读",
+    "contextSectionsCount": "{{count}} 段上下文",
+    "availableMaterials": "可用 WikiCard",
+    "selectedMaterials": "选中材料",
+    "skippedMaterials": "略过材料",
+    "contextPreview": "发给主智能体的上下文",
+    "contextSection": "段落 {{count}}",
+    "moreCatalog": "还有 {{count}} 个",
+    "closeMaterial": "关闭",
+    "loadingMaterial": "正在读取材料...",
+    "materialFailed": "无法读取材料",
+    "untitledMaterial": "未命名材料",
+    "reason": "原因",
+    "material": {
+      "kind": "Wiki"
+    },
+    "events": {
+      "title": "模型路径",
+      "opening": "正在打开 ProjectWiki 资源",
+      "waiting": "等待 ProjectWiki 活动",
+      "selectedCount": "{{count}} 个选中",
+      "readCount": "{{count}} 个已读"
+    },
+    "phases": {
+      "started": "判断",
+      "catalog": "浏览",
+      "selected": "选材",
+      "read": "读取",
+      "assembled": "组装"
+    },
+    "summary": {
+      "opening": "正在打开项目记忆...",
+      "running": "正在探索 {{catalog}} 个资源",
+      "runningSelected": "正在探索 {{catalog}} 个资源 · 已选中 {{selected}} 个",
+      "completed": "已组装 {{sections}} 段上下文 · 选中 {{selected}} 个材料",
+      "completedNoContext": "选中 {{selected}} 个 · 已读 {{read}} 个",
+      "skipped": "本轮不需要项目上下文",
+      "failed": "准备失败"
+    }
+  },
   "tools": {
     "settings": "工具设置",
     "error": "工具错误",

@@ -30,6 +30,7 @@ export class ProjectWikiAttachmentBuilder {
       ? new Promise<never>((_, reject) => {
         timer = setTimeout(() => {
           timedOut = true;
+          controller.abort(`ProjectWiki.retrieve timed out after ${timeoutMs}ms.`);
           reject(new Error(`ProjectWiki.retrieve timed out after ${timeoutMs}ms.`));
         }, timeoutMs);
       })
@@ -57,12 +58,22 @@ export class ProjectWikiAttachmentBuilder {
       return { attachments, diagnostics: result.diagnostics ?? [] };
     } catch (error) {
       if (timedOut) {
+        const message = `ProjectWiki.retrieve timed out after ${timeoutMs}ms.`;
+        input.onActivity?.({
+          phase: "error",
+          state: "failed",
+          title: "ProjectWiki 上下文准备超时",
+          detail: message,
+          error: message,
+          query: input.query,
+          projectRoot: input.projectRoot,
+        });
         return {
           attachments: [],
           diagnostics: [{
             code: "project_wiki_model_error",
             severity: "warning",
-            message: `ProjectWiki.retrieve timed out after ${timeoutMs}ms.`,
+            message,
           }],
         };
       }

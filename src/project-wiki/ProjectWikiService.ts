@@ -9,7 +9,7 @@ import {
   projectWikiModelRequestFromError,
   type ProjectWikiStructuredCallResult,
 } from "./ProjectWikiModelRunner.js";
-import { ProjectWikiStore, truncateText } from "./ProjectWikiStore.js";
+import { ProjectWikiStore, truncateText, type ProjectWikiMarkdownFile } from "./ProjectWikiStore.js";
 import {
   PROJECT_WIKI_CURATOR_SYSTEM_PROMPT,
   PROJECT_WIKI_INDEXER_SYSTEM_PROMPT,
@@ -39,6 +39,7 @@ import {
 } from "./schemas.js";
 import type {
   ProjectWikiCaptureTurnInput,
+  ProjectWikiActivityMaterial,
   ProjectWikiCatalogEntry,
   ProjectWikiConflictRecord,
   ProjectWikiDiagnostic,
@@ -316,6 +317,23 @@ export class ProjectWikiService {
     };
   }
 
+  private emitActivity(
+    input: ProjectWikiRetrieveInput,
+    pipeline: TracePipelineContext,
+    activity: Parameters<NonNullable<ProjectWikiRetrieveInput["onActivity"]>>[0],
+  ): void {
+    try {
+      input.onActivity?.({
+        ...activity,
+        query: activity.query ?? input.query,
+        projectRoot: activity.projectRoot ?? input.projectRoot,
+        pipelineRunId: activity.pipelineRunId ?? pipeline.pipelineRunId,
+      });
+    } catch {
+      // ProjectWiki visibility must never break retrieval.
+    }
+  }
+
   private async readRepoDigestState(): Promise<RepoDigestState | undefined> {
     const state = await readJsonFile<RepoDigestState>(this.repoDigestStatePath);
     return state && typeof state.contentHash === "string" && typeof state.indexedAt === "string"
@@ -389,12 +407,28 @@ export class ProjectWikiService {
     await this.store.ensureInitialized();
     const diagnostics: ProjectWikiDiagnostic[] = [];
     const pipeline = this.createTracePipeline("retrieval_context", input);
+    this.emitActivity(input, pipeline, {
+      phase: "started",
+      state: "running",
+      title: this.outputLanguage === "zh-CN" ? "ProjectWiki 正在判断是否需要项目上下文" : "ProjectWiki is checking project context",
+      detail: input.query,
+    });
 
     try {
       const catalog = filterRetrievableCatalog(
         await this.store.listCatalog(this.config.limits.maxCatalogChars),
       );
       const modelCatalog = await this.buildModelCatalog(catalog);
+      this.emitActivity(input, pipeline, {
+        phase: "catalog",
+        state: "running",
+        title: this.outputLanguage === "zh-CN" ? "ProjectWiki 已加载可用材料" : "ProjectWiki loaded available materials",
+        detail: this.outputLanguage === "zh-CN"
+          ? `发现 ${modelCatalog.length} 个 Wiki 页面或来源卡片。`
+          : `Found ${modelCatalog.length} wiki pages or source cards.`,
+        catalog: modelCatalog.map(activityMaterialFromCatalogEntry),
+        stats: { catalogCount: modelCatalog.length },
+      });
       const openConflicts = await this.buildOpenConflictContext(modelCatalog);
       const recent = canonicalMessagesToTextDigest(input.recentMessages, 4_000);
       const searchInput = {
@@ -404,6 +438,16 @@ export class ProjectWikiService {
         catalog: modelCatalog,
         openConflicts,
       };
+      this.emitActivity(input, pipeline, {
+        phase: "retriever",
+        state: "running",
+        title: this.outputLanguage === "zh-CN" ? "Retriever 正在阅读 ProjectWiki 目录" : "Retriever is reading the ProjectWiki catalog",
+        detail: this.outputLanguage === "zh-CN"
+          ? "模型正在决定是否搜索、读取材料或直接结束。"
+          : "The model is deciding whether to search, read materials, or finish.",
+        catalog: modelCatalog.map(activityMaterialFromCatalogEntry),
+        stats: { catalogCount: modelCatalog.length },
+      });
       const retrieverSearch = await this.runRetrieverLoop(input, searchInput, modelCatalog, pipeline);
       let searchValue: ProjectWikiSearchOutput;
       if (retrieverSearch) {
@@ -413,6 +457,14 @@ export class ProjectWikiService {
         let search: ProjectWikiStructuredCallResult<ProjectWikiSearchOutput>;
         const fallbackSignal = createLinkedAbortSignal(input.signal);
         try {
+          this.emitActivity(input, pipeline, {
+            phase: "search",
+            state: "running",
+            title: this.outputLanguage === "zh-CN" ? "Searcher 正在选择候选材料" : "Searcher is selecting candidate materials",
+            detail: input.query,
+            catalog: modelCatalog.map(activityMaterialFromCatalogEntry),
+            stats: { catalogCount: modelCatalog.length },
+          });
           search = await this.modelRunner.structured<ProjectWikiSearchOutput>({
             role: "searcher",
             systemPrompt: this.systemPrompt(PROJECT_WIKI_SEARCHER_SYSTEM_PROMPT),
@@ -425,6 +477,13 @@ export class ProjectWikiService {
           });
         } catch (error) {
           const message = errorMessage(error);
+          this.emitActivity(input, pipeline, {
+            phase: "error",
+            state: "failed",
+            title: this.outputLanguage === "zh-CN" ? "ProjectWiki 检索判断失败" : "ProjectWiki retrieval decision failed",
+            detail: message,
+            error: message,
+          });
           await this.store.appendTrace({
             ...this.traceBase("retrieval", "search_failed", input),
             status: "error",
@@ -478,6 +537,23 @@ export class ProjectWikiService {
       );
       searchValue = finalSelection.value;
       const selectedPaths = finalSelection.selectedPaths;
+      const selectedActivityMaterials = selectedActivityMaterialsFromSearch(searchValue, modelCatalog);
+      const rejectedActivityMaterials = rejectedActivityMaterialsFromSearch(searchValue, modelCatalog);
+      this.emitActivity(input, pipeline, {
+        phase: selectedPaths.length > 0 ? "selected" : "skipped",
+        state: searchValue.needsProjectWiki === false || selectedPaths.length === 0 ? "skipped" : "running",
+        title: selectedPaths.length > 0
+          ? this.outputLanguage === "zh-CN" ? "ProjectWiki 已选中相关材料" : "ProjectWiki selected relevant materials"
+          : this.outputLanguage === "zh-CN" ? "ProjectWiki 本轮未召回项目上下文" : "ProjectWiki skipped project context for this turn",
+        detail: searchValue.intent || searchValue.notes,
+        selected: selectedActivityMaterials,
+        rejected: rejectedActivityMaterials,
+        stats: {
+          catalogCount: modelCatalog.length,
+          selectedCount: selectedActivityMaterials.length,
+          rejectedCount: rejectedActivityMaterials.length,
+        },
+      });
 
       if (searchValue.needsProjectWiki === false || selectedPaths.length === 0) {
         diagnostics.push({
@@ -504,6 +580,23 @@ export class ProjectWikiService {
         })),
         missingPaths: selectedPaths.filter((path) => !materials.some((file) => file.relativePath === path)),
       };
+      this.emitActivity(input, pipeline, {
+        phase: "read",
+        state: materials.length > 0 ? "running" : "skipped",
+        title: this.outputLanguage === "zh-CN" ? "ProjectWiki 正在读取选中材料" : "ProjectWiki is reading selected materials",
+        detail: this.outputLanguage === "zh-CN"
+          ? `已读取 ${materials.length} 个材料。`
+          : `Read ${materials.length} materials.`,
+        selected: selectedActivityMaterials,
+        rejected: rejectedActivityMaterials,
+        read: materials.map((file) => activityMaterialFromMarkdownFile(file, modelCatalog)),
+        stats: {
+          catalogCount: modelCatalog.length,
+          selectedCount: selectedActivityMaterials.length,
+          rejectedCount: rejectedActivityMaterials.length,
+          readCount: materials.length,
+        },
+      });
       await this.store.appendTrace({
         ...this.traceBase("retrieval", "read", input),
         status: materials.length > 0 ? "success" : "skipped",
@@ -534,6 +627,23 @@ export class ProjectWikiService {
       const curateStarted = Date.now();
       let curated: ProjectWikiStructuredCallResult<ProjectWikiCurateOutput>;
       try {
+        this.emitActivity(input, pipeline, {
+          phase: "curator",
+          state: "running",
+          title: this.outputLanguage === "zh-CN" ? "Curator 正在组装主智能体上下文" : "Curator is assembling main-agent context",
+          detail: this.outputLanguage === "zh-CN"
+            ? `基于 ${materials.length} 个已读材料生成本轮上下文。`
+            : `Building turn context from ${materials.length} read materials.`,
+          selected: selectedActivityMaterials,
+          rejected: rejectedActivityMaterials,
+          read: materials.map((file) => activityMaterialFromMarkdownFile(file, modelCatalog)),
+          stats: {
+            catalogCount: modelCatalog.length,
+            selectedCount: selectedActivityMaterials.length,
+            rejectedCount: rejectedActivityMaterials.length,
+            readCount: materials.length,
+          },
+        });
         curated = await this.modelRunner.structured<ProjectWikiCurateOutput>({
           role: "curator",
           systemPrompt: this.systemPrompt(PROJECT_WIKI_CURATOR_SYSTEM_PROMPT),
@@ -546,6 +656,22 @@ export class ProjectWikiService {
         });
       } catch (error) {
         const message = errorMessage(error);
+        this.emitActivity(input, pipeline, {
+          phase: "error",
+          state: "failed",
+          title: this.outputLanguage === "zh-CN" ? "ProjectWiki 上下文组装失败" : "ProjectWiki context assembly failed",
+          detail: message,
+          selected: selectedActivityMaterials,
+          rejected: rejectedActivityMaterials,
+          read: materials.map((file) => activityMaterialFromMarkdownFile(file, modelCatalog)),
+          error: message,
+          stats: {
+            catalogCount: modelCatalog.length,
+            selectedCount: selectedActivityMaterials.length,
+            rejectedCount: rejectedActivityMaterials.length,
+            readCount: materials.length,
+          },
+        });
         await this.store.appendTrace({
           ...this.traceBase("context", "assemble_failed", input),
           status: "error",
@@ -568,6 +694,34 @@ export class ProjectWikiService {
         };
       }
       const context = normalizeCuratedContext(curated.value, this.config.limits.maxContextChars);
+      const curatedSections = curated.value.sections ?? [];
+      this.emitActivity(input, pipeline, {
+        phase: context ? "assembled" : "skipped",
+        state: context ? "completed" : "skipped",
+        title: context
+          ? this.outputLanguage === "zh-CN" ? "ProjectWiki 已组装本轮上下文" : "ProjectWiki assembled context for this turn"
+          : this.outputLanguage === "zh-CN" ? "ProjectWiki 未生成可用上下文" : "ProjectWiki did not produce usable context",
+        detail: context
+          ? this.outputLanguage === "zh-CN"
+            ? `生成 ${curatedSections.length} 段上下文。`
+            : `Generated ${curatedSections.length} context sections.`
+          : undefined,
+        selected: selectedActivityMaterials,
+        rejected: rejectedActivityMaterials,
+        read: materials.map((file) => activityMaterialFromMarkdownFile(file, modelCatalog)),
+        contextPreview: context ? truncateText(context.replace(/\s+/g, " ").trim(), 900) : undefined,
+        contextSections: curatedSections.map((section) => ({
+          title: section.title,
+          sourcePaths: section.sourcePaths,
+        })),
+        stats: {
+          catalogCount: modelCatalog.length,
+          selectedCount: selectedActivityMaterials.length,
+          rejectedCount: rejectedActivityMaterials.length,
+          readCount: materials.length,
+          contextSectionCount: curatedSections.length,
+        },
+      });
       await this.store.appendTrace({
         ...this.traceBase("context", "assemble", input),
         status: context ? "success" : "skipped",
@@ -605,6 +759,13 @@ export class ProjectWikiService {
       };
     } catch (error) {
       const message = errorMessage(error);
+      this.emitActivity(input, pipeline, {
+        phase: "error",
+        state: "failed",
+        title: this.outputLanguage === "zh-CN" ? "ProjectWiki 上下文准备失败" : "ProjectWiki context preparation failed",
+        detail: message,
+        error: message,
+      });
       await this.store.appendTrace({
         ...this.traceBase("context", "retrieve_failed", input),
         status: "error",
@@ -630,7 +791,7 @@ export class ProjectWikiService {
       openConflicts: OpenConflictContext[];
     },
     catalog: ProjectWikiCatalogEntry[],
-    pipeline?: TracePipelineContext,
+    pipeline: TracePipelineContext,
   ): Promise<RetrieverLoopResult | undefined> {
     const started = Date.now();
     const rawInput = {
@@ -781,6 +942,14 @@ export class ProjectWikiService {
             input: call.input,
           })),
         };
+        this.emitActivity(input, pipeline, {
+          phase: "retriever",
+          state: "running",
+          title: this.outputLanguage === "zh-CN" ? "Retriever 生成了 ProjectWiki 工具调用" : "Retriever generated ProjectWiki tool calls",
+          detail: executableCalls.map(formatRetrieverToolCall).join("；"),
+          catalog: catalog.map(activityMaterialFromCatalogEntry),
+          stats: { catalogCount: catalog.length },
+        });
         await this.store.appendTrace({
           ...this.traceBase("retrieval", "retriever_tool_call", input),
           status: "success",
@@ -831,6 +1000,13 @@ export class ProjectWikiService {
             ok: !executed.isError,
             preview: truncateText(JSON.stringify(executed.payload), 700),
           });
+          this.emitActivity(input, pipeline, activityFromRetrieverToolResult({
+            call,
+            payload: executed.payload,
+            isError: Boolean(executed.isError),
+            catalog,
+            outputLanguage: this.outputLanguage,
+          }));
           toolResults.push({
             type: "tool_result" as const,
             toolCallId: call.id,
@@ -2555,6 +2731,180 @@ function validateSearchOutputSelection(
     invalidSelected,
     traceOutput,
   };
+}
+
+function activityMaterialFromCatalogEntry(entry: ProjectWikiCatalogEntry): ProjectWikiActivityMaterial {
+  return {
+    relativePath: entry.relativePath,
+    title: entry.title,
+    description: entry.description,
+    kind: entry.kind,
+    sourceType: entry.sourceType,
+    status: entry.status,
+    preview: truncateText(entry.preview ?? "", 360),
+  };
+}
+
+function selectedActivityMaterialsFromSearch(
+  output: ProjectWikiSearchOutput,
+  catalog: ProjectWikiCatalogEntry[],
+): ProjectWikiActivityMaterial[] {
+  const byPath = new Map(catalog.map((entry) => [entry.relativePath, entry]));
+  return (output.selected ?? []).map((item) => ({
+    ...(item.relativePath ? activityMaterialFromCatalogEntry(byPath.get(item.relativePath) ?? {
+      relativePath: item.relativePath,
+      kind: item.relativePath === "home.md" ? "home" : item.relativePath.startsWith("wiki/") ? "wiki" : "source_card",
+      title: basename(item.relativePath),
+      description: "",
+      preview: "",
+    } as ProjectWikiCatalogEntry) : {}),
+    relativePath: item.relativePath ?? "",
+    reason: item.reason,
+    priority: item.priority,
+  })).filter((item) => item.relativePath);
+}
+
+function rejectedActivityMaterialsFromSearch(
+  output: ProjectWikiSearchOutput,
+  catalog: ProjectWikiCatalogEntry[],
+): ProjectWikiActivityMaterial[] {
+  const byPath = new Map(catalog.map((entry) => [entry.relativePath, entry]));
+  return (output.rejected ?? []).map((item) => {
+    const relativePath = typeof item.relativePath === "string" ? item.relativePath : "";
+    const catalogEntry = relativePath ? byPath.get(relativePath) : undefined;
+    return {
+      ...(catalogEntry ? activityMaterialFromCatalogEntry(catalogEntry) : {}),
+      relativePath,
+      title: catalogEntry?.title ?? (relativePath ? basename(relativePath) : undefined),
+      reason: item.reason,
+    };
+  }).filter((item) => item.relativePath || item.reason);
+}
+
+function activityMaterialFromMarkdownFile(
+  file: ProjectWikiMarkdownFile,
+  catalog: ProjectWikiCatalogEntry[],
+): ProjectWikiActivityMaterial {
+  const catalogEntry = catalog.find((entry) => entry.relativePath === file.relativePath);
+  const title = readString(file.frontmatter.title) || catalogEntry?.title || basename(file.relativePath);
+  const description = readString(file.frontmatter.description) || catalogEntry?.description;
+  return {
+    ...(catalogEntry ? activityMaterialFromCatalogEntry(catalogEntry) : {}),
+    relativePath: file.relativePath,
+    title,
+    description,
+    kind: catalogEntry?.kind ?? (file.relativePath === "home.md" ? "home" : file.relativePath.startsWith("wiki/") ? "wiki" : "source_card"),
+    sourceType: catalogEntry?.sourceType,
+    status: catalogEntry?.status,
+    preview: truncateText(file.content.replace(/\s+/g, " ").trim(), 420),
+  };
+}
+
+function formatRetrieverToolCall(call: RetrieverToolCall): string {
+  const input = isRecord(call.input) ? call.input : {};
+  if (call.name === "projectwiki_search") {
+    const query = readString(input.query) || "";
+    return query ? `search: ${truncateText(query, 80)}` : "search";
+  }
+  if (call.name === "projectwiki_read") {
+    const relativePath = readString(input.relativePath) || "";
+    return relativePath ? `read: ${relativePath}` : "read";
+  }
+  return call.name;
+}
+
+function activityFromRetrieverToolResult(input: {
+  call: RetrieverToolCall;
+  payload: unknown;
+  isError: boolean;
+  catalog: ProjectWikiCatalogEntry[];
+  outputLanguage: string;
+}): Parameters<NonNullable<ProjectWikiRetrieveInput["onActivity"]>>[0] {
+  const catalogMaterials = input.catalog.map(activityMaterialFromCatalogEntry);
+  if (input.isError) {
+    return {
+      phase: "error",
+      state: "running",
+      title: input.outputLanguage === "zh-CN" ? "ProjectWiki 工具调用遇到错误，正在恢复" : "ProjectWiki tool call hit an error and is recovering",
+      detail: truncateText(JSON.stringify(input.payload), 240),
+      catalog: catalogMaterials,
+      error: truncateText(JSON.stringify(input.payload), 500),
+      stats: { catalogCount: input.catalog.length },
+    };
+  }
+  if (input.call.name === "projectwiki_search") {
+    const payload = isRecord(input.payload) ? input.payload : {};
+    const selected = Array.isArray(payload.selected)
+      ? payload.selected.map(materialFromUnknown).filter(isActivityMaterial)
+      : [];
+    const rejected = Array.isArray(payload.rejected)
+      ? payload.rejected.map(materialFromUnknown).filter(isActivityMaterial)
+      : [];
+    const query = readString(payload.query) || (isRecord(input.call.input) ? readString(input.call.input.query) : undefined);
+    return {
+      phase: "search",
+      state: "running",
+      title: input.outputLanguage === "zh-CN" ? "Searcher 返回了候选材料" : "Searcher returned candidate materials",
+      detail: query
+        ? input.outputLanguage === "zh-CN"
+          ? `搜索：${truncateText(query, 96)}`
+          : `Search: ${truncateText(query, 96)}`
+        : undefined,
+      catalog: catalogMaterials,
+      selected,
+      rejected,
+      stats: {
+        catalogCount: input.catalog.length,
+        selectedCount: selected.length,
+        rejectedCount: rejected.length,
+      },
+    };
+  }
+  if (input.call.name === "projectwiki_read") {
+    const payload = isRecord(input.payload) ? input.payload : {};
+    const material = materialFromUnknown(payload);
+    const read = isActivityMaterial(material) ? [material] : [];
+    return {
+      phase: "read",
+      state: "running",
+      title: input.outputLanguage === "zh-CN" ? "Retriever 读取了 ProjectWiki 材料" : "Retriever read ProjectWiki material",
+      detail: material.relativePath,
+      catalog: catalogMaterials,
+      read,
+      stats: {
+        catalogCount: input.catalog.length,
+        readCount: read.length,
+      },
+    };
+  }
+  return {
+    phase: "retriever",
+    state: "running",
+    title: input.outputLanguage === "zh-CN" ? "Retriever 完成了一次工具调用" : "Retriever completed a tool call",
+    detail: input.call.name,
+    catalog: catalogMaterials,
+    stats: { catalogCount: input.catalog.length },
+  };
+}
+
+function materialFromUnknown(value: unknown): ProjectWikiActivityMaterial {
+  const record = isRecord(value) ? value : {};
+  const relativePath = readString(record.relativePath) || "";
+  return {
+    relativePath,
+    title: readString(record.title) || (relativePath ? basename(relativePath) : undefined),
+    description: readString(record.description),
+    kind: readString(record.kind) as ProjectWikiActivityMaterial["kind"],
+    sourceType: readString(record.sourceType) as ProjectWikiActivityMaterial["sourceType"],
+    status: readString(record.status) as ProjectWikiActivityMaterial["status"],
+    reason: readString(record.reason),
+    priority: typeof record.priority === "number" && Number.isFinite(record.priority) ? record.priority : undefined,
+    preview: readString(record.preview) || readString(record.content),
+  };
+}
+
+function isActivityMaterial(value: ProjectWikiActivityMaterial): value is ProjectWikiActivityMaterial {
+  return typeof value.relativePath === "string" && value.relativePath.length > 0;
 }
 
 function retrieverToolGuardReason(

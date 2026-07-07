@@ -212,6 +212,7 @@ function convertSingleMessage(
         isAgentActivity: true,
         runId: msg.runId,
         activityId: msg.activityId,
+        turnId: msg.turnId,
         phase: msg.phase,
         state: msg.state,
         title: msg.title,
@@ -222,6 +223,7 @@ function convertSingleMessage(
         endedAt: msg.endedAt,
         durationMs: msg.durationMs,
         severity: msg.severity,
+        projectWiki: msg.projectWiki,
       };
 
     case 'agent_activity_summary':

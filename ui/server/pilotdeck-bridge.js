@@ -75,6 +75,9 @@ const GATEWAY_CONNECT_TIMEOUT_MS =
     Number.parseInt(process.env.PILOTDECK_BRIDGE_TIMEOUT ?? '', 10) || 60_000;
 const GATEWAY_CONNECT_RETRY_INTERVAL_MS = 500;
 const subagentActivityStarts = new Map();
+const projectWikiActivityStarts = new Map();
+const projectWikiActivityLogs = new Map();
+const projectWikiActivityState = new Map();
 /** @type {Map<string, string[]>} sessionId → [toolCallId, ...] for pending agent/Task tool calls */
 const pendingAgentToolCalls = new Map();
 
@@ -538,6 +541,8 @@ export function gatewayEventToFrames(event, sessionId, provider) {
                     },
                 }),
             ];
+        case 'project_wiki_activity':
+            return [createProjectWikiActivityFrame(event, base)];
         case 'error':
             return [
                 createNormalizedMessage({
@@ -612,6 +617,98 @@ export function gatewayEventToFrames(event, sessionId, provider) {
         default:
             return [];
     }
+}
+
+function createProjectWikiActivityFrame(event, base) {
+    const activity = event?.activity || {};
+    const pipelineRunId = String(activity.pipelineRunId || 'current');
+    const activityKey = `${base.sessionId || ''}:${pipelineRunId}`;
+    const nowMs = Date.now();
+    let startedAtMs = projectWikiActivityStarts.get(activityKey);
+    if (activity.phase === 'started' || !startedAtMs) {
+        startedAtMs = nowMs;
+        projectWikiActivityStarts.set(activityKey, startedAtMs);
+    }
+
+    const state = normalizeProjectWikiActivityState(activity.state);
+    const isDone = state === 'completed' || state === 'failed' || state === 'skipped';
+    const durationMs = Math.max(0, nowMs - startedAtMs);
+    const previousProjectWiki = projectWikiActivityState.get(activityKey) || {};
+    const nextProjectWiki = {
+        ...previousProjectWiki,
+        phase: activity.phase || previousProjectWiki.phase || 'started',
+        query: activity.query ?? previousProjectWiki.query,
+        pipelineRunId: activity.pipelineRunId ?? previousProjectWiki.pipelineRunId,
+        projectRoot: activity.projectRoot ?? previousProjectWiki.projectRoot,
+        catalog: Array.isArray(activity.catalog) ? activity.catalog : previousProjectWiki.catalog || [],
+        selected: Array.isArray(activity.selected) ? activity.selected : previousProjectWiki.selected || [],
+        rejected: Array.isArray(activity.rejected) ? activity.rejected : previousProjectWiki.rejected || [],
+        read: Array.isArray(activity.read) ? activity.read : previousProjectWiki.read || [],
+        contextPreview: activity.contextPreview ?? previousProjectWiki.contextPreview,
+        contextSections: Array.isArray(activity.contextSections) ? activity.contextSections : previousProjectWiki.contextSections || [],
+        stats: {
+            ...(previousProjectWiki.stats || {}),
+            ...(activity.stats || {}),
+        },
+        error: activity.error ?? previousProjectWiki.error,
+    };
+    projectWikiActivityState.set(activityKey, nextProjectWiki);
+
+    const previousLogs = projectWikiActivityLogs.get(activityKey) || [];
+    const nextLog = createProjectWikiActivityLog(activity, state, nowMs);
+    const shouldAppendLog = !previousLogs.some((entry) =>
+        entry.phase === nextLog.phase &&
+        entry.title === nextLog.title &&
+        entry.detail === nextLog.detail
+    );
+    const logs = (shouldAppendLog ? [...previousLogs, nextLog] : previousLogs).slice(-8);
+    projectWikiActivityLogs.set(activityKey, logs);
+
+    const frame = createNormalizedMessage({
+        ...base,
+        id: `project_wiki_activity_${sanitizeMessageId(base.sessionId)}_${sanitizeMessageId(pipelineRunId)}`,
+        kind: 'agent_activity',
+        activityId: `project-wiki:${pipelineRunId}`,
+        runId: `project-wiki:${pipelineRunId}`,
+        turnId: event.turnId || null,
+        phase: 'project_wiki',
+        state,
+        title: activity.title || 'ProjectWiki',
+        detail: activity.detail || '',
+        startedAt: new Date(startedAtMs).toISOString(),
+        endedAt: isDone ? new Date(nowMs).toISOString() : null,
+        durationMs,
+        severity: state === 'failed' ? 'error' : undefined,
+        projectWiki: {
+            ...nextProjectWiki,
+            events: logs,
+        },
+    });
+    if (isDone) {
+        projectWikiActivityStarts.delete(activityKey);
+        projectWikiActivityLogs.delete(activityKey);
+        projectWikiActivityState.delete(activityKey);
+    }
+    return frame;
+}
+
+function createProjectWikiActivityLog(activity, state, nowMs) {
+    return {
+        id: `pw-${nowMs}-${sanitizeMessageId(activity.phase || 'event')}`,
+        at: new Date(nowMs).toISOString(),
+        phase: activity.phase || 'started',
+        state,
+        title: activity.title || 'ProjectWiki',
+        detail: activity.detail || '',
+        selectedCount: Array.isArray(activity.selected) ? activity.selected.length : undefined,
+        rejectedCount: Array.isArray(activity.rejected) ? activity.rejected.length : undefined,
+        readCount: Array.isArray(activity.read) ? activity.read.length : undefined,
+    };
+}
+
+function normalizeProjectWikiActivityState(state) {
+    if (state === 'completed' || state === 'failed' || state === 'skipped') return state;
+    return 'running';
 }
 
 function createSubagentStatusFrames(event, base) {

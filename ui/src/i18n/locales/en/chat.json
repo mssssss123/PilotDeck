@@ -105,6 +105,55 @@
     },
     "noSteps": "No detailed steps recorded."
   },
+  "projectWiki": {
+    "title": "ProjectWiki",
+    "running": "Exploring",
+    "completed": "Ready",
+    "skipped": "Skipped",
+    "failed": "Failed",
+    "defaultDetail": "Preparing project context for this turn.",
+    "catalogCount": "{{count}} available",
+    "selectedCount": "{{count}} selected",
+    "readCount": "{{count}} read",
+    "contextSectionsCount": "{{count}} context sections",
+    "availableMaterials": "Available WikiCards",
+    "selectedMaterials": "Selected materials",
+    "skippedMaterials": "Skipped materials",
+    "contextPreview": "Context sent to the main agent",
+    "contextSection": "Section {{count}}",
+    "moreCatalog": "and {{count}} more",
+    "closeMaterial": "Close",
+    "loadingMaterial": "Loading material...",
+    "materialFailed": "Could not load material",
+    "untitledMaterial": "Untitled material",
+    "reason": "Reason",
+    "material": {
+      "kind": "Wiki"
+    },
+    "events": {
+      "title": "Model path",
+      "opening": "Opening ProjectWiki resources",
+      "waiting": "Waiting for ProjectWiki activity",
+      "selectedCount": "{{count}} selected",
+      "readCount": "{{count}} read"
+    },
+    "phases": {
+      "started": "Gate",
+      "catalog": "Catalog",
+      "selected": "Select",
+      "read": "Read",
+      "assembled": "Assemble"
+    },
+    "summary": {
+      "opening": "opening project memory...",
+      "running": "exploring {{catalog}} resources",
+      "runningSelected": "exploring {{catalog}} resources · {{selected}} selected",
+      "completed": "assembled {{sections}} context sections · {{selected}} selected",
+      "completedNoContext": "{{selected}} selected · {{read}} read",
+      "skipped": "not needed for this turn",
+      "failed": "preparation failed"
+    }
+  },
   "tools": {
     "settings": "Tool Settings",
     "error": "Tool Error",

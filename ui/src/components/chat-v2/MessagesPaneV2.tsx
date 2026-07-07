@@ -14,6 +14,7 @@ import type { SessionStore } from '../../stores/useSessionStore';
 import { isBackgroundTaskSession, type Project, type ProjectSession, type SessionProvider } from '../../types/app';
 import { getIntrinsicMessageKey } from '../chat/utils/messageKeys';
 import MessageRowV2 from './MessageRowV2';
+import ProjectWikiActivityCard from './ProjectWikiActivityCard';
 import SubagentDetailModal from './SubagentDetailModal';
 import { useSubagentMessages } from './useSubagentMessages';
 import { ProcessLiveStatus, ProcessRunHeader, StreamingThinkingPreview, type ProcessTraceStep } from './ProcessTrace';
@@ -340,8 +341,12 @@ export default function MessagesPaneV2({
     () => liveActivities.filter(isSubagentActivity),
     [liveActivities],
   );
+  const projectWikiActivities = useMemo(
+    () => liveActivities.filter(isProjectWikiActivity),
+    [liveActivities],
+  );
   const nonSubagentLiveActivities = useMemo(
-    () => liveActivities.filter((activity) => !isSubagentActivity(activity)),
+    () => liveActivities.filter((activity) => !isSubagentActivity(activity) && !isProjectWikiActivity(activity)),
     [liveActivities],
   );
   const subagentActivityById = useMemo(() => {
@@ -489,6 +494,40 @@ export default function MessagesPaneV2({
     const parsed = Date.parse(String(anchorMessage.timestamp));
     return Number.isFinite(parsed) ? parsed : null;
   }, [isAssistantWorking, keyedMessageItems, liveProcessHeaderIndex]);
+  const projectWikiActivityByUserKey = useMemo(() => {
+    const map = new Map<string, ChatMessage>();
+    if (projectWikiActivities.length === 0) return map;
+    const userItems = keyedMessageItems
+      .filter((item) => item.message.type === 'user')
+      .map((item) => ({
+        itemKey: item.itemKey,
+        timestampMs: parseMessageTimestamp(item.message.timestamp),
+      }))
+      .filter((item) => item.timestampMs != null) as Array<{ itemKey: string; timestampMs: number }>;
+    if (userItems.length === 0) return map;
+
+    for (const activity of projectWikiActivities) {
+      const activityMs = parseMessageTimestamp(activity.startedAt || activity.timestamp);
+      if (activityMs == null) continue;
+      let anchor: { itemKey: string; timestampMs: number } | null = null;
+      for (const item of userItems) {
+        if (item.timestampMs <= activityMs + 1000) {
+          anchor = item;
+        } else {
+          break;
+        }
+      }
+      if (!anchor) continue;
+      const current = map.get(anchor.itemKey);
+      const currentMs = current ? parseMessageTimestamp(current.endedAt || current.timestamp) ?? 0 : 0;
+      const nextMs = parseMessageTimestamp(activity.endedAt || activity.timestamp) ?? activityMs;
+      if (!current || nextMs >= currentMs) {
+        map.set(anchor.itemKey, activity);
+      }
+    }
+    return map;
+  }, [keyedMessageItems, projectWikiActivities]);
+  const canRenderProjectWikiProcess = Boolean(selectedProject && !selectedProject.isGeneral && projectPath);
   const hasLiveAssistantContent = useMemo(() => {
     if (!isAssistantWorking || liveProcessHeaderIndex < 0) return false;
     return keyedMessageItems.slice(liveProcessHeaderIndex).some((item) => (
@@ -499,6 +538,20 @@ export default function MessagesPaneV2({
       item.message.content.trim().length > 0
     ));
   }, [isAssistantWorking, keyedMessageItems, liveProcessHeaderIndex]);
+  const currentTurnProjectWikiActivity = useMemo(() => {
+    if (!isAssistantWorking || liveProcessHeaderIndex <= 0) return null;
+    const anchorItem = keyedMessageItems[liveProcessHeaderIndex - 1];
+    if (!anchorItem || anchorItem.message.type !== 'user') return null;
+    return projectWikiActivityByUserKey.get(anchorItem.itemKey) ?? null;
+  }, [isAssistantWorking, keyedMessageItems, liveProcessHeaderIndex, projectWikiActivityByUserKey]);
+  const isProjectWikiBlockingCurrentTurn = Boolean(
+    canRenderProjectWikiProcess &&
+    isAssistantWorking &&
+    liveProcessHeaderIndex > 0 &&
+    keyedMessageItems[liveProcessHeaderIndex - 1]?.message.type === 'user' &&
+    !hasLiveAssistantContent &&
+    (!currentTurnProjectWikiActivity || currentTurnProjectWikiActivity.state === 'running'),
+  );
   const hasPendingToolUse = useMemo(() => {
     if (!isAssistantWorking || liveProcessHeaderIndex < 0) return false;
     const liveItems = keyedMessageItems.slice(liveProcessHeaderIndex);
@@ -562,7 +615,7 @@ export default function MessagesPaneV2({
     workingStatus,
   ]);
   const hasOpenEndedLiveProcessGroup = liveProcessGroups.some((group) => group.isRunning);
-  const shouldRenderBottomLiveStatus = isAssistantWorking && !hasOpenEndedLiveProcessGroup;
+  const shouldRenderBottomLiveStatus = isAssistantWorking && !hasOpenEndedLiveProcessGroup && !isProjectWikiBlockingCurrentTurn;
 
   const bumpHeightVersion = useCallback(() => {
     if (heightVersionRafRef.current !== null) return;
@@ -719,6 +772,15 @@ export default function MessagesPaneV2({
     const isLast = !isAssistantWorking && item.renderIndex === keyedMessageItems.length - 1;
     const anchoredLiveGroups = liveProcessGroupsByAnchor.get(item.originalIndex) || [];
     const rendersLiveHeaderAfterItem = item.renderIndex === liveProcessHeaderIndex - 1;
+    const projectWikiActivityForItem = item.message.type === 'user'
+      ? projectWikiActivityByUserKey.get(item.itemKey) ?? null
+      : null;
+    const shouldRenderProjectWikiPlaceholder = Boolean(
+      canRenderProjectWikiProcess &&
+      item.message.type === 'user' &&
+      rendersLiveHeaderAfterItem &&
+      !projectWikiActivityForItem,
+    );
 
     return (
       <Fragment key={item.itemKey}>
@@ -778,6 +840,13 @@ export default function MessagesPaneV2({
               t={t}
             />
           ) : null}
+          {canRenderProjectWikiProcess && (projectWikiActivityForItem || shouldRenderProjectWikiPlaceholder) ? (
+            <ProjectWikiActivityCard
+              activityMessage={projectWikiActivityForItem}
+              projectPath={projectPath}
+              pending={shouldRenderProjectWikiPlaceholder}
+            />
+          ) : null}
           {anchoredLiveGroups.length > 0 ? (
             <div className="mt-2 flex min-w-0 flex-col gap-2">
               {anchoredLiveGroups.map(renderLiveProcessGroup)}
@@ -796,6 +865,7 @@ export default function MessagesPaneV2({
     isProcessExpanded,
     isAssistantWorking,
     keyedMessageItems,
+    canRenderProjectWikiProcess,
     nonSubagentLiveActivities,
     liveProcessGroupsByAnchor,
     liveProcessHeaderIndex,
@@ -804,6 +874,8 @@ export default function MessagesPaneV2({
     onGrantSessionToolPermission,
     onShowSettings,
     provider,
+    projectPath,
+    projectWikiActivityByUserKey,
     renderLiveProcessGroup,
     selectedProject,
     showRawParameters,
@@ -1000,8 +1072,19 @@ function isSubagentActivity(activity: ChatMessage): boolean {
   return activity.phase === 'subagent' || activityId.startsWith('subagent:');
 }
 
+function isProjectWikiActivity(activity: ChatMessage): boolean {
+  const activityId = String(activity.activityId || activity.runId || '');
+  return activity.phase === 'project_wiki' || activityId.startsWith('project-wiki:') || Boolean(activity.projectWiki);
+}
+
 function isRunningActivity(activity: ChatMessage): boolean {
-  return !['completed', 'failed', 'cancelled'].includes(String(activity.state || 'running'));
+  return !['completed', 'failed', 'cancelled', 'skipped'].includes(String(activity.state || 'running'));
+}
+
+function parseMessageTimestamp(value: unknown): number | null {
+  if (!value) return null;
+  const parsed = Date.parse(String(value));
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function getLatestActivity(activities: ChatMessage[]): ChatMessage | null {

@@ -4,6 +4,7 @@ import type { AgentError } from "./errors.js";
 import type { AgentTurnResult } from "./result.js";
 import type { AgentLoopTransition } from "./state.js";
 import type { TokenBudgetSnapshot } from "../../context/budget/TokenBudgetManager.js";
+import type { ProjectWikiActivityEvent } from "../../project-wiki/types.js";
 import type { RouterRetryProgressEvent } from "../../router/protocol/events.js";
 
 export type AgentEvent =
@@ -53,6 +54,7 @@ export type AgentEvent =
   | { type: "turn_completed"; sessionId: string; turnId: string; result: AgentTurnResult }
   | { type: "turn_failed"; sessionId: string; turnId: string; error: AgentError }
   | { type: "retry_progress"; sessionId: string; turnId: string; detail: RouterRetryProgressEvent }
+  | { type: "project_wiki_activity"; sessionId: string; turnId: string; activity: ProjectWikiActivityEvent }
   | { type: "session_aborted"; sessionId: string; reason?: string };
 
 export type AgentEventEmitter = (event: AgentEvent) => void;

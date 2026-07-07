@@ -3,6 +3,7 @@ import type {
   CanonicalModelError,
   CanonicalToolSchema,
 } from "../../model/index.js";
+import type { ProjectWikiActivityEvent } from "../../project-wiki/types.js";
 
 /** Diagnostic produced by context runtime; non-fatal except for `severity:"fatal"`. */
 export type ContextDiagnostic = {
@@ -58,6 +59,8 @@ export type ContextPrepareInput = {
   appendSystemPrompt?: string;
   /** Maximum messages retained when no compact boundary is in play. */
   maxMessages?: number;
+  /** Optional live ProjectWiki preparation events for host UIs. */
+  onProjectWikiActivity?: (event: ProjectWikiActivityEvent) => void;
 };
 
 export type ContextToolResultInput = {

@@ -228,6 +228,7 @@ export class DefaultContextRuntime implements ContextRuntime {
         recentMessages: projection.messages,
         signal: input.abortSignal,
         timeoutMs: this.projectWikiRetrievalTimeoutMs,
+        onActivity: input.onProjectWikiActivity,
       });
       appendAttachmentText(parts, projectWiki);
       for (const diagnostic of projectWiki.diagnostics) {

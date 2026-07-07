@@ -107,6 +107,7 @@ export interface NormalizedMessage {
   compactMetadata?: unknown;
   runId?: string;
   activityId?: string;
+  turnId?: string | null;
   phase?: string;
   state?: string;
   title?: string;
@@ -127,6 +128,7 @@ export interface NormalizedMessage {
   otherToolCount?: number;
   keySteps?: unknown[];
   isFinal?: boolean;
+  projectWiki?: unknown;
   // Cursor-specific ordering
   sequence?: number;
   rowid?: number;

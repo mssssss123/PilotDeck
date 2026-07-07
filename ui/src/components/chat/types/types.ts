@@ -82,6 +82,7 @@ export interface ChatMessage {
   isCompactBoundary?: boolean;
   activityId?: string;
   runId?: string;
+  turnId?: string | null;
   compactTrigger?: string;
   preTokens?: number;
   compactLevel?: number;
@@ -106,6 +107,7 @@ export interface ChatMessage {
   thinkingCount?: number;
   otherToolCount?: number;
   keySteps?: unknown[];
+  projectWiki?: unknown;
   subagentState?: {
     childTools: SubagentChildTool[];
     currentToolIndex: number;

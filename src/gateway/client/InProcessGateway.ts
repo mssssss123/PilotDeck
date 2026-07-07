@@ -1244,6 +1244,8 @@ export function mapAgentEvent(event: AgentEvent, runId: string): GatewayEvent[] 
           userHint: event.error.userHint,
         },
       ];
+    case "project_wiki_activity":
+      return [{ type: "project_wiki_activity", activity: event.activity }];
     case "session_aborted":
       return [
         {
