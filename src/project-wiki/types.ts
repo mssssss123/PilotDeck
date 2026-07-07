@@ -167,7 +167,7 @@ export type ProjectWikiTracePayloadRefs = {
   modelRequest?: string;
   modelResponse?: string;
   parsedOutput?: string;
-  toolLoopMessages?: string;
+  retrieverMessages?: string;
 };
 
 export type ProjectWikiTraceRecord = {

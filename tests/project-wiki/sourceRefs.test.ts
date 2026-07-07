@@ -718,19 +718,19 @@ test("ProjectWiki retrieval uses model search and curator to assemble traceable 
     const retrievalTraces = await store.readTrace("retrieval");
     const contextTraces = await store.readTrace("context");
     const retrievalTrace = retrievalTraces.find((trace) => trace.phase === "search");
-    const toolLoopFallbackTrace = retrievalTraces.find((trace) => trace.phase === "tool_loop_fallback");
+    const retrieverFallbackTrace = retrievalTraces.find((trace) => trace.phase === "retriever_fallback");
     const readTrace = retrievalTraces.find((trace) => trace.phase === "read");
     const contextTrace = contextTraces[0];
     assert.ok(retrievalTrace);
-    assert.ok(toolLoopFallbackTrace);
+    assert.ok(retrieverFallbackTrace);
     assert.ok(readTrace);
     assert.ok(contextTrace);
     assert.equal(retrievalTrace.language, "zh-CN");
-    assert.equal(toolLoopFallbackTrace.language, "zh-CN");
+    assert.equal(retrieverFallbackTrace.language, "zh-CN");
     assert.equal(readTrace.language, "zh-CN");
     assert.equal(contextTrace.language, "zh-CN");
-    assert.equal(toolLoopFallbackTrace.status, "skipped");
-    assert.match(JSON.stringify(toolLoopFallbackTrace.output), /structured search/);
+    assert.equal(retrieverFallbackTrace.status, "skipped");
+    assert.match(JSON.stringify(retrieverFallbackTrace.output), /structured search/);
     assert.equal(retrievalTrace.phase, "search");
     assert.equal(readTrace.phase, "read");
     assert.equal(contextTrace.phase, "assemble");
@@ -811,11 +811,11 @@ test("ProjectWiki retrieval uses model search and curator to assemble traceable 
   }
 });
 
-test("ProjectWiki retrieval can use an internal tool loop before curator assembly", async () => {
-  const root = await mkdtemp(join(tmpdir(), "pilotdeck-project-wiki-tool-loop-"));
+test("ProjectWiki retrieval can use a Retriever loop before curator assembly", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pilotdeck-project-wiki-retriever-"));
   const projectRoot = join(root, "project");
   const wikiRoot = join(root, "project_wiki");
-  const toolLoopCalls: string[] = [];
+  const retrieverCalls: string[] = [];
 
   try {
     await mkdir(projectRoot, { recursive: true });
@@ -826,7 +826,7 @@ test("ProjectWiki retrieval can use an internal tool loop before curator assembl
       title: "TaskFlow Test Stack",
       description: "Known testing stack for TaskFlow.",
       summary: "TaskFlow uses Jest with Supertest for HTTP API coverage.",
-      sourceRefs: [{ kind: "transcript", label: "fixture", contentHash: "tool-loop-stack" }],
+      sourceRefs: [{ kind: "transcript", label: "fixture", contentHash: "retriever-stack" }],
     });
     await store.appendConflicts([{
       topic: "Test stack conflict",
@@ -874,7 +874,7 @@ test("ProjectWiki retrieval can use an internal tool loop before curator assembl
               assert.ok(toolSearchInput.catalog?.some((entry) => entry.relativePath === sourceCard.relativePath));
               return jsonResponse({
                 needsProjectWiki: true,
-                intent: "Narrow candidates for the retriever tool loop.",
+                intent: "Narrow candidates for the Retriever.",
                 selected: [
                   { relativePath: sourceCard.relativePath, reason: "Searcher model selected the source card.", priority: 10 },
                 ],
@@ -882,7 +882,7 @@ test("ProjectWiki retrieval can use an internal tool loop before curator assembl
               });
             }
             assert.ok(request.tools?.some((tool) => tool.name === "projectwiki_search"));
-            const step = toolLoopCalls.length;
+            const step = retrieverCalls.length;
             if (step === 0) {
               const inputText = request.messages[0]?.content[0]?.type === "text"
                 ? request.messages[0].content[0].text
@@ -893,25 +893,25 @@ test("ProjectWiki retrieval can use an internal tool loop before curator assembl
               assert.equal(retrieverInput.openConflicts?.[0]?.topic, "Test stack conflict");
               assert.deepEqual(retrieverInput.openConflicts?.[0]?.sourceCardIds, [sourceCard.id]);
               assert.deepEqual(retrieverInput.openConflicts?.[0]?.sourcePaths, [sourceCard.relativePath]);
-              toolLoopCalls.push("search");
+              retrieverCalls.push("search");
               return toolCallResponse("projectwiki_search", { query: "testing stack", limit: 4 }, "tc-search");
             }
             if (step === 1) {
               const toolResultText = JSON.stringify(request.messages);
               assert.match(toolResultText, /TaskFlow Test Stack/);
-              toolLoopCalls.push("read");
+              retrieverCalls.push("read");
               return toolCallResponse("projectwiki_read", {
                 relativePath: sourceCard.relativePath,
                 maxChars: 2_000,
               }, "tc-read");
             }
-            toolLoopCalls.push("finish");
+            retrieverCalls.push("finish");
             return toolCallResponse("projectwiki_finish", {
               needsProjectWiki: true,
               intent: "Find the testing stack.",
               selected: [
                 { relativePath: "wiki/knowledge.md", reason: "Canonical wiki page.", priority: 10 },
-                { relativePath: sourceCard.relativePath, reason: "Read by retriever tool loop.", priority: 9 },
+                { relativePath: sourceCard.relativePath, reason: "Read by Retriever before final selection.", priority: 9 },
               ],
               rejected: [],
               notes: "Used ProjectWiki search/read tools before selecting materials.",
@@ -928,7 +928,7 @@ test("ProjectWiki retrieval can use an internal tool loop before curator assembl
           },
         },
         models: {},
-        fallbackModel: { provider: "test", model: "tool-loop-model" },
+        fallbackModel: { provider: "test", model: "retriever-model" },
         timeoutMs: 1_000,
       }),
       config: projectWikiConfig({ repo: false, memory: false, conversations: false, knowledge: true }),
@@ -945,26 +945,36 @@ test("ProjectWiki retrieval can use an internal tool loop before curator assembl
       }],
     });
 
-    assert.deepEqual(toolLoopCalls, ["search", "read", "finish"]);
+    assert.deepEqual(retrieverCalls, ["search", "read", "finish"]);
     assert.equal(result.diagnostics.length, 0);
     assert.match(result.systemContext ?? "", /Testing Stack/);
     const retrievalTraces = await store.readTrace("retrieval");
-    const toolLoopTrace = retrievalTraces.find((trace) => trace.phase === "tool_loop");
+    const retrieverToolCallTraces = retrievalTraces
+      .filter((trace) => trace.phase === "retriever_tool_call")
+      .sort((left, right) => (left.stepIndex ?? 0) - (right.stepIndex ?? 0));
+    const retrieverFinishTrace = retrievalTraces.find((trace) => trace.phase === "retriever_finish");
     const toolSearchTrace = retrievalTraces.find((trace) => trace.phase === "tool_catalog_search");
     const readTrace = retrievalTraces.find((trace) => trace.phase === "read");
     const fallbackSearchTrace = retrievalTraces.find((trace) => trace.phase === "search");
-    const fallbackToolLoopTrace = retrievalTraces.find((trace) => trace.phase === "tool_loop_fallback");
-    assert.ok(toolLoopTrace);
+    const fallbackRetrieverTrace = retrievalTraces.find((trace) => trace.phase === "retriever_fallback");
+    assert.equal(retrieverToolCallTraces.length, 2);
+    assert.ok(retrieverFinishTrace);
     assert.ok(toolSearchTrace);
     assert.ok(readTrace);
     assert.equal(fallbackSearchTrace, undefined);
-    assert.equal(fallbackToolLoopTrace, undefined);
-    assert.equal(toolSearchTrace.model?.model, "tool-loop-model");
+    assert.equal(fallbackRetrieverTrace, undefined);
+    assert.equal(toolSearchTrace.model?.model, "retriever-model");
     assert.match(JSON.stringify(toolSearchTrace.output), /Searcher model selected the source card/);
-    assert.equal(toolLoopTrace.status, "success");
-    assert.match(JSON.stringify(toolLoopTrace.output), /projectwiki_search/);
-    assert.match(JSON.stringify(toolLoopTrace.output), /projectwiki_read/);
-    assert.match(JSON.stringify(toolLoopTrace.output), /Used ProjectWiki search\/read tools/);
+    assert.equal(retrieverFinishTrace.status, "success");
+    assert.equal(retrieverToolCallTraces[0]?.stepName, "retriever_tool_call");
+    assert.equal(retrieverToolCallTraces[1]?.stepName, "retriever_tool_call");
+    assert.equal(retrieverFinishTrace.stepName, "retriever_finish");
+    assert.ok((retrieverToolCallTraces[0]?.stepIndex ?? 0) < (toolSearchTrace.stepIndex ?? 0));
+    assert.ok((toolSearchTrace.stepIndex ?? 0) < (retrieverToolCallTraces[1]?.stepIndex ?? 0));
+    assert.ok((retrieverToolCallTraces[1]?.stepIndex ?? 0) < (retrieverFinishTrace.stepIndex ?? 0));
+    assert.match(JSON.stringify(retrieverToolCallTraces[0]?.output), /projectwiki_search/);
+    assert.match(JSON.stringify(retrieverToolCallTraces[1]?.output), /projectwiki_read/);
+    assert.match(JSON.stringify(retrieverFinishTrace.output), /Used ProjectWiki search\/read tools/);
     assert.match(JSON.stringify(readTrace.output), new RegExp(escapeRegExp(sourceCard.relativePath)));
     const contextTraces = await store.readTrace("context");
     assert.equal(contextTraces[0]?.phase, "assemble");

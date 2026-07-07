@@ -75,7 +75,7 @@ type TracePayloadKind =
   | 'modelRequest'
   | 'modelResponse'
   | 'parsedOutput'
-  | 'toolLoopMessages'
+  | 'retrieverMessages'
   | 'businessInput'
   | 'businessOutput'
   | 'input'
@@ -1240,7 +1240,15 @@ function TracesView({
   onInspectArtifact: (artifact: NonNullable<TraceRecord['artifacts']>[number]) => void;
 }) {
   const { t } = useTranslation('projectWiki');
-  const relatedTraces = getRelatedTraces(selectedTrace, allTraces);
+  const selectedPipelineTraceIds = useMemo(
+    () => new Set(selectedPipeline?.traces.map((trace) => trace.id) ?? []),
+    [selectedPipeline],
+  );
+  const relatedTraces = useMemo(
+    () => getRelatedTraces(selectedTrace, allTraces)
+      .filter((trace) => !selectedPipelineTraceIds.has(trace.id)),
+    [allTraces, selectedPipelineTraceIds, selectedTrace],
+  );
   return (
     <div className="grid h-full min-h-0 grid-rows-[minmax(220px,38vh)_minmax(0,1fr)] lg:grid-cols-[340px_minmax(0,1fr)] lg:grid-rows-1">
       <aside className="min-h-0 overflow-y-auto border-b border-neutral-200 lg:border-b-0 lg:border-r dark:border-neutral-800">
@@ -1340,21 +1348,20 @@ function TracesView({
                 {selectedTrace.error}
               </div>
             )}
+            <TraceStepExplainability projectPath={projectPath} trace={selectedTrace} />
             <TraceDecision trace={selectedTrace} />
-            <TraceTurnFlow
+            <TraceArtifacts artifacts={selectedTrace.artifacts ?? []} onInspectArtifact={onInspectArtifact} />
+            <RelatedTraceEvents
               selectedTrace={selectedTrace}
               relatedTraces={relatedTraces}
               onSelectTrace={onSelectRelatedTrace}
             />
-            <TraceBlock title={t('traces.model')} value={selectedTrace.model ? `${selectedTrace.model.provider}/${selectedTrace.model.model}` : t('traces.notRecorded')} />
-            <TraceBlock title={t('traces.language')} value={traceLanguageLabel(selectedTrace.language, t)} />
             {selectedTrace.payload?.compacted && (
               <div className="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-[12px] leading-relaxed text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-300">
 	                {t('traces.compactedPayload')}
               </div>
             )}
             <TracePayloadRefs projectPath={projectPath} refs={selectedTrace.payloadRefs} />
-            <TraceArtifacts artifacts={selectedTrace.artifacts ?? []} onInspectArtifact={onInspectArtifact} />
             <TraceJson title={t('traces.input')} value={selectedTrace.input} />
             <TraceJson title={t('traces.outputDecision')} value={selectedTrace.output} />
           </div>
@@ -1427,7 +1434,7 @@ function TracePipelineSteps({
   );
 }
 
-function TraceTurnFlow({
+function RelatedTraceEvents({
   selectedTrace,
   relatedTraces,
   onSelectTrace,
@@ -1442,7 +1449,10 @@ function TraceTurnFlow({
     <section className="rounded-md border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-	          <h3 className="text-[12px] font-semibold uppercase tracking-wide text-neutral-500">{t('turnFlow.title')}</h3>
+	          <h3 className="text-[12px] font-semibold uppercase tracking-wide text-neutral-500">{t('relatedEvents.title')}</h3>
+          <div className="mt-1 text-[12px] text-neutral-500 dark:text-neutral-400">
+	            {t('relatedEvents.description')}
+          </div>
           <div className="mt-1 text-[12px] text-neutral-500 dark:text-neutral-400">
 	            {selectedTrace.sessionId && <span>{t('sourceRef.session', { id: shortId(selectedTrace.sessionId) })}</span>}
 	            {selectedTrace.sessionId && selectedTrace.turnId && <span> · </span>}
@@ -1455,7 +1465,7 @@ function TraceTurnFlow({
       </div>
       {relatedTraces.length === 0 ? (
         <div className="rounded-md border border-dashed border-neutral-200 p-3 text-[12px] text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
-	          {t('turnFlow.noRelated')}
+	          {t('relatedEvents.noRelated')}
         </div>
       ) : (
         <div className="grid gap-2 md:grid-cols-2">
@@ -1489,6 +1499,7 @@ function TraceTurnFlow({
                   {trace.artifacts && trace.artifacts.length > 0 && (
 	                    <span>{t('traces.artifactCount', { count: trace.artifacts.length })}</span>
                   )}
+                  <span>{t('relatedEvents.view')}</span>
                 </div>
               </button>
             );
@@ -1496,6 +1507,309 @@ function TraceTurnFlow({
         </div>
       )}
     </section>
+  );
+}
+
+type TraceExecutionType = 'model' | 'tool' | 'file' | 'system';
+
+type TraceStepProfile = {
+  executionType: TraceExecutionType;
+  title: string;
+  reason: string;
+};
+
+type PromptVariableRow = {
+  name: string;
+  summary: string;
+  preview?: string;
+  detail?: string;
+};
+
+type ModelPromptInfo = {
+  systemPrompt: string;
+  outputSchema?: string;
+  providerModel?: string;
+  messages: Array<Record<string, unknown>>;
+  variableRows: PromptVariableRow[];
+  toolNames: string[];
+  toolCalls: Array<{ name: string; input?: string }>;
+};
+
+const TRACE_DETAIL_TRUNCATION_MARKER = '[truncated in dashboard preview; open the full payload below for the original value]';
+
+function TraceStepExplainability({
+  projectPath,
+  trace,
+}: {
+  projectPath: string;
+  trace: TraceRecord;
+}) {
+  const { t } = useTranslation('projectWiki');
+  const payloads = useTracePayloadBundle(projectPath, trace.payloadRefs);
+  const modelRequest = parsePayloadRecord(payloads.modelRequest?.content);
+  const modelResponse = parsePayloadRecord(payloads.modelResponse?.content);
+  const parsedOutput = parsePayload(payloads.parsedOutput?.content);
+  const businessInput = parsePayload(payloads.businessInput?.content);
+  const businessOutput = parsePayload(payloads.businessOutput?.content);
+  const retrieverMessages = parsePayload(payloads.retrieverMessages?.content);
+  const profile = traceStepProfile(trace, t);
+  const promptInfo = modelRequest ? extractModelPromptInfo(modelRequest, t) : null;
+  const modelResponseText = modelResponse ? extractModelResponseText(modelResponse) : '';
+  const modelUsage = modelResponse ? readModelUsage(modelResponse) : '';
+  const modelRequestLoading = Boolean(trace.payloadRefs?.modelRequest && payloads.modelRequest?.loading);
+  const modelResponseLoading = Boolean(trace.payloadRefs?.modelResponse && payloads.modelResponse?.loading);
+  const systemInput = businessInput ?? trace.input;
+  const systemOutput = businessOutput ?? (parsedOutput === undefined ? trace.output : parsedOutput);
+
+  return (
+    <section className="rounded-md border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={traceExecutionTypeClassName(profile.executionType)}>
+              {traceExecutionTypeLabel(profile.executionType, t)}
+            </span>
+            <h3 className="text-[13px] font-semibold text-neutral-900 dark:text-neutral-100">
+              {profile.title}
+            </h3>
+          </div>
+          <p className="mt-2 text-[12px] leading-relaxed text-neutral-600 dark:text-neutral-300">
+            {profile.reason}
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-1.5 text-[11px] text-neutral-500 dark:text-neutral-400">
+          <span className="rounded bg-neutral-100 px-1.5 py-0.5 dark:bg-neutral-900">
+            {selectedTraceModelLabel(trace, promptInfo, t)}
+          </span>
+          <span className="rounded bg-neutral-100 px-1.5 py-0.5 dark:bg-neutral-900">
+            {traceLanguageLabel(trace.language, t)}
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-2 md:grid-cols-2">
+        <ReadableSummaryBlock
+          title={t('explainability.inputSummary')}
+          summary={buildReadableSummary(systemInput, t)}
+          payloadKind={trace.payloadRefs?.businessInput ? t('payloadKinds.businessInput') : trace.payloadRefs?.input ? t('payloadKinds.input') : undefined}
+          payloadPath={trace.payloadRefs?.businessInput ?? trace.payloadRefs?.input}
+        />
+        <ReadableSummaryBlock
+          title={t('explainability.outputSummary')}
+          summary={buildReadableSummary(systemOutput, t)}
+          payloadKind={trace.payloadRefs?.businessOutput ? t('payloadKinds.businessOutput') : trace.payloadRefs?.output ? t('payloadKinds.output') : undefined}
+          payloadPath={trace.payloadRefs?.businessOutput ?? trace.payloadRefs?.output}
+        />
+      </div>
+
+      {trace.payloadRefs?.modelRequest ? (
+        <div className="mt-3 space-y-3">
+          <section className="rounded-md border border-emerald-100 bg-emerald-50/60 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <h4 className="text-[12px] font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
+                {t('explainability.modelRequest')}
+              </h4>
+              {promptInfo?.outputSchema && (
+                <span className="rounded bg-white px-1.5 py-0.5 text-[11px] text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">
+                  {t('explainability.schema', { schema: promptInfo.outputSchema })}
+                </span>
+              )}
+            </div>
+            {modelRequestLoading ? (
+              <div className="text-[12px] text-neutral-500 dark:text-neutral-400">{t('payload.loading')}</div>
+            ) : promptInfo ? (
+              <ModelPromptReadout promptInfo={promptInfo} />
+            ) : (
+              <div className="text-[12px] text-neutral-500 dark:text-neutral-400">{t('explainability.noPrompt')}</div>
+            )}
+          </section>
+
+          <section className="rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <h4 className="text-[12px] font-semibold uppercase tracking-wide text-neutral-500">
+                {t('explainability.modelResponse')}
+              </h4>
+              {modelUsage && <span className="text-[11px] text-neutral-500 dark:text-neutral-400">{modelUsage}</span>}
+            </div>
+            {modelResponseLoading ? (
+              <div className="text-[12px] text-neutral-500 dark:text-neutral-400">{t('payload.loading')}</div>
+            ) : modelResponseText ? (
+              <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-neutral-50 p-3 text-[12px] leading-relaxed text-neutral-800 dark:bg-neutral-900 dark:text-neutral-100">
+                {modelResponseText}
+              </pre>
+            ) : (
+              <div className="text-[12px] text-neutral-500 dark:text-neutral-400">{t('explainability.noModelResponse')}</div>
+            )}
+          </section>
+        </div>
+      ) : (
+        <SystemStepReadout trace={trace} retrieverMessages={retrieverMessages} />
+      )}
+    </section>
+  );
+}
+
+function ModelPromptReadout({ promptInfo }: { promptInfo: ModelPromptInfo }) {
+  const { t } = useTranslation('projectWiki');
+  return (
+    <div className="space-y-3">
+      <div>
+        <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+          {t('explainability.systemPrompt')}
+        </div>
+        <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-md bg-white p-3 text-[12px] leading-relaxed text-neutral-800 dark:bg-neutral-950 dark:text-neutral-100">
+          {promptInfo.systemPrompt || t('explainability.noPrompt')}
+        </pre>
+      </div>
+
+      {promptInfo.variableRows.length > 0 && (
+        <div>
+          <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+            {t('explainability.variables')}
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            {promptInfo.variableRows.map((row) => (
+              <div key={row.name} className="min-w-0 rounded-md border border-neutral-200 bg-white p-2.5 dark:border-neutral-800 dark:bg-neutral-950">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-[11px] font-semibold text-neutral-800 dark:bg-neutral-900 dark:text-neutral-100">
+                    {row.name}
+                  </code>
+                  <span className="text-[12px] text-neutral-600 dark:text-neutral-300">{row.summary}</span>
+                </div>
+                {row.preview && (
+                  <div className="mt-1 line-clamp-3 text-[12px] leading-relaxed text-neutral-500 dark:text-neutral-400">
+                    {row.preview}
+                  </div>
+                )}
+                {row.detail && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-[11px] font-medium text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200">
+                      {t('explainability.expandVariable')}
+                    </summary>
+                    <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap rounded-md bg-neutral-50 p-2 text-[11px] leading-relaxed text-neutral-700 dark:bg-neutral-900 dark:text-neutral-200">
+                      {row.detail}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(promptInfo.toolNames.length > 0 || promptInfo.toolCalls.length > 0) && (
+        <div>
+          <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+            {t('explainability.tools')}
+          </div>
+          <div className="space-y-2">
+            {promptInfo.toolNames.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {promptInfo.toolNames.map((toolName) => (
+                  <span key={toolName} className="rounded bg-white px-2 py-1 text-[12px] text-neutral-700 dark:bg-neutral-950 dark:text-neutral-200">
+                    {toolName}
+                  </span>
+                ))}
+              </div>
+            )}
+            {promptInfo.toolCalls.map((toolCall, index) => (
+              <div key={`${toolCall.name}-${index}`} className="rounded-md border border-neutral-200 bg-white p-2.5 dark:border-neutral-800 dark:bg-neutral-950">
+                <div className="text-[12px] font-semibold text-neutral-800 dark:text-neutral-100">
+                  {t('explainability.toolCall', { name: toolCall.name })}
+                </div>
+                {toolCall.input && (
+                  <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap text-[12px] leading-relaxed text-neutral-600 dark:text-neutral-300">
+                    {toolCall.input}
+                  </pre>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SystemStepReadout({
+  trace,
+  retrieverMessages,
+}: {
+  trace: TraceRecord;
+  retrieverMessages: unknown;
+}) {
+  const { t } = useTranslation('projectWiki');
+  const toolEvents = readRecordArray(isRecord(trace.output) ? trace.output.toolEvents : undefined);
+  const retrieverPreview = summarizeTraceValue(retrieverMessages, t);
+  if (toolEvents.length === 0 && retrieverPreview === t('traces.noData')) return null;
+  return (
+    <section className="mt-3 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
+      <h4 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-neutral-500">
+        {trace.phase === 'read' ? t('explainability.fileRead') : t('explainability.systemData')}
+      </h4>
+      {toolEvents.length > 0 ? (
+        <div className="space-y-2">
+          {toolEvents.slice(0, 8).map((event, index) => (
+            <div key={`${readString(event.name)}-${index}`} className="rounded-md bg-neutral-50 p-2.5 text-[12px] dark:bg-neutral-900">
+              <div className="font-semibold text-neutral-800 dark:text-neutral-100">
+                {readString(event.name) || t('decisions.search.toolEventFallback', { index: index + 1 })}
+              </div>
+              <div className="mt-1 text-neutral-600 dark:text-neutral-300">{readString(event.preview) || summarizeTraceValue(event, t)}</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-md bg-neutral-50 p-2.5 text-[12px] leading-relaxed text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300">
+          {retrieverPreview}
+        </div>
+      )}
+    </section>
+  );
+}
+
+type ReadableSummary = {
+  preview: string;
+  detail?: string;
+};
+
+function ReadableSummaryBlock({
+  title,
+  summary,
+  payloadKind,
+  payloadPath,
+}: {
+  title: string;
+  summary: ReadableSummary;
+  payloadKind?: string;
+  payloadPath?: string;
+}) {
+  const { t } = useTranslation('projectWiki');
+  return (
+    <div className="min-w-0 rounded-md border border-neutral-200 bg-neutral-50 p-2.5 dark:border-neutral-800 dark:bg-neutral-900/60">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+          {title}
+        </div>
+        {payloadPath && payloadKind && (
+          <span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 dark:bg-neutral-950 dark:text-neutral-400" title={payloadPath}>
+            {t('explainability.payloadAvailable', { kind: payloadKind })}
+          </span>
+        )}
+      </div>
+      <div className="text-[12px] leading-relaxed text-neutral-700 dark:text-neutral-200">
+        {summary.preview}
+      </div>
+      {summary.detail && (
+        <details className="mt-2">
+          <summary className="cursor-pointer text-[11px] font-medium text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200">
+            {t('explainability.expandSummary')}
+          </summary>
+          <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-white p-2 text-[11px] leading-relaxed text-neutral-700 dark:bg-neutral-950 dark:text-neutral-200">
+            {summary.detail}
+          </pre>
+        </details>
+      )}
+    </div>
   );
 }
 
@@ -1609,7 +1923,10 @@ function compareTraceOrder(left: TraceRecord, right: TraceRecord): number {
 function legacyTraceStep(trace: TraceRecord): number {
   if (trace.kind === 'index' && trace.phase === 'repo') return 10;
   if (trace.kind === 'index' && trace.phase === 'source_freshness') return 20;
-  if (trace.kind === 'retrieval' && trace.phase === 'tool_loop') return 30;
+  if (trace.kind === 'retrieval' && trace.phase === 'retriever_tool_call') return 30;
+  if (trace.kind === 'retrieval' && trace.phase === 'tool_catalog_search') return 31;
+  if (trace.kind === 'retrieval' && trace.phase === 'retriever_finish') return 32;
+  if (trace.kind === 'retrieval' && trace.phase === 'retriever_fallback') return 32;
   if (trace.kind === 'retrieval' && trace.phase === 'read') return 40;
   if (trace.kind === 'context') return 50;
   if (trace.kind === 'index' && trace.phase === 'turn') return 60;
@@ -1759,8 +2076,9 @@ function traceLanguageLabel(language: TraceRecord['language'], t: TFunction<'pro
 function tracePhaseLabel(trace: Pick<TraceRecord, 'kind' | 'phase'>, t: TFunction<'projectWiki'>): string {
   const phase = trace.phase;
   if (trace.kind === 'retrieval') {
-    if (phase === 'tool_loop') return t('tracePhases.toolLoop');
-    if (phase === 'tool_loop_fallback') return t('tracePhases.toolLoopFallback');
+    if (phase === 'retriever_tool_call') return t('tracePhases.retrieverToolCall');
+    if (phase === 'retriever_finish') return t('tracePhases.retrieverFinish');
+    if (phase === 'retriever_fallback') return t('tracePhases.retrieverFallback');
     if (phase === 'tool_catalog_search') return t('tracePhases.toolCatalogSearch');
     if (phase === 'tool_catalog_search_failed') return t('tracePhases.toolCatalogSearchFailed');
     if (phase === 'search') return t('tracePhases.search');
@@ -1801,15 +2119,355 @@ type TracePayloadState = {
   error?: string;
 };
 
+type LoadedTracePayload = TracePayloadState & {
+  parsed?: unknown;
+};
+
+function useTracePayloadBundle(
+  projectPath: string,
+  refs?: TraceRecord['payloadRefs'],
+): Partial<Record<TracePayloadKind, LoadedTracePayload>> {
+  const { t } = useTranslation('projectWiki');
+  const refsKey = useMemo(() => JSON.stringify(refs ?? {}), [refs]);
+  const [payloads, setPayloads] = useState<Partial<Record<TracePayloadKind, LoadedTracePayload>>>({});
+
+  useEffect(() => {
+    const rows = READABLE_TRACE_PAYLOAD_ORDER
+      .map((kind) => {
+        const path = refs?.[kind];
+        return path ? { kind, path } : null;
+      })
+      .filter((row): row is { kind: TracePayloadKind; path: string } => Boolean(row));
+    if (rows.length === 0) {
+      setPayloads({});
+      return;
+    }
+    let cancelled = false;
+    setPayloads(Object.fromEntries(rows.map((row) => [row.kind, { loading: true }])));
+    void Promise.all(rows.map(async (row) => {
+      try {
+        const params = new URLSearchParams({ projectPath, path: row.path });
+        const response = await authenticatedFetch(`/api/project-wiki/payload?${params.toString()}`);
+        const body = await response.json();
+        if (!response.ok || !body.success) {
+          throw new Error(body.error || t('errors.payloadFailed', { status: response.status }));
+        }
+        const content = body.payload?.content ?? '';
+        return {
+          kind: row.kind,
+          payload: {
+            content,
+            parsed: parsePayload(content),
+          },
+        };
+      } catch (caught) {
+        return {
+          kind: row.kind,
+          payload: {
+            error: caught instanceof Error ? caught.message : t('payload.loadFailed'),
+          },
+        };
+      }
+    })).then((loadedRows) => {
+      if (cancelled) return;
+      setPayloads(Object.fromEntries(loadedRows.map((row) => [row.kind, row.payload])));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectPath, refs, refsKey, t]);
+
+  return payloads;
+}
+
+function parsePayload(content?: string): unknown {
+  if (!content) return undefined;
+  try {
+    return JSON.parse(content);
+  } catch {
+    return content;
+  }
+}
+
+function parsePayloadRecord(content?: string): Record<string, unknown> | null {
+  const parsed = parsePayload(content);
+  return isRecord(parsed) ? parsed : null;
+}
+
+function traceStepProfile(trace: TraceRecord, t: TFunction<'projectWiki'>): TraceStepProfile {
+  const executionType = traceExecutionType(trace);
+  return {
+    executionType,
+    title: formatTraceStepTitle(trace, t),
+    reason: traceStepReason(trace, t),
+  };
+}
+
+function traceExecutionType(trace: TraceRecord): TraceExecutionType {
+  if (trace.payloadRefs?.modelRequest || trace.model) return 'model';
+  if (trace.kind === 'retrieval' && trace.phase === 'read') return 'file';
+  if (trace.phase.includes('tool')) return 'tool';
+  return 'system';
+}
+
+function traceExecutionTypeLabel(type: TraceExecutionType, t: TFunction<'projectWiki'>): string {
+  if (type === 'model') return t('explainability.typeModel');
+  if (type === 'tool') return t('explainability.typeTool');
+  if (type === 'file') return t('explainability.typeFile');
+  return t('explainability.typeSystem');
+}
+
+function traceExecutionTypeClassName(type: TraceExecutionType): string {
+  const base = 'rounded px-1.5 py-0.5 text-[11px] font-semibold';
+  if (type === 'model') return `${base} bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200`;
+  if (type === 'tool') return `${base} bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200`;
+  if (type === 'file') return `${base} bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-200`;
+  return `${base} bg-neutral-100 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-200`;
+}
+
+function traceStepReason(trace: TraceRecord, t: TFunction<'projectWiki'>): string {
+  const phase = trace.phase;
+  if (trace.kind === 'retrieval') {
+    if (phase === 'retriever_tool_call') return t('explainability.reasons.retrieverToolCall');
+    if (phase === 'retriever_finish') return t('explainability.reasons.retrieverFinish');
+    if (phase === 'retriever_fallback') return t('explainability.reasons.retrieverFallback');
+    if (phase === 'read') return t('explainability.reasons.readMaterials');
+    if (phase === 'tool_catalog_search') return t('explainability.reasons.toolCatalogSearch');
+    return t('explainability.reasons.retrieval');
+  }
+  if (trace.kind === 'context') return t('explainability.reasons.context');
+  if (trace.kind === 'index') {
+    if (phase === 'turn') return t('explainability.reasons.indexTurn');
+    if (phase === 'history_backfill') return t('explainability.reasons.historyBackfill');
+    if (phase === 'source_freshness') return t('explainability.reasons.sourceFreshness');
+    if (phase === 'repo') return t('explainability.reasons.repoIndex');
+    if (phase === 'legacy_memory' || phase === 'legacy_memory_migration') return t('explainability.reasons.legacyMemory');
+    return t('explainability.reasons.index');
+  }
+  if (trace.kind === 'maintain') {
+    if (phase === 'source_reconcile') return t('explainability.reasons.sourceReconcile');
+    return t('explainability.reasons.maintain');
+  }
+  return t('explainability.reasons.system');
+}
+
+function selectedTraceModelLabel(
+  trace: TraceRecord,
+  promptInfo: ModelPromptInfo | null,
+  t: TFunction<'projectWiki'>,
+): string {
+  if (promptInfo?.providerModel) return promptInfo.providerModel;
+  if (trace.model) return `${trace.model.provider}/${trace.model.model}`;
+  return t('traces.notRecorded');
+}
+
+function extractModelPromptInfo(
+  request: Record<string, unknown>,
+  t: TFunction<'projectWiki'>,
+): ModelPromptInfo {
+  const messages = readRecordArray(request.messages);
+  const firstUserText = traceContentToReadableText(
+    messages.find((message) => message.role === 'user')?.content,
+  );
+  const firstUserJson = parseJsonObject(firstUserText);
+  const tools = readRecordArray(request.tools);
+  const provider = readString(request.provider);
+  const model = readString(request.model);
+  const outputSchema = isRecord(request.outputSchema)
+    ? readString(request.outputSchema.name)
+    : readString(request.outputSchema);
+  return {
+    systemPrompt: readString(request.systemPrompt),
+    outputSchema: outputSchema || undefined,
+    providerModel: provider && model ? `${provider}/${model}` : undefined,
+    messages,
+    variableRows: promptVariableRows(firstUserJson, t),
+    toolNames: tools.map((tool) => readString(tool.name) || readString(isRecord(tool.function) ? tool.function.name : undefined)).filter(Boolean),
+    toolCalls: extractToolCalls(messages),
+  };
+}
+
+function promptVariableRows(value: unknown, t: TFunction<'projectWiki'>): PromptVariableRow[] {
+  if (!isRecord(value)) return [];
+  return Object.entries(value).slice(0, 20).map(([key, item]) => ({
+    name: promptPlaceholderName(key),
+    summary: summarizePromptVariable(key, item, t),
+    preview: promptVariablePreview(item),
+    detail: shouldShowExpandedDetail(item) ? formatTraceDetail(item) : undefined,
+  }));
+}
+
+function promptPlaceholderName(key: string): string {
+  return `{${key
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[-\s]+/g, '_')
+    .toUpperCase()}}`;
+}
+
+function summarizePromptVariable(key: string, value: unknown, t: TFunction<'projectWiki'>): string {
+  if (Array.isArray(value)) return t('explainability.variableArray', { key, count: value.length });
+  if (isRecord(value)) return t('explainability.variableObject', { key, count: Object.keys(value).length });
+  if (typeof value === 'string') return t('explainability.variableText', { key, count: value.length });
+  if (typeof value === 'boolean') return t(value ? 'explainability.booleanTrue' : 'explainability.booleanFalse');
+  if (typeof value === 'number') return String(value);
+  return t('traces.notRecorded');
+}
+
+function promptVariablePreview(value: unknown): string | undefined {
+  if (typeof value === 'string') return compactPipelineTitle(value, 220);
+  if (Array.isArray(value)) {
+    const first = value[0];
+    if (typeof first === 'string') return compactPipelineTitle(first, 220);
+    if (isRecord(first)) return compactPipelineTitle(JSON.stringify(first), 220);
+  }
+  if (isRecord(value)) return compactPipelineTitle(JSON.stringify(value), 220);
+  return undefined;
+}
+
+function extractToolCalls(messages: Array<Record<string, unknown>>): Array<{ name: string; input?: string }> {
+  const calls: Array<{ name: string; input?: string }> = [];
+  for (const message of messages) {
+    const content = Array.isArray(message.content) ? message.content : [];
+    for (const block of content) {
+      if (!isRecord(block) || block.type !== 'tool_call') continue;
+      calls.push({
+        name: readString(block.name) || 'tool_call',
+        input: block.input === undefined ? undefined : JSON.stringify(block.input, null, 2),
+      });
+    }
+  }
+  return calls;
+}
+
+function extractModelResponseText(response: Record<string, unknown>): string {
+  const contentText = traceContentToReadableText(response.content);
+  if (contentText) return contentText;
+  if (response.raw !== undefined) return JSON.stringify(response.raw, null, 2);
+  return '';
+}
+
+function readModelUsage(response: Record<string, unknown>): string {
+  const usage = isRecord(response.usage) ? response.usage : null;
+  if (!usage) return '';
+  const inputTokens = readNumber(usage.inputTokens);
+  const outputTokens = readNumber(usage.outputTokens);
+  const totalTokens = readNumber(usage.totalTokens);
+  return [
+    inputTokens !== undefined ? `in ${inputTokens}` : '',
+    outputTokens !== undefined ? `out ${outputTokens}` : '',
+    totalTokens !== undefined ? `total ${totalTokens}` : '',
+  ].filter(Boolean).join(' · ');
+}
+
+function summarizeTraceValue(value: unknown, t: TFunction<'projectWiki'>): string {
+  if (value === undefined || value === null) return t('traces.noData');
+  if (typeof value === 'string') return compactPipelineTitle(value, 260);
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) {
+    const preview = value.length > 0 ? promptVariablePreview(value) : undefined;
+    return preview
+      ? `${t('explainability.arraySummary', { count: value.length })}: ${preview}`
+      : t('explainability.arraySummary', { count: value.length });
+  }
+  if (isRecord(value)) {
+    const priority = [
+      ['query', value.query],
+      ['intent', value.intent],
+      ['notes', value.notes],
+      ['reason', value.reason],
+      ['context', value.context],
+      ['cards', value.cards],
+      ['pages', value.pages],
+      ['selected', value.selected],
+      ['materials', value.materials],
+      ['sections', value.sections],
+      ['staleCards', value.staleCards],
+      ['sourceRefs', value.sourceRefs],
+      ['messages', value.messages],
+      ['catalog', value.catalog],
+    ].find(([, item]) => item !== undefined);
+    if (priority) {
+      const [key, item] = priority;
+      return `${key}: ${summarizeTraceValue(item, t)}`;
+    }
+    return t('explainability.objectSummary', { count: Object.keys(value).length });
+  }
+  return String(value);
+}
+
+function buildReadableSummary(value: unknown, t: TFunction<'projectWiki'>): ReadableSummary {
+  return {
+    preview: summarizeTraceValue(value, t),
+    detail: shouldShowExpandedDetail(value) ? formatTraceDetail(value) : undefined,
+  };
+}
+
+function shouldShowExpandedDetail(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (typeof value === 'string') return value.length > 260;
+  if (Array.isArray(value)) return value.length > 0;
+  if (isRecord(value)) return Object.keys(value).length > 0;
+  return false;
+}
+
+function formatTraceDetail(value: unknown): string {
+  const raw = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+  return raw.length > 24_000
+    ? `${raw.slice(0, 24_000)}\n\n${TRACE_DETAIL_TRUNCATION_MARKER}`
+    : raw;
+}
+
+function traceContentToReadableText(content: unknown): string {
+  if (typeof content === 'string') return content.trim();
+  if (!Array.isArray(content)) return '';
+  return content
+    .map((part) => {
+      if (!isRecord(part)) return '';
+      if (typeof part.text === 'string') return part.text;
+      if (part.type === 'tool_call') {
+        const name = readString(part.name) || 'tool_call';
+        const input = part.input === undefined ? '' : ` ${JSON.stringify(part.input)}`;
+        return `[tool_call ${name}]${input}`;
+      }
+      if (part.type === 'tool_result') {
+        return `[tool_result] ${traceContentToReadableText(part.content)}`;
+      }
+      if (typeof part.content === 'string') return part.content;
+      return '';
+    })
+    .filter(Boolean)
+    .join('\n\n')
+    .trim();
+}
+
+function parseJsonObject(text: string): Record<string, unknown> | null {
+  if (!text) return null;
+  try {
+    const parsed = JSON.parse(text);
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 const TRACE_PAYLOAD_ORDER: TracePayloadKind[] = [
   'modelRequest',
   'modelResponse',
   'parsedOutput',
-  'toolLoopMessages',
+  'retrieverMessages',
   'businessInput',
   'businessOutput',
   'input',
   'output',
+];
+
+const READABLE_TRACE_PAYLOAD_ORDER: TracePayloadKind[] = [
+  'modelRequest',
+  'modelResponse',
+  'parsedOutput',
+  'retrieverMessages',
+  'businessInput',
+  'businessOutput',
 ];
 
 function payloadRows(
@@ -1872,7 +2530,12 @@ function TracePayloadRefs({
 
   return (
     <section>
-	      <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-neutral-500">{t('payload.title')}</h3>
+      <div className="mb-2">
+	      <h3 className="text-[12px] font-semibold uppercase tracking-wide text-neutral-500">{t('payload.title')}</h3>
+        <p className="mt-1 text-[12px] leading-relaxed text-neutral-500 dark:text-neutral-400">
+          {t('payload.description')}
+        </p>
+      </div>
       <div className="grid gap-2">
         {rows.map((row) => (
           <div key={`${row.kind}-${row.path}`} className="min-w-0 rounded-md border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/60">
@@ -2038,29 +2701,31 @@ function describeTraceDecision(trace: TraceRecord, t: TFunction<'projectWiki'>):
       };
     }
     const selected = readRecordArray(trace.output.selected);
-    const toolEvents = readRecordArray(trace.output.toolEvents);
+    const toolCalls = readRecordArray(trace.output.toolCalls);
     const needsProjectWiki = typeof trace.output.needsProjectWiki === 'boolean'
       ? trace.output.needsProjectWiki
       : undefined;
     const parts = [
-      trace.phase === 'tool_loop_fallback' ? readString(trace.output.reason) : '',
+      trace.phase === 'retriever_fallback' ? readString(trace.output.reason) : '',
       needsProjectWiki === undefined
         ? ''
         : needsProjectWiki
           ? t('decisions.search.selectedProjectWiki')
           : t('decisions.search.skippedProjectWiki'),
       readString(trace.output.intent) ? t('decisions.search.intent', { intent: readString(trace.output.intent) }) : '',
-      trace.phase === 'tool_loop' && toolEvents.length > 0 ? t('decisions.search.toolCalls', { count: toolEvents.length }) : '',
+      trace.phase === 'retriever_tool_call' && toolCalls.length > 0 ? t('decisions.search.toolCallsPlanned', { count: toolCalls.length }) : '',
       readString(trace.output.notes),
     ].filter(Boolean);
     return {
-      title: trace.phase === 'tool_loop'
-        ? t('decisions.search.toolLoopTitle')
-        : trace.phase === 'tool_loop_fallback'
-          ? t('decisions.search.fallbackTitle')
-          : trace.phase === 'tool_catalog_search'
-            ? t('decisions.search.toolSearchTitle')
-            : t('decisions.search.title'),
+      title: trace.phase === 'retriever_tool_call'
+        ? t('decisions.search.retrieverToolCallTitle')
+        : trace.phase === 'retriever_finish'
+          ? t('decisions.search.retrieverFinishTitle')
+          : trace.phase === 'retriever_fallback'
+            ? t('decisions.search.fallbackTitle')
+            : trace.phase === 'tool_catalog_search'
+              ? t('decisions.search.toolSearchTitle')
+              : t('decisions.search.title'),
       summary: parts.join(' '),
       items: selected.length > 0
         ? selected.slice(0, 12).map((item, index) => ({
@@ -2069,12 +2734,13 @@ function describeTraceDecision(trace: TraceRecord, t: TFunction<'projectWiki'>):
 	          meta: typeof item.priority === 'number' ? t('meta.priority', { priority: item.priority }) : undefined,
           detail: readString(item.reason),
         }))
-        : toolEvents.slice(0, 12).map((event, index) => ({
-          key: `tool-event-${index}-${readString(event.name)}`,
-	          label: readString(event.name) || t('decisions.search.toolEventFallback', { index: index + 1 }),
-	          meta: event.ok === false ? t('traceStatus.failed') : t('traceStatus.executed'),
-          detail: readString(event.preview),
-        })),
+        : toolCalls.length > 0
+          ? toolCalls.slice(0, 12).map((call, index) => ({
+            key: `tool-call-${index}-${readString(call.name)}`,
+            label: readString(call.name) || t('decisions.search.toolCallFallback', { index: index + 1 }),
+            detail: call.input === undefined ? '' : JSON.stringify(call.input, null, 2),
+          }))
+          : [],
     };
   }
   if (trace.kind === 'context') {

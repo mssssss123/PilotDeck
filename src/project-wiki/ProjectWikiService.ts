@@ -66,7 +66,7 @@ import { PROJECT_WIKI_MAINTAINABLE_PAGE_IDS, PROJECT_WIKI_PAGE_IDS, PROJECT_WIKI
 const TRACE_PREVIEW_CHARS = 1_200;
 const TRACE_FIELD_PREVIEW_CHARS = 700;
 const TRACE_ARRAY_LIMIT = 40;
-const RETRIEVER_TOOL_LOOP_MAX_STEPS = 4;
+const RETRIEVER_MAX_STEPS = 4;
 const HISTORY_BACKFILL_MAX_TRANSCRIPTS = 40;
 const HISTORY_BACKFILL_MAX_TURNS = 120;
 const HISTORY_BACKFILL_STATE_VERSION = 1;
@@ -227,7 +227,7 @@ type HistoryBackfillResult = {
 
 type RetrieverToolCall = Extract<CanonicalMessage["content"][number], { type: "tool_call" }>;
 
-type RetrieverToolLoopResult = {
+type RetrieverLoopResult = {
   value: ProjectWikiSearchOutput;
   model: ProjectWikiModelRef;
   usage?: CanonicalUsage;
@@ -401,10 +401,10 @@ export class ProjectWikiService {
         catalog: modelCatalog,
         openConflicts,
       };
-      const toolLoopSearch = await this.runRetrieverToolLoop(input, searchInput, modelCatalog, pipeline);
+      const retrieverSearch = await this.runRetrieverLoop(input, searchInput, modelCatalog, pipeline);
       let searchValue: ProjectWikiSearchOutput;
-      if (toolLoopSearch) {
-        searchValue = toolLoopSearch.value;
+      if (retrieverSearch) {
+        searchValue = retrieverSearch.value;
       } else {
         const searchStarted = Date.now();
         let search: ProjectWikiStructuredCallResult<ProjectWikiSearchOutput>;
@@ -607,7 +607,7 @@ export class ProjectWikiService {
     }
   }
 
-  private async runRetrieverToolLoop(
+  private async runRetrieverLoop(
     input: ProjectWikiRetrieveInput,
     searchInput: {
       query: string;
@@ -617,7 +617,7 @@ export class ProjectWikiService {
     },
     catalog: ProjectWikiCatalogEntry[],
     pipeline?: TracePipelineContext,
-  ): Promise<RetrieverToolLoopResult | undefined> {
+  ): Promise<RetrieverLoopResult | undefined> {
     const started = Date.now();
     const rawInput = {
       ...this.outputLanguageInput,
@@ -640,7 +640,8 @@ export class ProjectWikiService {
     let model = this.modelRunner.resolveModel("searcher");
 
     try {
-      for (let step = 0; step < RETRIEVER_TOOL_LOOP_MAX_STEPS; step += 1) {
+      for (let step = 0; step < RETRIEVER_MAX_STEPS; step += 1) {
+        const roundStarted = Date.now();
         const result = await this.modelRunner.complete({
           role: "searcher",
           systemPrompt: this.systemPrompt(PROJECT_WIKI_RETRIEVER_AGENT_SYSTEM_PROMPT),
@@ -664,22 +665,22 @@ export class ProjectWikiService {
             toolEvents,
           };
           await this.store.appendTrace({
-            ...this.traceBase("retrieval", "tool_loop", input),
+            ...this.traceBase("retrieval", "retriever_finish", input),
             status: value.needsProjectWiki === false || selectedPaths.length === 0 ? "skipped" : "success",
             model,
-            durationMs: Date.now() - started,
-            ...traceStep(pipeline, 2, "retriever_tool_loop"),
-            input: compactTracePayload(rawInput),
+            durationMs: Date.now() - roundStarted,
+            ...traceStep(pipeline, retrieverRoundStepIndex(step, 0), "retriever_finish"),
+            input: compactTracePayload({ ...rawInput, toolEvents }),
             output: compactTracePayload(rawOutput),
-            rawInput,
+            rawInput: { ...rawInput, toolEvents },
             rawOutput,
             payloads: {
               modelRequest: result.request,
               modelResponse: result.response,
               parsedOutput: value,
-              toolLoopMessages: messages,
+              retrieverMessages: messages,
             },
-            usage,
+            usage: result.response.usage,
             artifacts: selectedPaths.map(traceArtifactForPath),
           });
           return { value, model, usage };
@@ -690,42 +691,66 @@ export class ProjectWikiService {
         if (executableCalls.length === 0) {
           const value = parseSearchOutputFromTextBlocks(result.response.content);
           if (!value) {
-          await this.appendRetrieverToolLoopFallbackTrace({
-            input,
-            rawInput,
-            toolEvents,
-            started,
-            model,
-            usage,
-            pipeline,
-            messages,
-            reason: "Retriever response did not include a finish call, executable ProjectWiki tool call, or valid JSON search output.",
-          });
+            await this.appendRetrieverFallbackTrace({
+              input,
+              rawInput,
+              toolEvents,
+              started,
+              model,
+              usage,
+              pipeline,
+              messages,
+              reason: "Retriever response did not include a finish call, executable ProjectWiki tool call, or valid JSON search output.",
+            });
             return undefined;
           }
           const selectedPaths = normalizeSelectedPaths(value, this.config.limits.maxSourceCardsPerTurn);
           const rawOutput = { ...value, toolEvents };
           await this.store.appendTrace({
-            ...this.traceBase("retrieval", "tool_loop", input),
+            ...this.traceBase("retrieval", "retriever_finish", input),
             status: value.needsProjectWiki === false || selectedPaths.length === 0 ? "skipped" : "success",
             model,
-            durationMs: Date.now() - started,
-            ...traceStep(pipeline, 2, "retriever_tool_loop"),
-            input: compactTracePayload(rawInput),
+            durationMs: Date.now() - roundStarted,
+            ...traceStep(pipeline, retrieverRoundStepIndex(step, 0), "retriever_finish"),
+            input: compactTracePayload({ ...rawInput, toolEvents }),
             output: compactTracePayload(rawOutput),
-            rawInput,
+            rawInput: { ...rawInput, toolEvents },
             rawOutput,
             payloads: {
               modelRequest: result.request,
               modelResponse: result.response,
               parsedOutput: value,
-              toolLoopMessages: messages,
+              retrieverMessages: messages,
             },
-            usage,
+            usage: result.response.usage,
             artifacts: selectedPaths.map(traceArtifactForPath),
           });
           return { value, model, usage };
         }
+
+        const toolCallOutput = {
+          toolCalls: executableCalls.map((call) => ({
+            name: call.name,
+            input: call.input,
+          })),
+        };
+        await this.store.appendTrace({
+          ...this.traceBase("retrieval", "retriever_tool_call", input),
+          status: "success",
+          model,
+          durationMs: Date.now() - roundStarted,
+          ...traceStep(pipeline, retrieverRoundStepIndex(step, 0), "retriever_tool_call"),
+          input: compactTracePayload({ ...rawInput, toolEvents }),
+          output: compactTracePayload(toolCallOutput),
+          rawInput: { ...rawInput, toolEvents },
+          rawOutput: toolCallOutput,
+          payloads: {
+            modelRequest: result.request,
+            modelResponse: result.response,
+            retrieverMessages: messages,
+          },
+          usage: result.response.usage,
+        });
 
         messages.push({
           role: "assistant",
@@ -735,7 +760,14 @@ export class ProjectWikiService {
 
         const toolResults = [];
         for (const call of executableCalls) {
-          const executed = await this.executeRetrieverTool(call, catalog, input, searchInput, pipeline);
+          const executed = await this.executeRetrieverTool(
+            call,
+            catalog,
+            input,
+            searchInput,
+            pipeline,
+            retrieverRoundStepIndex(step, 0.1),
+          );
           toolEvents.push({
             step,
             name: call.name,
@@ -760,7 +792,7 @@ export class ProjectWikiService {
           metadata: { synthetic: true, purpose: "project_wiki_retriever_tool_result" },
         });
       }
-      await this.appendRetrieverToolLoopFallbackTrace({
+      await this.appendRetrieverFallbackTrace({
         input,
         rawInput,
         toolEvents,
@@ -769,11 +801,11 @@ export class ProjectWikiService {
         usage,
         pipeline,
         messages,
-        reason: `Retriever tool loop reached the ${RETRIEVER_TOOL_LOOP_MAX_STEPS}-step limit without finishing.`,
+        reason: `Retriever reached the ${RETRIEVER_MAX_STEPS}-step limit without finishing.`,
       });
       return undefined;
     } catch (error) {
-      await this.appendRetrieverToolLoopFallbackTrace({
+      await this.appendRetrieverFallbackTrace({
         input,
         rawInput,
         toolEvents,
@@ -782,13 +814,13 @@ export class ProjectWikiService {
         usage,
         pipeline,
         messages,
-        reason: `Retriever tool loop fell back to structured search after an error: ${errorMessage(error)}`,
+        reason: `Retriever fell back to structured search after an error: ${errorMessage(error)}`,
       });
       return undefined;
     }
   }
 
-  private async appendRetrieverToolLoopFallbackTrace(input: {
+  private async appendRetrieverFallbackTrace(input: {
     input: ProjectWikiRetrieveInput;
     rawInput: unknown;
     toolEvents: Array<Record<string, unknown>>;
@@ -805,16 +837,16 @@ export class ProjectWikiService {
     };
     try {
       await this.store.appendTrace({
-        ...this.traceBase("retrieval", "tool_loop_fallback", input.input),
+        ...this.traceBase("retrieval", "retriever_fallback", input.input),
         status: "skipped",
         model: input.model,
         durationMs: Date.now() - input.started,
-        ...traceStep(input.pipeline, 2, "retriever_tool_loop_fallback"),
+        ...traceStep(input.pipeline, 2, "retriever_fallback"),
         input: compactTracePayload(input.rawInput),
         output: compactTracePayload(rawOutput),
         rawInput: input.rawInput,
         rawOutput,
-        payloads: input.messages ? { toolLoopMessages: input.messages } : undefined,
+        payloads: input.messages ? { retrieverMessages: input.messages } : undefined,
         usage: input.usage,
       });
     } catch {
@@ -831,6 +863,7 @@ export class ProjectWikiService {
       openConflicts: OpenConflictContext[];
     },
     pipeline?: TracePipelineContext,
+    stepIndex = 2.1,
   ): Promise<{ isError?: boolean; payload: unknown }> {
     if (call.name === "projectwiki_search") {
       const input = isRecord(call.input) ? call.input : {};
@@ -877,7 +910,7 @@ export class ProjectWikiService {
           status: result.value.needsProjectWiki === false || selectedPaths.length === 0 ? "skipped" : "success",
           model: result.model,
           durationMs: Date.now() - started,
-          ...traceStep(pipeline, 2.1, "tool_catalog_search"),
+          ...traceStep(pipeline, stepIndex, "tool_catalog_search"),
           input: compactTracePayload(modelInput),
           output: compactTracePayload(payload),
           rawInput: modelInput,
@@ -899,7 +932,7 @@ export class ProjectWikiService {
           status: "error",
           model: this.modelRunner.resolveModel("searcher"),
           durationMs: Date.now() - started,
-          ...traceStep(pipeline, 2.1, "tool_catalog_search_failed"),
+          ...traceStep(pipeline, stepIndex, "tool_catalog_search_failed"),
           input: compactTracePayload(modelInput),
           rawInput: modelInput,
           error: message,
@@ -1912,6 +1945,10 @@ function traceStep(
     stepIndex,
     stepName,
   };
+}
+
+function retrieverRoundStepIndex(step: number, offset = 0): number {
+  return 2 + (step * 0.3) + offset;
 }
 
 function modelTracePayloads<T>(result: ProjectWikiStructuredCallResult<T>): {
