@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: macos-latest
     env:
-      MACOS_SIGNING_IDENTITY: "Developer ID Application: Beijing ModelBest Technology Co., Ltd. (77Y5JFSH6H)"
+      MACOS_SIGNING_IDENTITY: "Beijing ModelBest Technology Co., Ltd. (77Y5JFSH6H)"
     steps:
       - uses: actions/checkout@v4
 
