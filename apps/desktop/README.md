@@ -24,17 +24,19 @@ Platform release builds should run on matching GitHub Actions runners:
 - macOS DMG artifacts on `macos-latest`
 - Windows NSIS installer artifacts on `windows-latest`
 
-macOS CI signs release artifacts when the repository provides these GitHub
-Secrets:
+macOS CI signs and notarizes release artifacts when the repository provides
+these GitHub Secrets:
 
 - `MACOS_DEVELOPER_ID_APPLICATION_P12_BASE64`: base64-encoded `.p12` for
   `Developer ID Application: Beijing ModelBest Technology Co., Ltd. (77Y5JFSH6H)`.
 - `MACOS_DEVELOPER_ID_APPLICATION_PASSWORD`: the `.p12` export password.
 - `MACOS_KEYCHAIN_PASSWORD`: optional password for the temporary CI keychain.
+- `APPLE_ID`: Apple account email used for notarization.
+- `APPLE_APP_SPECIFIC_PASSWORD`: Apple app-specific password for notarization.
+- `APPLE_TEAM_ID`: Apple Developer Team ID.
 
 If the certificate secret is not configured, macOS packaging falls back to the
-existing ad-hoc signing path. Apple notarization and Windows Authenticode
-signing remain separate hardening steps.
+existing ad-hoc signing path.
 
 The packaging script stages a production-only runtime in `.runtime/app` before
 calling `electron-builder`; the final app should not include the workspace
