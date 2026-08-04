@@ -9,6 +9,11 @@ import {
   DOCUMENT_SELECTION_ATTACHMENT_KIND,
   type DocumentSelectionReference,
 } from '../../types/documentSelection';
+import {
+  CONTENT_REFERENCE_ATTACHMENT_KIND,
+  normalizeContentReference,
+  type ContentReference,
+} from '../../types/contentReference';
 import type {
   ChatAttachment,
   ChatMessage,
@@ -24,16 +29,17 @@ import { processSummaryToTrace, type ProcessAttachment } from './processGrouping
 import SubagentCard from './SubagentCard';
 import { useTypewriter } from './useTypewriter';
 import DocumentReferenceChip from './DocumentReferenceChip';
-import { linkifyFilePathsOutsideCode } from './linkifyFilePathsOutsideCode';
 import { AgentFileArtifactGroup, UserAttachmentCards } from './MessageFileCards';
 
 type DiffLine = { type: string; content: string; lineNum: number };
 
-function attachmentToDocumentReference(attachment: ChatAttachment): DocumentSelectionReference | null {
+function attachmentToDocumentReference(attachment: ChatAttachment): ContentReference | null {
+  const structured = normalizeContentReference(attachment.contentReference);
+  if (structured) return structured;
   if (attachment.kind !== DOCUMENT_SELECTION_ATTACHMENT_KIND || !attachment.selectedText) return null;
   const filePath = attachment.filePath || attachment.path || '';
   if (!filePath) return null;
-  return {
+  return normalizeContentReference({
     kind: DOCUMENT_SELECTION_ATTACHMENT_KIND,
     id: `${filePath}-${attachment.createdAt || ''}-${attachment.occurrenceIndex ?? ''}`,
     fileName: attachment.fileName || attachment.name,
@@ -45,7 +51,7 @@ function attachmentToDocumentReference(attachment: ChatAttachment): DocumentSele
     occurrenceIndex: attachment.occurrenceIndex,
     createdAt: attachment.createdAt || new Date(0).toISOString(),
     truncated: attachment.truncated,
-  };
+  } satisfies DocumentSelectionReference);
 }
 
 type MessageRowV2Props = {
@@ -127,16 +133,9 @@ function MessageRowV2({
   );
   const thinkingDisplayText = useTypewriter(formattedContent, !!message.isStreaming && !!message.isThinking, 4);
   const contentDisplayText = useTypewriter(formattedContent, !!message.isStreaming && !message.isThinking, 6);
-  const linkedContentDisplayText = useMemo(
-    () => (message.isStreaming ? contentDisplayText : linkifyFilePathsOutsideCode(contentDisplayText)),
-    [contentDisplayText, message.isStreaming],
-  );
-  const messageImages = useMemo(
-    () =>
-      Array.isArray(message.images)
-        ? message.images.filter((image) => image && typeof image.data === 'string')
-        : [],
-    [message.images],
+  const assistantArtifacts = useMemo(
+    () => (Array.isArray(message.artifacts) ? message.artifacts : []),
+    [message.artifacts],
   );
   const messageAttachments = useMemo(
     () =>
@@ -148,11 +147,31 @@ function MessageRowV2({
   const documentReferenceAttachments = useMemo(
     () => messageAttachments
       .map(attachmentToDocumentReference)
-      .filter((reference): reference is DocumentSelectionReference => Boolean(reference)),
+      .filter((reference): reference is ContentReference => Boolean(reference)),
     [messageAttachments],
   );
+  const referenceImageNames = useMemo(
+    () => new Set(documentReferenceAttachments
+      .filter((reference) => reference.selectionMode === 'region')
+      .map((reference) => reference.image.name)),
+    [documentReferenceAttachments],
+  );
+  const messageImages = useMemo(
+    () =>
+      Array.isArray(message.images)
+        ? message.images.filter((image) => (
+          image
+          && typeof image.data === 'string'
+          && !referenceImageNames.has(image.name)
+        ))
+        : [],
+    [message.images, referenceImageNames],
+  );
   const fileAttachments = useMemo(
-    () => messageAttachments.filter((attachment) => attachment.kind !== DOCUMENT_SELECTION_ATTACHMENT_KIND),
+    () => messageAttachments.filter((attachment) => (
+      attachment.kind !== DOCUMENT_SELECTION_ATTACHMENT_KIND
+      && attachment.kind !== CONTENT_REFERENCE_ATTACHMENT_KIND
+    )),
     [messageAttachments],
   );
   const [userImageLightbox, setUserImageLightbox] = useState<number | null>(null);
@@ -287,6 +306,9 @@ function MessageRowV2({
                       reference={reference}
                       summaryLength={100}
                       className="bg-white/80 dark:bg-neutral-900/55"
+                      onOpen={onFileOpen
+                        ? () => onFileOpen(reference.source.relativePath)
+                        : undefined}
                     />
                   ))}
                 </div>
@@ -405,8 +427,7 @@ function MessageRowV2({
   }
 
   // Assistant: plain prose, no avatar and no bubble.
-  const hasAssistantProse = linkedContentDisplayText.trim().length > 0;
-  const assistantArtifacts = Array.isArray(message.artifacts) ? message.artifacts : [];
+  const hasAssistantProse = contentDisplayText.trim().length > 0;
   const showStreamingCursor = Boolean(message.isStreaming && !contentDisplayText);
   const resolvedShowAssistantActions = showAssistantActions ?? true;
   const showAssistantCopyButton = resolvedShowAssistantActions && hasAssistantProse;
@@ -421,7 +442,7 @@ function MessageRowV2({
         <span className="inline-block h-4 w-2 animate-pulse bg-neutral-400 dark:bg-neutral-500" />
       ) : (
         <Markdown className="prose prose-sm prose-neutral max-w-none dark:prose-invert prose-headings:mb-2 prose-headings:mt-4 prose-h2:text-lg prose-h3:text-base prose-p:my-2 prose-pre:my-3 prose-ol:my-2 prose-ul:my-2 prose-table:my-0 prose-hr:my-4" projectName={selectedProject?.name}
-        onFileOpen={onFileOpen} isStreaming={message.isStreaming}>{linkedContentDisplayText}</Markdown>
+        onFileOpen={onFileOpen} isStreaming={message.isStreaming} artifactFiles={assistantArtifacts}>{contentDisplayText}</Markdown>
       )}
       {assistantArtifacts.length > 0 ? (
         <AgentFileArtifactGroup

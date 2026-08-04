@@ -145,18 +145,25 @@ router.get('/:sessionId/subagent/:subagentId/messages', async (req, res) => {
 });
 
 function mapWebMessageToNormalized(message, sessionId) {
+  const payload = message.payload && typeof message.payload === 'object'
+    ? message.payload
+    : {};
+  const turnId = typeof message.turnId === 'string' && message.turnId
+    ? message.turnId
+    : typeof payload.turnId === 'string' && payload.turnId
+      ? payload.turnId
+      : undefined;
   const base = {
     id: message.id,
     sessionId,
     timestamp: message.createdAt,
     provider: message.provider || 'pilotdeck',
     ...(message.entryId ? { entryId: message.entryId } : {}),
+    ...(turnId ? { turnId, runId: turnId } : {}),
+    ...(Number.isFinite(message.sequence) ? { sequence: message.sequence } : {}),
   };
   switch (message.kind) {
     case 'text': {
-      const payload = message.payload && typeof message.payload === 'object'
-        ? message.payload
-        : {};
       return createNormalizedMessage({
         ...base,
         kind: 'text',
@@ -278,6 +285,8 @@ function mapWebMessageToNormalized(message, sessionId) {
         kind: 'compact_boundary',
         trigger: payload.trigger || 'auto',
         preTokens: payload.preTokens,
+        postTokens: payload.postTokens,
+        messagesSummarized: payload.messagesSummarized,
         compactLevel: payload.level,
         compactStage: payload.stage,
         compactStageLabel: payload.stageLabel || payload.stage,

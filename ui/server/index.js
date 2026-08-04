@@ -86,15 +86,17 @@ import settingsRoutes from './routes/settings.js';
 import configRoutes from './routes/config.js';
 import gatewayRoutes from './routes/gateway.js';
 import {
+    OFFICE_PREVIEW_SERVICE_BUILTIN,
     OFFICE_PREVIEW_SERVICE_LIBREOFFICE,
-    OFFICE_PREVIEW_SERVICE_NONE,
     convertOfficeDocumentToPdf,
+    getConfiguredOfficePreviewSettings,
     getConfiguredOfficePreviewService,
     getLibreOfficeCandidateStatuses,
     getLibreOfficeStatus,
 } from './services/officePreview.js';
 import {
     SPREADSHEET_PREVIEW_EXTENSIONS,
+    getSpreadsheetInteractivePreview,
     getSpreadsheetPreviewManifest,
     getSpreadsheetSheetPreviewPdf,
 } from './services/spreadsheetPreview.js';
@@ -149,7 +151,13 @@ let projectsWatchers = [];
 let projectsWatcherDebounceTimer = null;
 const connectedClients = new Set();
 const sessionWatchRegistry = createSessionWatchRegistry();
-registerAlwaysOnNotificationForwarding(connectedClients);
+registerAlwaysOnNotificationForwarding(connectedClients, (sessionId, frame) => {
+    // Always-On gateway notifications do not carry the originating UI socket.
+    // Delivering them to every tab caused unrelated sessions' live status
+    // (notably compaction progress) to race in the frontend. A tab explicitly
+    // watches its displayed session, so that registry is the routing authority.
+    broadcastToSessionWatchers(sessionId, frame, undefined);
+});
 let isGetProjectsRunning = false; // Flag to prevent reentrant calls
 
 function normalizeSessionId(value) {
@@ -197,7 +205,9 @@ function broadcastToSessionWatchers(sessionId, frame, userId, excludeWs = null) 
     watchers.forEach((client) => {
         if (client === excludeWs) return;
         if (client.readyState !== WebSocket.OPEN) return;
-        if ((client.__pilotdeckUserId ?? null) !== userId) return;
+        // `undefined` denotes a gateway-originated event with no submitting
+        // user. Its recipient set is already constrained by the session watch.
+        if (userId !== undefined && (client.__pilotdeckUserId ?? null) !== userId) return;
         client.send(payload);
     });
 }
@@ -1419,19 +1429,20 @@ app.get('/api/projects/:projectName/files/content', authenticateToken, async (re
 app.get('/api/office-preview/status', authenticateToken, officePreviewStatusRateLimiter, async (req, res) => {
     try {
         const forceRefresh = req.query.refresh === '1' || req.query.refresh === 'true';
-        const [libreOffice, candidates, service] = await Promise.all([
+        const configuredPreview = getConfiguredOfficePreviewSettings();
+        const [libreOffice, candidates] = await Promise.all([
             getLibreOfficeStatus({ forceRefresh }),
             getLibreOfficeCandidateStatuses({ forceRefresh }),
-            Promise.resolve(getConfiguredOfficePreviewService()),
         ]);
         res.json({
-            service,
+            service: configuredPreview.service,
+            configuredBinaryPath: configuredPreview.binaryPath,
             libreOffice: {
                 ...libreOffice,
                 candidates,
             },
             supportedServices: [
-                OFFICE_PREVIEW_SERVICE_NONE,
+                OFFICE_PREVIEW_SERVICE_BUILTIN,
                 OFFICE_PREVIEW_SERVICE_LIBREOFFICE,
             ],
         });
@@ -1479,10 +1490,10 @@ app.get('/api/projects/:projectName/files/preview/pdf', authenticateToken, offic
         }
 
         const officePreviewService = getConfiguredOfficePreviewService();
-        if (officePreviewService === OFFICE_PREVIEW_SERVICE_NONE) {
+        if (officePreviewService !== OFFICE_PREVIEW_SERVICE_LIBREOFFICE) {
             return res.status(409).json({
-                error: 'Office preview service is disabled',
-                code: 'OFFICE_PREVIEW_DISABLED',
+                error: 'LibreOffice preview service is not selected',
+                code: 'LIBREOFFICE_PREVIEW_NOT_SELECTED',
             });
         }
 
@@ -1532,14 +1543,15 @@ app.get('/api/projects/:projectName/files/preview/spreadsheet/manifest', authent
         if (!SPREADSHEET_PREVIEW_EXTENSIONS.has(extension)) {
             return res.status(400).json({ error: 'Unsupported spreadsheet preview format' });
         }
-        const officePreviewService = getConfiguredOfficePreviewService();
-        if (officePreviewService === OFFICE_PREVIEW_SERVICE_NONE) {
+        if (
+            extension !== 'xlsx'
+            && getConfiguredOfficePreviewService() !== OFFICE_PREVIEW_SERVICE_LIBREOFFICE
+        ) {
             return res.status(409).json({
-                error: 'Office preview service is disabled',
-                code: 'OFFICE_PREVIEW_DISABLED',
+                error: 'Legacy spreadsheet preview requires LibreOffice',
+                code: 'LIBREOFFICE_PREVIEW_NOT_SELECTED',
             });
         }
-
         const manifest = await getSpreadsheetPreviewManifest(resolvedResult.resolved, { force });
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
         return res.json(manifest);
@@ -1548,6 +1560,53 @@ app.get('/api/projects/:projectName/files/preview/spreadsheet/manifest', authent
         return res.status(error.statusCode || 500).json({
             error: error.message || 'Failed to read spreadsheet preview manifest',
             code: error.code || 'SPREADSHEET_PREVIEW_MANIFEST_FAILED',
+        });
+    }
+});
+
+app.get('/api/projects/:projectName/files/preview/spreadsheet/data', authenticateToken, officePreviewPdfRateLimiter, async (req, res) => {
+    try {
+        const { projectName } = req.params;
+        const { path: filePath } = req.query;
+        const force = req.query.force === '1' || req.query.force === 'true';
+
+        if (!filePath) {
+            return res.status(400).json({ error: 'Invalid file path' });
+        }
+
+        const projectRoot = await extractProjectDirectory(projectName).catch(() => null);
+        if (!projectRoot) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+        const resolvedResult = resolvePathInProject(projectRoot, filePath);
+        if (!resolvedResult.valid) {
+            return res.status(403).json({ error: resolvedResult.error });
+        }
+        const extension = getFileExtension(resolvedResult.resolved);
+        if (!SPREADSHEET_PREVIEW_EXTENSIONS.has(extension)) {
+            return res.status(400).json({ error: 'Unsupported spreadsheet preview format' });
+        }
+        if (
+            extension !== 'xlsx'
+            && getConfiguredOfficePreviewService() !== OFFICE_PREVIEW_SERVICE_LIBREOFFICE
+        ) {
+            return res.status(409).json({
+                error: 'Legacy spreadsheet preview requires LibreOffice',
+                code: 'LIBREOFFICE_PREVIEW_NOT_SELECTED',
+            });
+        }
+
+        const preview = await getSpreadsheetInteractivePreview(
+            resolvedResult.resolved,
+            { force },
+        );
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        return res.json(preview);
+    } catch (error) {
+        console.error('Error generating interactive spreadsheet preview:', error);
+        return res.status(error.statusCode || 500).json({
+            error: error.message || 'Failed to generate interactive spreadsheet preview',
+            code: error.code || 'SPREADSHEET_INTERACTIVE_PREVIEW_FAILED',
         });
     }
 });
@@ -1575,10 +1634,10 @@ app.get('/api/projects/:projectName/files/preview/spreadsheet/sheet', authentica
             return res.status(400).json({ error: 'Unsupported spreadsheet preview format' });
         }
         const officePreviewService = getConfiguredOfficePreviewService();
-        if (officePreviewService === OFFICE_PREVIEW_SERVICE_NONE) {
+        if (officePreviewService !== OFFICE_PREVIEW_SERVICE_LIBREOFFICE) {
             return res.status(409).json({
-                error: 'Office preview service is disabled',
-                code: 'OFFICE_PREVIEW_DISABLED',
+                error: 'LibreOffice preview service is not selected',
+                code: 'LIBREOFFICE_PREVIEW_NOT_SELECTED',
             });
         }
 

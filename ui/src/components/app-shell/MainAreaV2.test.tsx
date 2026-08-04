@@ -41,7 +41,10 @@ vi.mock('../main-content/view/MainContent', async () => {
         data-testid="main-content"
         data-active-tab={activeTab}
         data-search-open={isOpen ? 'true' : 'false'}
+        data-search-query={query}
+        data-search-index={activeMatchIndex}
       >
+        <button type="button" onClick={openSearch}>Open registered chat search</button>
       </div>
     );
   }
@@ -93,6 +96,7 @@ function Harness({
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  vi.restoreAllMocks();
 });
 
 describe('MainAreaV2 dashboard switcher', () => {
@@ -166,6 +170,43 @@ describe('MainAreaV2 dashboard switcher', () => {
     expect(
       (screen.getByRole('button', { name: 'Search current conversation' }) as HTMLButtonElement).disabled,
     ).toBe(true);
+  });
+
+  it('does not leave Files when an embedded chat search opens', () => {
+    render(<Harness initialTab="files" withSession />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open registered chat search' }));
+
+    expect(screen.getByTestId('main-content').getAttribute('data-active-tab')).toBe('files');
+    expect(screen.getByTestId('main-content').getAttribute('data-search-open')).toBe('true');
+  });
+
+  it('preserves Chinese IME composition through the header search controller', async () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_000);
+    render(<Harness withSession />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Search current conversation' }));
+    const input = screen.getByRole('searchbox') as HTMLInputElement;
+
+    fireEvent.compositionStart(input);
+    fireEvent.change(input, { target: { value: 'wos' } });
+    expect(input.value).toBe('wos');
+    expect(screen.getByTestId('main-content').getAttribute('data-search-query')).toBe('');
+
+    fireEvent.change(input, { target: { value: '我是' } });
+    fireEvent.compositionEnd(input);
+
+    await waitFor(() => {
+      expect(input.value).toBe('我是');
+      expect(screen.getByTestId('main-content').getAttribute('data-search-query')).toBe('我是');
+    });
+
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 13, which: 13 });
+    expect(screen.getByTestId('main-content').getAttribute('data-search-index')).toBe('0');
+
+    now.mockReturnValue(1_200);
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 13, which: 13 });
+    expect(screen.getByTestId('main-content').getAttribute('data-search-index')).toBe('1');
   });
 
   it('keeps chat implicit and toggles the Files workbench from its button', () => {

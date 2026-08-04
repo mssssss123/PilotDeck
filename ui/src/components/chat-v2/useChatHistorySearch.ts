@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
+import { useRegisterFindShortcutTarget } from '../../contexts/FindShortcutContext';
 import {
   buildSearchableMessages,
   clearSearchHighlights,
   findChatHistoryMatches,
-  highlightActiveMatch,
+  highlightSearchMatches,
   scrollSearchTargetIntoView,
   scrollToMessageIndex,
   type ChatHistorySearchMatch,
@@ -20,6 +21,7 @@ type UseChatHistorySearchOptions = {
   loadAllMessages: () => void;
   sessionId: string | null;
   captureFindShortcutInModal?: boolean;
+  renderWindowKey?: string | number;
 };
 
 export function useChatHistorySearch({
@@ -31,6 +33,7 @@ export function useChatHistorySearch({
   loadAllMessages,
   sessionId,
   captureFindShortcutInModal = false,
+  renderWindowKey = 0,
 }: UseChatHistorySearchOptions) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -71,23 +74,26 @@ export function useChatHistorySearch({
     await new Promise((resolve) => setTimeout(resolve, 350));
   }, [allMessagesLoaded, hasMoreMessages, loadAllMessages]);
 
+  const applySearchHighlights = useCallback((match: ChatHistorySearchMatch | null) => {
+    const container = scrollContainerRef.current;
+    if (!container) return null;
+    return highlightSearchMatches(
+      container,
+      searchableMessages,
+      matches,
+      query.trim(),
+      match,
+    );
+  }, [matches, query, scrollContainerRef, searchableMessages]);
+
   const revealMatch = useCallback(async (match: ChatHistorySearchMatch) => {
     await ensureAllMessagesLoaded();
 
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    const entry = searchableMessages.find((item) => item.messageKey === match.messageKey);
-    if (!entry) return;
-
     const revealRenderedMatch = (behavior: ScrollBehavior): boolean => {
-      const target = highlightActiveMatch(
-        container,
-        match.messageKey,
-        entry.text,
-        query.trim(),
-        match.offset,
-      );
+      const target = applySearchHighlights(match);
       if (!target) return false;
       scrollSearchTargetIntoView(container, target, behavior);
       return true;
@@ -111,11 +117,10 @@ export function useChatHistorySearch({
 
     revealRenderedMatch('auto');
   }, [
+    applySearchHighlights,
     ensureAllMessagesLoaded,
     measuredItemHeights,
-    query,
     scrollContainerRef,
-    searchableMessages,
   ]);
 
   const goToMatch = useCallback((index: number) => {
@@ -140,49 +145,38 @@ export function useChatHistorySearch({
     closeSearch();
   }, [closeSearch, sessionId]);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const isFindShortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f';
-      if (isFindShortcut) {
-        if (!captureFindShortcutInModal && document.querySelector('[data-modal-overlay]')) return;
-        event.preventDefault();
-        event.stopPropagation();
-        if (isOpen) {
-          inputRef.current?.focus();
-          inputRef.current?.select();
-        } else {
-          openSearch();
-        }
-        return;
-      }
+  const openFromShortcut = useCallback(() => {
+    if (isOpen) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+      return;
+    }
+    openSearch();
+  }, [isOpen, openSearch]);
 
-      if (!isOpen) return;
-
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopPropagation();
-        closeSearch();
-        return;
-      }
-
-      if (event.key === 'Enter' && document.activeElement === inputRef.current) {
-        event.preventDefault();
-        if (event.shiftKey) {
-          goToPrevious();
-        } else {
-          goToNext();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown, { capture: true });
-    return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
-  }, [captureFindShortcutInModal, closeSearch, goToNext, goToPrevious, isOpen, openSearch]);
+  useRegisterFindShortcutTarget({
+    scope: 'chat',
+    containerRef: scrollContainerRef,
+    onOpen: openFromShortcut,
+    captureInModal: captureFindShortcutInModal,
+  });
 
   useEffect(() => {
-    if (!isOpen || !activeMatch || !query.trim()) return;
+    const container = scrollContainerRef.current;
+    if (!isOpen || !activeMatch || !query.trim()) {
+      if (container) clearSearchHighlights(container);
+      return;
+    }
     void revealMatch(activeMatch);
-  }, [activeMatch, isOpen, query, revealMatch]);
+  }, [activeMatch, isOpen, query, revealMatch, scrollContainerRef]);
+
+  useEffect(() => {
+    if (!isOpen || !query.trim()) return undefined;
+    const frame = requestAnimationFrame(() => {
+      applySearchHighlights(activeMatch);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [activeMatch, applySearchHighlights, isOpen, query, renderWindowKey]);
 
   useEffect(() => {
     if (matches.length === 0) {

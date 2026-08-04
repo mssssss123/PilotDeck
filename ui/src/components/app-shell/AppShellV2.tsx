@@ -7,7 +7,7 @@ import { useWebSocket } from '../../contexts/WebSocketContext';
 import { useDeviceSettings } from '../../hooks/useDeviceSettings';
 import { useSessionProtection } from '../../hooks/useSessionProtection';
 import { useProjectsState } from '../../hooks/useProjectsState';
-import Settings from '../settings/view/Settings';
+import Settings from '../settings/Settings';
 import ProjectCreationWizard from '../project-creation-wizard';
 import { normalizeProjectForSettings, type SettingsProject } from '../../lib/projectSettings';
 import {
@@ -642,7 +642,7 @@ export default function AppShellV2() {
         </div>
       )}
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col">
         <MainAreaV2
           projects={sidebarSharedProps.projects}
           selectedProject={selectedProject}

@@ -3,6 +3,7 @@ import type {
   ProjectSession,
   SessionProvider,
 } from '../../../types/app';
+import type { ContentReference } from '../../../types/contentReference';
 
 export type Provider = SessionProvider;
 
@@ -18,7 +19,7 @@ export interface ChatImage {
 }
 
 export interface ChatAttachment {
-  kind?: 'file' | 'document-selection';
+  kind?: 'file' | 'document-selection' | 'content-reference';
   name: string;
   path?: string;
   size?: number;
@@ -32,6 +33,7 @@ export interface ChatAttachment {
   occurrenceIndex?: number | null;
   createdAt?: string;
   truncated?: boolean;
+  contentReference?: ContentReference;
 }
 
 export interface ChatFileArtifact {
@@ -109,8 +111,11 @@ export interface ChatMessage {
   isCompactBoundary?: boolean;
   activityId?: string;
   runId?: string;
+  turnId?: string;
   compactTrigger?: string;
   preTokens?: number;
+  postTokens?: number;
+  messagesSummarized?: number;
   compactLevel?: number;
   compactStage?: string;
   compactStageLabel?: string;
