@@ -49,19 +49,6 @@ export interface ChatFileArtifact {
   createdAt: string;
 }
 
-export interface ChatFileArtifact {
-  id: string;
-  name: string;
-  path: string;
-  operation: 'created' | 'updated';
-  source: 'tool' | 'workspace_diff';
-  status: 'complete' | 'incomplete';
-  size: number;
-  sha256: string;
-  mimeType?: string;
-  createdAt: string;
-}
-
 export interface ToolResult {
   content?: unknown;
   isError?: boolean;
@@ -124,8 +111,11 @@ export interface ChatMessage {
   isCompactBoundary?: boolean;
   activityId?: string;
   runId?: string;
+  turnId?: string;
   compactTrigger?: string;
   preTokens?: number;
+  postTokens?: number;
+  messagesSummarized?: number;
   compactLevel?: number;
   compactStage?: string;
   compactStageLabel?: string;
