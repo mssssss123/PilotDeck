@@ -120,6 +120,7 @@ function verifyPackagedRuntime(target, context, label) {
     "express",
     "edgeclaw-memory-core",
     "clawhub",
+    "exceljs",
     "react",
     "ink",
     "ink-text-input",

@@ -53,6 +53,7 @@ const uiServerDependencies = [
   "chokidar",
   "clawhub",
   "cors",
+  "exceljs",
   "express",
   "gray-matter",
   "jsonwebtoken",
@@ -522,6 +523,7 @@ function verifyRuntime(root, label = "runtime") {
     resolve(runtimeRoot, "ui", "server", "index.js"),
     resolve(runtimeRoot, "scripts", "check-node-runtime.mjs"),
     resolve(runtimeRoot, "node_modules", "express"),
+    resolve(runtimeRoot, "node_modules", "exceljs"),
     resolve(runtimeRoot, "node_modules", "react"),
     resolve(runtimeRoot, "node_modules", "ink"),
     resolve(runtimeRoot, "node_modules", "ink-text-input"),
@@ -550,6 +552,7 @@ function verifyRuntime(root, label = "runtime") {
 
   verifyRuntimeNativeModule("better-sqlite3", label);
   verifyRuntimeModuleImport(resolve(runtimeRoot, "dist", "src", "cli", "pilotdeck.js"), label);
+  verifyRuntimeModuleImport(resolve(runtimeRoot, "ui", "server", "services", "spreadsheetPreview.js"), label);
 
   console.log(`[desktop] staged ${label} ready: ${runtimeRoot}`);
   console.log(`[desktop] staged ${label} size: ${formatBytes(directorySize(runtimeRoot))}`);
