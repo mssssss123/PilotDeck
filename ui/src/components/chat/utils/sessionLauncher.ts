@@ -6,6 +6,7 @@ type StartSessionOptions = {
   sendMessage: (message: unknown) => void;
   selectedProject: Project;
   command: string;
+  runId?: string;
   userVisibleInput?: string;
   sessionId?: string | null;
   temporarySessionId?: string;
@@ -21,7 +22,16 @@ type StartSessionOptions = {
   alwaysOnPlanId?: string;
   alwaysOnExecutionToken?: string;
   workspaceCwd?: string;
-  forceStart?: boolean;
+};
+
+type RegenerateLastSessionOptions = Omit<
+  StartSessionOptions,
+  'temporarySessionId' | 'alwaysOnPlanId' | 'alwaysOnExecutionToken'
+> & {
+  requestId: string;
+  sessionId: string;
+  expectedTurnId: string;
+  syntheticMessages?: Array<{ text: string; purpose?: string }>;
 };
 
 const VALID_PERMISSION_MODES = new Set<PermissionMode>([
@@ -29,12 +39,28 @@ const VALID_PERMISSION_MODES = new Set<PermissionMode>([
   'bypassPermissions',
   'plan',
 ]);
+let fallbackRunIdCounter = 0;
 
 export const isTemporarySessionId = (sessionId: string | null | undefined) =>
   Boolean(sessionId && sessionId.startsWith('new-session-'));
 
 export function createTemporarySessionId(): string {
   return `new-session-${Date.now()}`;
+}
+
+export function createUserTurnRunId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  fallbackRunIdCounter += 1;
+  return `web-turn-${Date.now()}-${fallbackRunIdCounter}`;
 }
 
 export function getNotificationSessionSummary(
@@ -83,6 +109,7 @@ export function startSessionCommand({
   sendMessage,
   selectedProject,
   command,
+  runId,
   userVisibleInput,
   sessionId,
   temporarySessionId,
@@ -98,7 +125,6 @@ export function startSessionCommand({
   alwaysOnPlanId,
   alwaysOnExecutionToken,
   workspaceCwd,
-  forceStart,
 }: StartSessionOptions): string {
   const sessionToActivate =
     sessionId || temporarySessionId || createTemporarySessionId();
@@ -111,6 +137,7 @@ export function startSessionCommand({
       ...(sessionId ? { sessionId, resume: true } : {}),
       projectPath: resolvedProjectPath,
       cwd: resolvedProjectPath,
+      ...(runId ? { runId } : {}),
       toolsSettings,
       ...(runMode ? { runMode } : {}),
       permissionMode,
@@ -126,9 +153,62 @@ export function startSessionCommand({
       ...(Array.isArray(images) && images.length > 0 ? { images } : {}),
       ...(Array.isArray(attachments) && attachments.length > 0 ? { attachments } : {}),
       ...(workspaceCwd ? { workspaceCwd } : {}),
-      ...(forceStart ? { forceStart: true } : {}),
     },
   });
 
   return sessionToActivate;
+}
+
+export function regenerateLastSessionCommand({
+  sendMessage,
+  selectedProject,
+  command,
+  requestId,
+  sessionId,
+  expectedTurnId,
+  runId,
+  userVisibleInput,
+  permissionMode = 'default',
+  basePermissionMode,
+  runMode,
+  model,
+  thinking,
+  sessionSummary,
+  toolsSettings = getPilotDeckSettings(),
+  images,
+  attachments,
+  workspaceCwd,
+  syntheticMessages,
+}: RegenerateLastSessionOptions): void {
+  const resolvedProjectPath = getSelectedProjectPath(selectedProject);
+  sendMessage({
+    type: 'regenerate-last-message',
+    requestId,
+    sessionId,
+    expectedTurnId,
+    command,
+    options: {
+      sessionId,
+      resume: true,
+      projectPath: resolvedProjectPath,
+      cwd: resolvedProjectPath,
+      ...(runId ? { runId } : {}),
+      toolsSettings,
+      ...(runMode ? { runMode } : {}),
+      permissionMode,
+      ...(basePermissionMode ? { basePermissionMode } : {}),
+      ...(model ? { model } : {}),
+      ...(thinking ? { thinking } : {}),
+      sessionSummary,
+      ...(typeof userVisibleInput === 'string' && userVisibleInput.trim()
+        ? { userVisibleInput: userVisibleInput.trim() }
+        : {}),
+      ...(Array.isArray(images) && images.length > 0 ? { images } : {}),
+      ...(Array.isArray(attachments) && attachments.length > 0 ? { attachments } : {}),
+      ...(workspaceCwd ? { workspaceCwd } : {}),
+      ...(Array.isArray(syntheticMessages) && syntheticMessages.length > 0
+        ? { syntheticMessages }
+        : {}),
+    },
+  });
 }

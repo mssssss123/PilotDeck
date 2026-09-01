@@ -8,6 +8,7 @@ installGlobalProxy();
 
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -16,6 +17,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const installMode = fs.existsSync(path.join(__dirname, '..', '..', '.git')) ? 'git' : 'npm';
+const serverInstanceId = crypto.randomUUID();
+const serverStartedAt = new Date().toISOString();
+const serverPid = process.pid;
 
 // ANSI color codes for terminal output
 const colors = {
@@ -43,7 +47,6 @@ console.log('SERVER_PORT from runtime config:', process.env.SERVER_PORT);
 import express from 'express';
 import { WebSocketServer, WebSocket } from 'ws';
 import bcrypt from 'bcrypt';
-import crypto from 'crypto';
 import os from 'os';
 import http from 'http';
 import cors from 'cors';
@@ -54,17 +57,19 @@ import fetch from 'node-fetch';
 import mime from 'mime-types';
 import JSZip from 'jszip';
 import { readPermissionSettings } from './services/permissionSettings.js';
+import { regenerateLastMessageTransaction } from './services/regenerateLastMessage.js';
 import { getDefaultPtyShell } from './utils/defaultShell.js';
 import { getOpenUrlSpawnCommand } from './utils/processSpawn.js';
 
 import { getProjects, getProjectCronJobsOverview, getSessions, renameProject, deleteSession, deleteProject, addProjectManually, extractProjectDirectory, clearProjectDirectoryCache, searchConversations } from './projects.js';
 import {
     runChatViaGateway,
+    replaceLastTurnViaGateway,
+    finalizeLastTurnReplacementViaGateway,
     abortViaGateway,
     decidePermissionViaGateway,
     grantSessionPermissionViaGateway,
-    isSessionActiveViaGateway,
-    getActiveTurnSnapshotFramesViaGateway,
+    getSessionActivityViaGateway,
     getActiveSessionIdsViaGateway,
     elicitationRespondViaGateway,
     getRouterDashboardData,
@@ -72,7 +77,15 @@ import {
     getRouterStatsSummary,
     getPilotDeckGateway,
     registerAlwaysOnNotificationForwarding,
+    registerSessionInputNotificationForwarding,
     getSessionTokenBudget,
+    getInputQueueStateViaGateway,
+    enqueueInputViaGateway,
+    deleteQueuedInputViaGateway,
+    moveQueuedInputToFrontViaGateway,
+    pauseInputQueueViaGateway,
+    resumeInputQueueViaGateway,
+    steerQueuedInputViaGateway,
 } from './pilotdeck-bridge.js';
 import sessionManager from './sessionManager.js';
 import gitRoutes from './routes/git.js';
@@ -83,9 +96,12 @@ import memoryRoutes, { MEMORY_DASHBOARD_DIR } from './routes/memory.js';
 import mcpUtilsRoutes from './routes/mcp-utils.js';
 import commandsRoutes from './routes/commands.js';
 import skillsRoutes from './routes/skills.js';
+import uploadsRoutes from './routes/uploads.js';
+import modelsRoutes, { createSessionModelHandlers } from './routes/models.js';
 import settingsRoutes from './routes/settings.js';
 import configRoutes from './routes/config.js';
 import gatewayRoutes from './routes/gateway.js';
+import { createCronUpdateHandler } from './routes/cron-jobs.js';
 import {
     OFFICE_PREVIEW_SERVICE_BUILTIN,
     OFFICE_PREVIEW_SERVICE_LIBREOFFICE,
@@ -106,11 +122,12 @@ import { getAlwaysOnDashboardEvents } from './services/always-on-events.js';
 import agentRoutes from './routes/agent.js';
 import updateRoutes from './routes/update.js';
 import projectsRoutes, { WORKSPACES_ROOT, validateWorkspacePath } from './routes/projects.js';
+import onboardingRoutes from './routes/onboarding.js';
 import userRoutes from './routes/user.js';
 import pluginsRoutes from './routes/plugins.js';
 import messagesRoutes from './routes/messages.js';
 import { closeMemoryServices, startMemoryScheduler, stopMemoryScheduler } from './services/memoryService.js';
-import { createNormalizedMessage } from './pilotdeck-message.js';
+import { createNormalizedMessage, createOptimisticUserFrames } from './pilotdeck-message.js';
 import { startEnabledPluginServers, stopAllPlugins, getPluginPort } from './utils/plugin-process-manager.js';
 import { initializeDatabase, sessionNamesDb, applyCustomSessionNames, userDb } from './database/db.js';
 import { configureWebPush } from './services/vapid-keys.js';
@@ -212,6 +229,10 @@ function broadcastToSessionWatchers(sessionId, frame, userId, excludeWs = null) 
         client.send(payload);
     });
 }
+
+registerSessionInputNotificationForwarding((sessionId, frame) => {
+    broadcastToSessionWatchers(sessionId, frame, undefined);
+});
 
 // Broadcast progress to all connected WebSocket clients
 function broadcastProgress(progress) {
@@ -347,6 +368,11 @@ async function setupProjectsWatcher() {
 
 
 const app = express();
+app.locals.restartInstanceInfo = {
+    instanceId: serverInstanceId,
+    startedAt: serverStartedAt,
+    pid: serverPid
+};
 const server = http.createServer(app);
 
 const ptySessionsMap = new Map();
@@ -472,10 +498,14 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Public health check endpoint (no authentication required)
 app.get('/health', (req, res) => {
+    const instanceInfo = req.app.locals.restartInstanceInfo || {};
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        installMode
+        installMode,
+        instanceId: instanceInfo.instanceId,
+        startedAt: instanceInfo.startedAt,
+        pid: instanceInfo.pid
     });
 });
 
@@ -484,6 +514,49 @@ app.use('/api', validateApiKey);
 
 // Authentication routes (public)
 app.use('/api/auth', authRoutes);
+
+// Gateway-owned project file discovery. Keep this before the generic project
+// router so `/files` cannot be consumed as a project name.
+app.get('/api/projects/files', authenticateToken, async (req, res) => {
+    try {
+        const gateway = await getPilotDeckGateway();
+        const serverInfo = await gateway.describeServer();
+        if (!serverInfo.capabilities?.includes('project_files_list')) {
+            return res.status(501).json({
+                error: { code: 'CAPABILITY_UNAVAILABLE', message: 'project_files_list is unavailable.' },
+            });
+        }
+        const result = await gateway.projectFilesList({
+            projectKey: typeof req.query.projectKey === 'string' ? req.query.projectKey : '',
+            query: typeof req.query.query === 'string' ? req.query.query : undefined,
+            cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
+            limit: req.query.limit === undefined ? undefined : Number(req.query.limit),
+            includeDirs: req.query.includeDirs === undefined
+                ? undefined
+                : String(req.query.includeDirs) !== 'false',
+        });
+        return res.json(result);
+    } catch (error) {
+        const code = typeof error?.code === 'string' ? error.code : 'gateway_request_failed';
+        const statuses = {
+            PROJECT_NOT_FOUND: 404,
+            PROJECT_PATH_FORBIDDEN: 403,
+            INVALID_CURSOR: 400,
+            INVALID_LIMIT: 400,
+            INVALID_QUERY: 400,
+            FILE_INDEX_LIMIT: 422,
+            CAPABILITY_UNAVAILABLE: 501,
+        };
+        return res.status(statuses[code] || 500).json({
+            error: {
+                code,
+                message: error instanceof Error ? error.message : String(error),
+                ...(error?.details ? { details: error.details } : {}),
+                ...(req.id ? { requestId: req.id } : {}),
+            },
+        });
+    }
+});
 
 // Projects API Routes (protected)
 app.use('/api/projects', authenticateToken, projectsRoutes);
@@ -510,12 +583,18 @@ app.use('/api/commands', authenticateToken, commandsRoutes);
 // top-right Skills tab. Backed by bundled skills, ~/.pilotdeck/skills/, and
 // project-level .pilotdeck/skills/ via PilotDeck plugin runtime.
 app.use('/api/skills', authenticateToken, skillsRoutes);
+app.use('/api/uploads', authenticateToken, uploadsRoutes);
+app.use('/api/models', authenticateToken, modelsRoutes);
 
 // Settings API Routes (protected)
 app.use('/api/settings', authenticateToken, settingsRoutes);
 
 // PilotDeck unified YAML config routes (protected)
 app.use('/api/config', authenticateToken, configRoutes);
+
+// Versioned onboarding API. It remains behind the global /api API-key gate
+// and the same JWT middleware as the rest of the local UI server.
+app.use('/api/v1', authenticateToken, onboardingRoutes);
 
 // Gateway IM channel setup routes (protected)
 app.use('/api/gateway', authenticateToken, gatewayRoutes);
@@ -527,6 +606,10 @@ app.use('/api/user', authenticateToken, userRoutes);
 app.use('/api/plugins', authenticateToken, pluginsRoutes);
 
 // Unified session messages route (protected) — PilotDeck-only.
+const sessionModelHandlers = createSessionModelHandlers();
+app.get('/api/sessions/model', authenticateToken, sessionModelHandlers.get);
+app.put('/api/sessions/model', authenticateToken, sessionModelHandlers.set);
+app.delete('/api/sessions/model', authenticateToken, sessionModelHandlers.clear);
 app.use('/api/sessions', authenticateToken, messagesRoutes);
 
 // Agent API Routes (uses API key authentication)
@@ -636,6 +719,8 @@ app.post('/api/always-on/cron-jobs', authenticateToken, async (req, res) => {
         res.status(500).json({ error: error?.message || 'cron create failed' });
     }
 });
+
+app.patch('/api/always-on/cron-jobs/:taskId', authenticateToken, createCronUpdateHandler({ getGateway: getPilotDeckGateway }));
 
 app.post('/api/always-on/cron-jobs/:taskId/run-now', authenticateToken, async (req, res) => {
     try {
@@ -2391,6 +2476,8 @@ function handleChatConnection(ws, request) {
             if (data.type === 'watch-session') {
                 if (requestSessionId) {
                     sessionWatchRegistry.watch(requestSessionId, ws);
+                    const queueState = await getInputQueueStateViaGateway(requestSessionId, data.options || {});
+                    if (queueState) writer.send(queueState);
                 }
                 return;
             }
@@ -2422,25 +2509,11 @@ function handleChatConnection(ws, request) {
                     if (userVisibleInput) {
                         const nowIso = new Date().toISOString();
                         const provider = data.options?.providerHint || 'pilotdeck';
-                        const optimisticUserFrame = createNormalizedMessage({
-                            id: `local_ws_user_${crypto.randomUUID()}`,
+                        const [optimisticUserFrame, optimisticStatusFrame] = createOptimisticUserFrames({
                             sessionId: commandSessionId,
                             provider,
-                            kind: 'text',
-                            role: 'user',
-                            content: userVisibleInput,
-                            ...(Array.isArray(data.options?.attachments) && data.options.attachments.length > 0
-                                ? { attachments: data.options.attachments }
-                                : {}),
-                            timestamp: nowIso,
-                        });
-                        const optimisticStatusFrame = createNormalizedMessage({
-                            id: `local_ws_status_${crypto.randomUUID()}`,
-                            sessionId: commandSessionId,
-                            provider,
-                            kind: 'status',
-                            text: 'Processing',
-                            canInterrupt: true,
+                            userVisibleInput,
+                            options: data.options,
                             timestamp: nowIso,
                         });
                         // The submitting tab already rendered its optimistic user row.
@@ -2451,9 +2524,94 @@ function handleChatConnection(ws, request) {
                 }
                 const providerHint = data.options?.providerHint || data.type.replace('-command', '');
                 await runChatViaGateway(data.command, data.options, streamWriter, providerHint);
+            } else if (data.type === 'get-input-queue') {
+                const queueState = await getInputQueueStateViaGateway(requestSessionId, data.options || {});
+                if (queueState) writer.send(queueState);
+            } else if (data.type === 'queue-input') {
+                const result = await enqueueInputViaGateway(
+                    requestSessionId,
+                    data.item,
+                    streamWriter,
+                    data.provider || 'pilotdeck',
+                );
+                writer.send({
+                    type: 'input-queue-operation-result',
+                    operation: 'enqueue',
+                    requestId: data.requestId,
+                    sessionId: requestSessionId,
+                    ...result,
+                });
+            } else if (data.type === 'delete-queued-input') {
+                const result = await deleteQueuedInputViaGateway(requestSessionId, data.itemId, streamWriter);
+                writer.send({
+                    type: 'input-queue-operation-result',
+                    operation: 'delete',
+                    requestId: data.requestId,
+                    sessionId: requestSessionId,
+                    ...result,
+                });
+            } else if (data.type === 'move-queued-input') {
+                const result = moveQueuedInputToFrontViaGateway(requestSessionId, data.itemId, streamWriter);
+                writer.send({
+                    type: 'input-queue-operation-result',
+                    operation: 'move',
+                    requestId: data.requestId,
+                    sessionId: requestSessionId,
+                    ...result,
+                });
+            } else if (data.type === 'steer-queued-input') {
+                const result = await steerQueuedInputViaGateway(
+                    requestSessionId,
+                    data.itemId,
+                    streamWriter,
+                    data.provider || 'pilotdeck',
+                );
+                writer.send({
+                    type: 'input-queue-operation-result',
+                    operation: 'steer',
+                    requestId: data.requestId,
+                    sessionId: requestSessionId,
+                    ...result,
+                });
+            } else if (data.type === 'resume-input-queue') {
+                const result = await resumeInputQueueViaGateway(
+                    requestSessionId,
+                    streamWriter,
+                    data.provider || 'pilotdeck',
+                );
+                writer.send({
+                    type: 'input-queue-operation-result',
+                    operation: 'resume',
+                    requestId: data.requestId,
+                    sessionId: requestSessionId,
+                    ...result,
+                });
+            } else if (data.type === 'regenerate-last-message') {
+                const sessionId = normalizeSessionId(data.sessionId || data.options?.sessionId);
+                const requestId = typeof data.requestId === 'string' ? data.requestId : null;
+                const expectedTurnId = typeof data.expectedTurnId === 'string'
+                    ? data.expectedTurnId.trim()
+                    : '';
+                const provider = data.options?.providerHint || 'pilotdeck';
+                if (sessionId) {
+                    sessionWatchRegistry.watch(sessionId, ws);
+                }
+                await regenerateLastMessageTransaction({
+                    data,
+                    sessionId,
+                    requestId,
+                    expectedTurnId,
+                    provider,
+                    writer,
+                    streamWriter,
+                    replaceLastTurn: replaceLastTurnViaGateway,
+                    finalizeLastTurnReplacement: finalizeLastTurnReplacementViaGateway,
+                    runChat: runChatViaGateway,
+                });
             } else if (data.type === 'abort-session') {
                 console.log('[DEBUG] Abort session request:', data.sessionId);
                 const provider = data.provider || 'pilotdeck';
+                pauseInputQueueViaGateway(data.sessionId, streamWriter, 'user_stopped');
                 const success = await abortViaGateway(data.sessionId, provider);
                 writer.send(createNormalizedMessage({ kind: 'complete', exitCode: success ? 0 : 1, aborted: true, success, sessionId: data.sessionId, provider }));
             } else if (data.type === 'permission-response') {
@@ -2512,17 +2670,26 @@ function handleChatConnection(ws, request) {
                 if (normalizeSessionId(sessionId)) {
                     sessionWatchRegistry.watch(sessionId, ws);
                 }
-                const isProcessing = isSessionActiveViaGateway(sessionId);
                 const includeActiveTurnMessages = data.includeActiveTurnMessages !== false;
-                const activeTurnMessages = (isProcessing && includeActiveTurnMessages)
-                    ? await getActiveTurnSnapshotFramesViaGateway(sessionId, data.provider || 'pilotdeck')
-                    : [];
+                const activity = await getSessionActivityViaGateway(
+                    sessionId,
+                    data.provider || 'pilotdeck',
+                    includeActiveTurnMessages,
+                    streamWriter,
+                );
                 writer.send({
                     type: 'session-status',
                     sessionId,
                     provider: data.provider || 'pilotdeck',
-                    isProcessing,
-                    activeTurnMessages,
+                    isProcessing: activity.isProcessing,
+                    activeRunId: activity.activeRunId,
+                    expectedActiveRunId: typeof data.expectedActiveRunId === 'string' && data.expectedActiveRunId.trim()
+                        ? data.expectedActiveRunId.trim()
+                        : null,
+                    statusRequestId: Number.isSafeInteger(data.statusRequestId)
+                        ? data.statusRequestId
+                        : null,
+                    activeTurnMessages: includeActiveTurnMessages ? activity.activeTurnMessages : [],
                     tokenBudget: getSessionTokenBudget(sessionId),
                 });
             } else if (data.type === 'get-pending-permissions') {

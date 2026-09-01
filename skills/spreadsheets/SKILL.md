@@ -1,209 +1,78 @@
 ---
 name: spreadsheets
-description: Create, edit, inspect, analyze, recalculate, render, and validate standalone spreadsheet files in .xlsx, .xls, .csv, and .tsv formats. Use whenever the requested input or deliverable is a workspace spreadsheet, including formula-driven workbooks, native charts, formatted tables, data cleanup, workbook questions, legacy XLS conversion, Chinese or bilingual workbooks, and visual spreadsheet QA. Do not use for Google Sheets, macro-enabled .xlsm files, or live control of Microsoft Excel.
+description: Create, edit, review, and finalize standalone XLSX, XLS, CSV, and TSV spreadsheet files. Use for spreadsheet generation, formatting, formulas, charts, data consolidation, source-based calculations, numeric reconciliation, legacy conversion, and visual QA. Do not use for live Microsoft Excel control or macro-enabled workbook editing.
 ---
 
 # Spreadsheets
 
-Work with standalone spreadsheet files through a reproducible JavaScript `.mjs` builder and the bundled `spreadsheet.sh` workflow. Preserve source files, keep calculations auditable, recalculate formulas, and verify both workbook structure and rendered pages before delivery.
+Use three stages as a reasoning framework, not a fixed tool pipeline:
 
-## Hard requirements
+1. Understand the request and source materials.
+2. Build or edit the spreadsheet using the approach best suited to the task.
+3. Review the actual result before delivery.
 
-- Use JavaScript ES modules and the bundled scripts. Do not use `openpyxl`, `xlsxwriter`, `pandas.ExcelWriter`, Google Sheets APIs, or Codex-private runtime paths.
-- Preserve every input file. Write edits to a distinct output unless the user explicitly requests replacement.
-- Keep important calculations in worksheet formulas. Do not replace inspectable formulas with hardcoded results.
-- Inspect and render an existing workbook before modifying it. Match its formatting and conventions unless the user requests a redesign.
-- Run compatibility preflight before editing an existing XLSX. Do not bypass a risky round trip without explicit user approval.
-- Recalculate formula-driven XLSX files through LibreOffice and scan the saved results for formula errors.
-- Use native Excel chart objects for requested charts. A raster image or SVG does not satisfy a chart requirement.
-- Create `requirements.json` for every non-trivial workbook and require `coverage.status=passed`.
-- For source-backed workbooks, freeze source file hashes and a compact fact matrix before building. Do not rely on remembered values or reconstruct missing facts from context.
-- Treat Chinese as first-class content when the user does not specify a language. Apply the cross-platform typography policy and verify glyphs after recalculation.
-- Render every final worksheet page and inspect the individual PNG files at full size. A montage is only an overview.
-- Fix formula errors, clipped content, broken tables, unreadable formats, unexpected blank sheets, and poor page layout before delivery.
-- Build to a scratch candidate and use `deliver` to seal the final XLSX. Do not manually copy an unaudited candidate to the final path.
-- A failed `build`, `audit`, or `deliver` means the workbook is not deliverable. Do not copy a raw/debug workbook, remove requested features, append `|| true`, or claim success after a gate fails.
-- Use the bundled helpers for conditional formatting and native charts. Do not replace them with unsupported ExcelJS chart APIs or unvalidated low-level conditional-formatting objects.
-- Resolve every audit warning or add a task-specific `warningDispositions` entry with a concrete rationale. Undisposed warnings block `deliver`.
+The user's explicit requirements are the primary acceptance criteria.
 
-## Read the relevant references
+## Understand
 
-- Read [api-quick-start.md](references/api-quick-start.md) before writing or modifying a builder.
-- Read [formulas-and-data.md](references/formulas-and-data.md) for every formula-driven workbook or data conversion.
-- Read [formatting.md](references/formatting.md) before creating or visually editing a workbook.
-- Read [chinese-and-cross-platform.md](references/chinese-and-cross-platform.md) for Chinese, bilingual, or unspecified-language net-new workbooks.
-- Read [charts-and-compatibility.md](references/charts-and-compatibility.md) before editing an existing XLSX or handling charts and advanced Excel objects.
-- Read [requirements-and-delivery.md](references/requirements-and-delivery.md) for every non-trivial workbook.
-- Read [qa-checklist.md](references/qa-checklist.md) before delivery.
+Determine what the final spreadsheet should accomplish, which sources contain authoritative facts, what must change, what must remain, and what evidence would demonstrate success.
 
-## Prepare the runtime
+- Preserve source files unless replacement is explicitly requested.
+- Do not invent missing facts or replace unknown values with plausible ones.
+- When editing, preserve content, formulas, structure, and formatting the user did not ask to change.
+- Inspect only the files, sheets, ranges, and package features relevant to the requested outcome.
 
-Resolve the directory containing this file as `SPREADSHEET_SKILL_ROOT`, then run:
+Resolve the optional CLI when its mechanical commands help:
 
 ```bash
-SHEET="$SPREADSHEET_SKILL_ROOT/scripts/spreadsheet.sh"
-bash "$SHEET" check || bash "$SHEET" fix
+SKILL_ROOT={{SKILL_ROOT_SHELL}}
+SHEET="$SKILL_ROOT/scripts/spreadsheet.sh"
+WORKSPACE="${PILOTDECK_WORK_DIR:?PILOTDECK_WORK_DIR is required}/spreadsheets"
+mkdir -p "$WORKSPACE/tmp" "$WORKSPACE/review"
 ```
 
-Use the turn-scoped PilotDeck work directory for every intermediate. The host sets `PILOTDECK_WORK_DIR`; the fallback keeps manual runs internal to the project:
+Review package-sensitive features before modifying workbooks containing charts, drawings, pivots, external connections, signatures, or other advanced objects.
 
-```bash
-WORKSPACE="${PILOTDECK_WORK_DIR:-$PWD/.pilotdeck/work/manual/<task-slug>}/spreadsheets"
-mkdir -p "$WORKSPACE/tmp" "$WORKSPACE/qa"
-```
+## Build
 
-Keep builders, converted inputs, source notes, inspections, candidates, renders, recalculation files, and QA reports in `WORKSPACE`. Put only requested deliverables in the project or user-selected output directory. Never create `.pilotdeck_build.mjs`, QA directories, or other intermediates beside the user's files.
+Write and run one task-specific, reproducible script for each workbook revision. Use `openpyxl`, `xlsxwriter`, pandas, ExcelJS, direct OOXML editing, LibreOffice UNO, or another suitable tool according to the task. Do not switch languages or adopt a wrapper merely to use this skill.
 
-The CLI enforces this boundary whenever `PILOTDECK_WORK_DIR` is set:
-`scaffold`, `build`, `convert-legacy`, `recalculate`, JSON reports, and render
-outputs must stay under the work directory. Only `deliver --out` may create the
-project-visible final workbook. A boundary failure must be corrected by moving
-the intermediate path; do not bypass the command or copy the file manually.
+Keep task scripts, candidates, extracted assets, reports, renders, and debugging output under `PILOTDECK_WORK_DIR`. Put only the requested final deliverable in the project workspace.
 
-## Route the request
+Prefer localized edits to reconstruction when modifying an existing workbook. Keep identifiers as text when leading zeroes or long digits matter. Use real numbers, dates, and booleans, and retain derived values as formulas when the workbook should remain inspectable or reusable.
 
-Choose one route:
+Follow supplied templates and explicit visual requirements. Without either, use restrained neutral presentation: readable typography, clear number formats, useful spacing, dark text, white backgrounds, and limited color for meaning. Do not add dashboard furniture, branding, or decorative formatting unrelated to the requested outcome.
 
-1. Read-only question or analysis: inspect the relevant workbook ranges and formulas; do not export or modify a file.
-2. Net-new XLSX: scaffold a builder, create the workbook, recalculate, audit, render, and inspect it.
-3. Existing XLSX edit: inspect and render first, review compatibility risks, then make the smallest scoped edit.
-4. Legacy XLS: convert to a temporary XLSX, inspect and render the conversion, then use the XLSX workflow and deliver `.xlsx`.
-5. CSV or TSV task: preserve delimiter, encoding, identifiers, and text semantics. Convert to XLSX only when formulas, formatting, tables, images, or other workbook features are requested.
+For formula caches, Excel/LibreOffice differences, dates, package-sensitive objects, or CSV safety, read [spreadsheet-specifics.md](references/spreadsheet-specifics.md) only when relevant.
 
-Do not accept `.xlsm`, Google Sheets, or a live Excel session through this skill. Never rename `.xls` to `.xlsx`.
+## Review
 
-Convert a legacy workbook without modifying the source:
+Judge the spreadsheet against the user's requested outcome, not whether a tool ran successfully. Review may be as light as directly checking the result. When mechanical evidence would materially improve confidence, choose any appropriate combination of:
 
-```bash
-bash "$SHEET" convert-legacy \
-  --input "$INPUT_XLS" \
-  --out "$WORKSPACE/tmp/converted.xlsx"
-```
+- `validate` for package, relationship, formula-cache, and formula-error diagnostics;
+- `recalculate` to refresh supported formula caches when changed formulas or dependencies must display calculated results;
+- `render` for visual evidence about layout, pagination, charts, and formatting.
 
-## Inspect before acting
+These are optional tools, not a required pipeline. Decide whether to use them and what to examine according to the task's consequences and uncertainty. If recalculation is needed alongside validation or rendering, recalculate the final candidate first so later evidence describes its final calculation state.
 
-Get a compact workbook overview:
+The CLI provides facts and images, never a content- or design-quality verdict. See [optional-tools.md](references/optional-tools.md) only when one of these commands or another mechanical operation would serve the task.
 
-```bash
-bash "$SHEET" inspect \
-  --input "$INPUT" \
-  --out "$WORKSPACE/tmp/inspection.json"
-```
+Open relevant full-size page images before making visual claims. After changing the candidate, prior renders no longer describe the current workbook. LibreOffice may paginate, calculate, or substitute fonts differently from Microsoft Excel.
 
-Inspect exact ranges and styles when needed:
-
-```bash
-bash "$SHEET" inspect \
-  --input "$INPUT" \
-  --sheet "Summary" \
-  --range "A1:H30" \
-  --styles \
-  --out "$WORKSPACE/tmp/summary.json"
-```
-
-For an existing XLSX, review `package.unsafeForRoundTrip` and `package.roundTripRisks`. If either reports risky objects, stop before editing and follow [charts-and-compatibility.md](references/charts-and-compatibility.md).
-
-Render an existing XLSX before changing its visual layout:
-
-```bash
-bash "$SHEET" render \
-  --input "$INPUT" \
-  --out-dir "$WORKSPACE/tmp/source-render"
-```
-
-## Create or edit a workbook
-
-Create requirements and one executable builder:
-
-```bash
-bash "$SHEET" scaffold \
-  --out "$WORKSPACE/tmp/workbook.mjs" \
-  --requirements-out "$WORKSPACE/tmp/requirements.json"
-```
-
-Write `$WORKSPACE/tmp/requirements.json` from the user's requested sheets, formulas, native charts, validations, conditional formatting, expected cells/ranges, and print-page constraints. A sheet list plus a formula count is not sufficient coverage.
-
-For a task based on input files:
-
-1. Inspect the exact source ranges or text sections first.
-2. Set `sourceBacked: true`, record every input in `sourceFiles` with its pre-build SHA-256, and list output data sheets in `sourceBackedSheets`.
-3. Add `expectedRanges` for complete user-critical tables such as KPI history, source rows, action items, owners, and deadlines. Use `expectedCells` for important totals and derived checkpoints.
-4. Do not create a builder until the fact matrix is written. If a source omits a status, owner, date, or value, keep it blank or label it as unconfirmed instead of inventing it.
-
-Patch and rerun that builder instead of creating duplicate scripts. Build a net-new workbook:
-
-```bash
-bash "$SHEET" build \
-  --builder "$WORKSPACE/tmp/workbook.mjs" \
-  --requirements "$WORKSPACE/tmp/requirements.json" \
-  --out "$WORKSPACE/tmp/candidate.xlsx"
-```
-
-Edit an existing safe workbook:
-
-```bash
-bash "$SHEET" build \
-  --builder "$WORKSPACE/tmp/workbook.mjs" \
-  --input "$INPUT_XLSX" \
-  --requirements "$WORKSPACE/tmp/requirements.json" \
-  --out "$WORKSPACE/tmp/candidate.xlsx"
-```
-
-`build` preserves the input, validates builder structures and requirements, blocks unsafe round trips, recalculates formula-driven XLSX files, and performs a compact formula audit. It stages output and updates the requested candidate only after audit passes, so a failed build must be fixed and rerun. Fix the reported `stage`, worksheet, range, and field instead of disabling requested features or switching to a second builder. Never add `--allow-risky-roundtrip` unless the user has explicitly accepted the listed compatibility risks.
-
-## Formula and data rules
-
-- Separate assumptions/raw data from derived outputs.
-- Write derived values as formulas and use visible helper ranges for complex logic.
-- Use bounded ranges instead of entire-column references in large calculations.
-- Use typed numbers, booleans, and dates rather than display-formatted strings.
-- Apply explicit number formats for currency, percentages, counts, and dates.
-- Keep cross-sheet references quoted, for example `'Revenue Model'!B6`.
-- In ExcelJS formula objects, omit the leading `=`. See [formulas-and-data.md](references/formulas-and-data.md).
-- For CSV and TSV, preserve identifiers with leading zeroes as text and do not infer dates or numbers unless the task requires it.
-- Preserve identifiers longer than 15 digits as text. Detect UTF-8/UTF-8 BOM/GBK/GB18030 and default new delimited exports to UTF-8 BOM.
-- Preserve source facts exactly when translating labels or reorganizing tables. Never substitute plausible KPIs, channels, action items, owners, dates, or statuses.
-
-## Validate and render
-
-Run the final structural audit:
-
-```bash
-bash "$SHEET" audit \
-  --input "$WORKSPACE/tmp/candidate.xlsx" \
-  --requirements "$WORKSPACE/tmp/requirements.json" \
-  --out "$WORKSPACE/qa/audit.json"
-```
-
-Render the final workbook:
-
-```bash
-bash "$SHEET" render \
-  --input "$WORKSPACE/tmp/candidate.xlsx" \
-  --out-dir "$WORKSPACE/qa/render" \
-  --montage "$WORKSPACE/qa/montage.png" \
-  --per-sheet
-```
-
-Inspect every `page-N.png` at full resolution. Revise the builder, rebuild, and rerun audit/render until hard failures are gone and every warning is fixed or explicitly dispositioned in `requirements.json`. Stop after the workbook is correct, legible, and usable; do not spend extra loops on decorative polish.
-
-After modifying this skill or its runtime, run:
-
-```bash
-bash "$SHEET" self-test --out "$WORKSPACE/self-test"
-```
+When correctness depends on sources or non-trivial calculations, independently reread or reconcile important cells, formulas, and types, or write a small task-specific checking script when it materially improves confidence. Use `compare` after a package-sensitive edit only when distinguishing intended changes from unrelated package changes matters.
 
 ## Deliver
 
-Seal an XLSX only after inspecting the candidate pages:
+Publish the chosen internal candidate through the delivery command:
 
 ```bash
 bash "$SHEET" deliver \
   --input "$WORKSPACE/tmp/candidate.xlsx" \
-  --out "$FINAL_XLSX" \
-  --qa-dir "$WORKSPACE/qa/final-render" \
-  --requirements "$WORKSPACE/tmp/requirements.json" \
-  --report "$WORKSPACE/qa/delivery.json"
+  --out "$FINAL_OUTPUT"
 ```
 
-Return the final `.xlsx`, `.csv`, or `.tsv` and a concise summary grounded in the delivery report. Mention deliberate compatibility limitations. Do not claim a native chart when package inspection reports zero charts. Describe coverage as only the checks actually declared; never turn a shallow structural pass into “100% task coverage.” Do not deliver builders, requirements JSON, PDFs, renders, runtime files, or QA reports unless the user requests them.
+For an edit, add `--source "$INPUT"`. Replace that exact source only when explicitly requested, using `--source "$INPUT" --out "$INPUT" --replace-source`; a recovery copy remains internal.
+
+`deliver` protects the source, rejects structurally unsafe or unreadable packages, and publishes the exact candidate atomically. It does not run `validate`, `recalculate`, or `render`, and it does not decide whether the content, formulas, design, or requested outcome are good enough; those judgments belong to the model.
+
+Use optional mechanical commands such as `compare` and `convert-legacy` only when they directly serve the request.

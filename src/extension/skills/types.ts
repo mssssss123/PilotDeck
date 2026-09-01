@@ -42,6 +42,15 @@ export type SkillSummary = {
   mtime: number | null;
 };
 
+export type SkillSearchItem = SkillSummary & {
+  command: string;
+  matches?: Array<{
+    field: "name" | "description";
+    start: number;
+    end: number;
+  }>;
+};
+
 export type SkillsListInput = {
   /**
    * Absolute path of the active project. When omitted (or set to a
@@ -49,6 +58,10 @@ export type SkillsListInput = {
    * skills are returned.
    */
   projectKey?: string | null;
+  query?: string;
+  scope?: SkillScope | "plugin" | "all";
+  cursor?: string;
+  limit?: number;
 };
 
 export type SkillsListResult = {
@@ -58,6 +71,8 @@ export type SkillsListResult = {
   preset?: SkillSummary[];
   /** Echoed back so the UI can confirm which project the list came from. */
   projectPath: string | null;
+  items: SkillSearchItem[];
+  nextCursor?: string;
 };
 
 export type SkillAddressInput = {

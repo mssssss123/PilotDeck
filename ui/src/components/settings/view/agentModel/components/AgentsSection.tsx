@@ -10,6 +10,7 @@ import {
   activeModelCapabilities,
   buildModelRefOptions,
   ensureModelRefConfigured,
+  setModelImageInput,
 } from "../utils/modelRefs";
 
 type AgentsSectionProps = {
@@ -40,24 +41,7 @@ export default function AgentsSection({ config, onChange }: AgentsSectionProps) 
 
   const setImageOverride = (enable: boolean) => {
     if (!caps) return;
-    const { providerId, modelId } = caps;
-    const providers = config.model?.providers ?? {};
-    const provider = providers[providerId] ?? {};
-    const models = { ...(provider.models ?? {}) };
-    const existingDef = models[modelId];
-    const def: Record<string, unknown> =
-      existingDef && typeof existingDef === "object"
-        ? { ...(existingDef as Record<string, unknown>) }
-        : {};
-
-    const catalogDefault = Boolean(caps.catalogModel?.supportsImage);
-    if (enable === catalogDefault) {
-      delete def.multimodal;
-    } else {
-      def.multimodal = { input: enable ? ["text", "image"] : ["text"] };
-    }
-    models[modelId] = def as Record<string, unknown>;
-    onChange(patch(config, ["model", "providers", providerId, "models"], models));
+    onChange(setModelImageInput(config, caps.ref, enable));
   };
 
   const setMaxOutputTokens = (value: number | undefined) => {
@@ -158,7 +142,7 @@ export default function AgentsSection({ config, onChange }: AgentsSectionProps) 
                   <div className="w-full max-w-[360px]">
                     <NumberInput
                       value={caps.maxOutputTokensOverride}
-                      placeholder={String(caps.catalogModel?.maxOutputTokens ?? 16384)}
+                      placeholder={String(caps.defaultMaxOutputTokens)}
                       onChange={(value) =>
                         setMaxOutputTokens(
                           typeof value === "number" && value > 0
@@ -183,7 +167,7 @@ export default function AgentsSection({ config, onChange }: AgentsSectionProps) 
                   <div className="w-full max-w-[360px]">
                     <NumberInput
                       value={config.agent?.maxContextTokens}
-                      placeholder={String(caps.catalogModel?.maxContextTokens ?? 200000)}
+                      placeholder={String(caps.defaultMaxContextTokens)}
                       onChange={(value) => {
                         if (value === undefined) {
                           const next = { ...(config.agent ?? {}) };

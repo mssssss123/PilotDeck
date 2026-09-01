@@ -1,21 +1,13 @@
-import {
-  ANTHROPIC_DEFAULT_CAPABILITIES,
-  ANTHROPIC_DEFAULT_MULTIMODAL,
-} from "../providers/anthropic/defaults.js";
-import {
-  OPENAI_DEFAULT_CAPABILITIES,
-  OPENAI_DEFAULT_MULTIMODAL,
-} from "../providers/openai/defaults.js";
-import {
-  GOOGLE_DEFAULT_CAPABILITIES,
-  GOOGLE_DEFAULT_MULTIMODAL,
-} from "../providers/google/defaults.js";
+import { ANTHROPIC_DEFAULT_CAPABILITIES } from "../providers/anthropic/defaults.js";
+import { OPENAI_DEFAULT_CAPABILITIES } from "../providers/openai/defaults.js";
+import { GOOGLE_DEFAULT_CAPABILITIES } from "../providers/google/defaults.js";
 import type {
   ModelConfig,
   ModelDefinition,
   ModelProtocol,
   ProviderConfig,
   ProviderRetryConfig,
+  SpeedMapping,
 } from "../protocol/canonical.js";
 import { mergeCapabilities, type ModelCapabilities } from "../protocol/capabilities.js";
 import { ModelConfigError } from "../protocol/errors.js";
@@ -108,9 +100,33 @@ function parseProvider(providerId: string, rawProvider: unknown, env?: Credentia
     timeoutMs: readOptionalPositiveNumber(provider.timeoutMs, "timeoutMs"),
     headers: readStringRecord(provider.headers, "headers"),
     extraBody: isRecord(provider.extraBody) ? (provider.extraBody as Record<string, unknown>) : undefined,
+    speedMapping: parseSpeedMapping(provider.speedMapping, providerId, protocol, catalogProvider !== undefined),
     retry: parseRetryConfig(provider.retry),
     models,
   };
+}
+
+function parseSpeedMapping(
+  raw: unknown,
+  providerId: string,
+  protocol: ModelProtocol,
+  isCatalogProvider: boolean,
+): SpeedMapping | undefined {
+  if (raw !== undefined) {
+    if (raw === "openai_service_tier" && (protocol === "openai" || protocol === "openai-responses")) return raw;
+    if (raw === "anthropic_speed" && protocol === "anthropic") return raw;
+    throw new ModelConfigError(
+      "invalid_config_value",
+      "speedMapping must match the provider protocol: openai_service_tier for OpenAI or anthropic_speed for Anthropic.",
+      { providerId },
+    );
+  }
+  if (!isCatalogProvider) return undefined;
+  if (providerId === "openai" && (protocol === "openai" || protocol === "openai-responses")) {
+    return "openai_service_tier";
+  }
+  if (providerId === "anthropic" && protocol === "anthropic") return "anthropic_speed";
+  return undefined;
 }
 
 function resolveProviderApiKey(
@@ -178,7 +194,13 @@ function parseModelDefinition(
   const catalogModel = catalogHit.model;
 
   const capabilities = parseCapabilities(protocol, model.capabilities, catalogModel?.capabilities);
-  const multimodal = parseMultimodal(protocol, model.multimodal, catalogModel?.multimodal);
+  // Cross-provider model-name matches are useful for token/capability hints,
+  // but they must not silently opt a custom model into image delivery. Aliases
+  // declared by the selected catalog provider are trusted like exact matches.
+  const catalogMultimodal = catalogHit.matchType === "exact" || catalogHit.matchType === "alias"
+    ? catalogModel?.multimodal
+    : undefined;
+  const multimodal = parseMultimodal(model.multimodal, catalogMultimodal);
 
   return {
     id: modelId,
@@ -220,6 +242,7 @@ function parseCapabilities(
     "supportsStreaming",
     "supportsParallelToolCalls",
     "supportsThinking",
+    "supportsSpeed",
     "supportsJsonSchema",
     "supportsSystemPrompt",
     "supportsPromptCache",
@@ -254,17 +277,13 @@ function parseCapabilities(
 }
 
 function parseMultimodal(
-  protocol: ModelProtocol,
   rawMultimodal: unknown,
   catalogMultimodal?: MultimodalConstraints,
 ): MultimodalConstraints {
-  const protocolDefaults =
-    protocol === "anthropic"
-      ? ANTHROPIC_DEFAULT_MULTIMODAL
-      : protocol === "google"
-        ? GOOGLE_DEFAULT_MULTIMODAL
-        : OPENAI_DEFAULT_MULTIMODAL;
-  const defaults = catalogMultimodal ?? { ...DEFAULT_MULTIMODAL_CONSTRAINTS, ...protocolDefaults };
+  // Unknown/custom models are text-only until their model definition explicitly
+  // opts into additional modalities. Protocol compatibility alone does not imply
+  // that the upstream model accepts images.
+  const defaults = catalogMultimodal ?? DEFAULT_MULTIMODAL_CONSTRAINTS;
 
   if (rawMultimodal === undefined) {
     return defaults;

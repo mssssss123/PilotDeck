@@ -28,7 +28,6 @@
 
 import express from 'express';
 import { promises as fs } from 'fs';
-import { statSync } from 'fs';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
@@ -36,66 +35,11 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import multer from 'multer';
 import { getPilotDeckGateway } from '../pilotdeck-bridge.js';
-import { isVirtualProjectPath, resolvePilotHome } from '../utils/pilotPaths.js';
+import { resolvePilotHome } from '../utils/pilotPaths.js';
 import { moveDirectoryAcrossDevicesSafe } from '../utils/fileMoves.js';
-import { prepareCliSpawn } from '../utils/processSpawn.js';
-import { loadBuiltinPlugins } from '../../../src/extension/plugins/builtin/loadBuiltinPlugins.js';
-import { loadBundledSkills } from '../../../src/extension/plugins/builtin/loadBundledSkills.js';
 
 const execFileAsync = promisify(execFile);
 const router = express.Router();
-
-function builtinPresetSkillSummaries() {
-  return [...loadBuiltinPlugins(), ...loadBundledSkills()].flatMap((plugin) => (plugin.skills || []).map((skill) => ({
-    slug: skill.name,
-    name: plugin.name && skill.name.startsWith(`${plugin.name}:`)
-      ? skill.name.slice(plugin.name.length + 1)
-      : skill.name,
-    description: typeof skill.frontmatter?.description === 'string' ? skill.frontmatter.description : '',
-    version: null,
-    skillFile: `preset:${skill.name}/SKILL.md`,
-    skillDir: `preset:${skill.name}`,
-    scope: 'preset',
-    readonly: true,
-    mtime: null,
-  })));
-}
-
-function loadBuiltinPresetSkill(slug) {
-  for (const plugin of [...loadBuiltinPlugins(), ...loadBundledSkills()]) {
-    const skill = (plugin.skills || []).find((entry) => entry.name === slug || entry.name.endsWith(`:${slug}`));
-    if (skill) {
-      return {
-        content: skill.content,
-        scope: 'preset',
-        slug,
-        skill: builtinPresetSkillSummaries().find((entry) => entry.slug === skill.name) || null,
-      };
-    }
-  }
-  return null;
-}
-
-function runClawHub(args, options) {
-  const command = resolveBundledClawHubCommand() || 'clawhub';
-  const prepared = prepareCliSpawn(command, args, options);
-  return execFileAsync(prepared.command, prepared.args, prepared.options);
-}
-
-function resolveBundledClawHubCommand() {
-  if (!process.env.PILOTDECK_RUNTIME_ROOT) return null;
-  const shimName = process.platform === 'win32' ? 'clawhub.cmd' : 'clawhub';
-  const candidate = path.join(process.env.PILOTDECK_RUNTIME_ROOT, 'node_modules', '.bin', shimName);
-  return fsSyncExists(candidate) ? candidate : null;
-}
-
-function fsSyncExists(filePath) {
-  try {
-    return Boolean(filePath) && statSync(filePath).isFile();
-  } catch {
-    return false;
-  }
-}
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -126,9 +70,11 @@ function safeSlug(slug) {
   return typeof slug === 'string' && SLUG_RE.test(slug) && !slug.includes('..');
 }
 
+const GENERAL_CWD_PATHS = [path.resolve(PILOT_HOME)];
+
 function isGeneralCwd(projectPath) {
   if (!projectPath) return false;
-  return isVirtualProjectPath(projectPath, PILOT_HOME);
+  return GENERAL_CWD_PATHS.includes(path.resolve(projectPath));
 }
 
 function resolveRequestedScope(scope, projectPath, { defaultToProjectWhenAvailable = false } = {}) {
@@ -141,10 +87,7 @@ function resolveRequestedScope(scope, projectPath, { defaultToProjectWhenAvailab
 
   if (scope === 'project') {
     if (generalCwd) {
-      return {
-        ok: false,
-        error: "project scope requires a real project (general chat doesn't qualify)",
-      };
+      return { ok: true, scope: 'user', projectPath: null, wantProject: false };
     }
     if (!effectiveProjectPath) {
       return {
@@ -191,13 +134,6 @@ function expandHome(p) {
 function classifySkillPath(skillPath, projectPath = null) {
   if (typeof skillPath !== 'string' || !skillPath) {
     return { ok: false, reason: 'skillPath is required' };
-  }
-  if (skillPath.startsWith('preset:')) {
-    const rawSlug = skillPath.slice('preset:'.length).replace(/\/SKILL\.md$/, '');
-    if (!rawSlug || rawSlug.includes('..')) {
-      return { ok: false, reason: 'Invalid preset skill path' };
-    }
-    return { ok: true, scope: 'preset', slug: rawSlug };
   }
   const abs = path.resolve(skillPath);
   if (abs.includes('..')) {
@@ -283,21 +219,25 @@ async function callGateway(method, params) {
 
 router.post('/list', async (req, res) => {
   try {
-    const { projectPath } = req.body || {};
-    const generalCwd = isGeneralCwd(projectPath);
-    const effectiveProjectPath = generalCwd ? null : projectPath || null;
-    const data = await callGateway('skillsList', { projectKey: effectiveProjectPath });
-    const builtinSlugs = new Set((data.builtin || []).map((skill) => skill.slug));
-    const preset = (Array.isArray(data.preset) && data.preset.length > 0
-      ? data.preset
-      : builtinPresetSkillSummaries()).filter((skill) => !builtinSlugs.has(skill.slug));
+    const { projectPath, projectKey, query, scope, cursor, limit } = req.body || {};
+    const requestedProject = projectKey || projectPath;
+    const generalCwd = isGeneralCwd(requestedProject);
+    const effectiveProjectPath = generalCwd ? null : requestedProject || null;
+    const data = await callGateway('skillsList', {
+      projectKey: effectiveProjectPath,
+      query,
+      scope,
+      cursor,
+      limit,
+    });
     res.json({
       builtin: data.builtin,
       user: data.user,
       project: data.project,
-      preset,
       projectPath: data.projectPath,
       isGeneralCwd: generalCwd,
+      items: data.items,
+      nextCursor: data.nextCursor,
     });
   } catch (e) {
     sendGatewayError(res, e);
@@ -309,18 +249,11 @@ router.post('/read', async (req, res) => {
     const { skillPath, projectPath } = req.body || {};
     const cls = classifySkillPath(skillPath, projectPath);
     if (!cls.ok) return res.status(400).json({ error: cls.reason });
-    let result;
-    try {
-      result = await callGateway('skillRead', {
-        scope: cls.scope,
-        slug: cls.slug,
-        projectKey: cls.scope === 'project' ? projectPath : null,
-      });
-    } catch (e) {
-      if (cls.scope !== 'preset') throw e;
-      result = loadBuiltinPresetSkill(cls.slug);
-      if (!result) throw e;
-    }
+    const result = await callGateway('skillRead', {
+      scope: cls.scope,
+      slug: cls.slug,
+      projectKey: cls.scope === 'project' ? projectPath : null,
+    });
     res.json(result);
   } catch (e) {
     sendGatewayError(res, e);
@@ -579,7 +512,7 @@ router.post('/clawhub/search', async (req, res) => {
 
     let stdout = '';
     try {
-      const r = await runClawHub(args, { timeout: 30_000, maxBuffer: 4 * 1024 * 1024 });
+      const r = await execFileAsync('clawhub', args, { timeout: 30_000, maxBuffer: 4 * 1024 * 1024 });
       stdout = r.stdout || '';
     } catch (e) {
       if (e.code === 'ENOENT') {
@@ -588,19 +521,8 @@ router.post('/clawhub/search', async (req, res) => {
           .json({ error: 'clawhub CLI not found in PATH. Install with `npm install -g clawhub`.' });
       }
       stdout = e.stdout || '';
-      const stderr = (e.stderr || '').trim();
       if (!stdout) {
-        const message = stderr || e.message || 'clawhub search failed';
-        console.warn('[skills/clawhub/search] clawhub failed', {
-          message,
-          exitCode: e.code,
-          signal: e.signal,
-        });
-        return res.status(502).json({
-          error: `clawhub search failed: ${message}`,
-          message,
-          exitCode: typeof e.code === 'number' ? e.code : undefined,
-        });
+        return res.status(500).json({ error: 'clawhub search failed', message: e.message });
       }
     }
 
@@ -660,7 +582,7 @@ router.post('/clawhub/install', async (req, res) => {
     let stderr = '';
     let runError = null;
     try {
-      const r = await runClawHub(args, { timeout: 120_000, maxBuffer: 10 * 1024 * 1024 });
+      const r = await execFileAsync('clawhub', args, { timeout: 120_000, maxBuffer: 10 * 1024 * 1024 });
       stdout = r.stdout || '';
       stderr = r.stderr || '';
     } catch (e) {

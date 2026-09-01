@@ -22,6 +22,7 @@ import {
   ListChecks,
   Loader2,
   Paperclip,
+  Play,
   ShieldAlert,
   Square,
   type LucideIcon,
@@ -36,6 +37,7 @@ import CommandMenu from '../chat/view/subcomponents/CommandMenu';
 import { cn } from '../../lib/utils.js';
 import type { ContentReference } from '../../types/contentReference';
 import DocumentReferenceChip from './DocumentReferenceChip';
+import { getComposerPrimaryAction } from './composerPrimaryAction';
 
 interface MentionableFile {
   name: string;
@@ -98,9 +100,8 @@ export type ComposerV2Props = {
   isLoading: boolean;
   canAbortSession: boolean;
   isAbortPending?: boolean;
-  isBusySendQueued?: boolean;
-  isBusySendConfirmed?: boolean;
-  onCancelBusySendQueue?: () => void;
+  isInputQueuePaused?: boolean;
+  onResumeInputQueue?: () => void;
   isSubmitPending?: boolean;
   tokenBudget?: Record<string, unknown> | null;
   thinkingMode: ThinkingModeId;
@@ -131,6 +132,7 @@ export type ComposerV2Props = {
   sendByCtrlEnter?: boolean;
 
   chromeless?: boolean;
+  queueTray?: ReactNode;
 };
 
 type ContextStatus = {
@@ -239,12 +241,14 @@ function formatContextPercentLabel(percent: number): string {
 }
 
 export function getContextStatus(tokenBudget?: Record<string, unknown> | null): ContextStatus {
-  const used = readNumber(tokenBudget?.displayUsed) ?? readNumber(tokenBudget?.used) ?? 0;
-  const budgetUsed = readNumber(tokenBudget?.budgetUsed) ?? readNumber(tokenBudget?.used) ?? used;
+  // `used` is the resolved provider/calibrated count that drives compaction.
+  // Keep displayUsed only as a fallback for older persisted gateway events.
+  const used = readNumber(tokenBudget?.used) ?? readNumber(tokenBudget?.displayUsed) ?? 0;
   const total = readNumber(tokenBudget?.total) ?? 0;
   const effectiveTotal = readNumber(tokenBudget?.effectiveTotal);
-  const displayTotal = effectiveTotal && effectiveTotal > 0 ? effectiveTotal : total;
-  if (displayTotal <= 0) {
+  const budgetTotal = effectiveTotal && effectiveTotal > 0 ? effectiveTotal : total;
+  const visibleTotal = total > 0 ? total : budgetTotal;
+  if (budgetTotal <= 0) {
     return {
       known: false,
       used: 0,
@@ -259,12 +263,9 @@ export function getContextStatus(tokenBudget?: Record<string, unknown> | null): 
     };
   }
 
-  // The visible count and percent must describe the same quantity. `budgetUsed`
-  // includes the conservative request padding used by the compaction policy;
-  // using it for the badge while showing `displayUsed` below produced confusing
-  // combinations such as “100%+” beside “11,928 / 12,000”. Policy state still
-  // uses the padded budget and can correctly remain blocking.
-  const percent = Math.max(0, Math.round((used / displayTotal) * 100));
+  // Policy severity still follows the effective request budget, while the
+  // visible denominator shows the full model context window when available.
+  const percent = Math.max(0, Math.round((used / budgetTotal) * 100));
   const snapshotState = typeof tokenBudget?.state === 'string' ? tokenBudget.state : null;
   const tone = snapshotState === 'blocking'
     ? 'red'
@@ -279,11 +280,11 @@ export function getContextStatus(tokenBudget?: Record<string, unknown> | null): 
     known: true,
     used,
     total,
-    displayTotal,
+    displayTotal: visibleTotal,
     percent,
     percentLabel: formatContextPercentLabel(percent),
     usedLabel: formatTokenCount(used),
-    totalLabel: formatTokenCount(displayTotal),
+    totalLabel: formatTokenCount(visibleTotal),
     state: snapshotState === 'blocking' || snapshotState === 'warning' ? snapshotState : 'ok',
     tone,
   };
@@ -330,9 +331,8 @@ export default function ComposerV2({
   isLoading,
   canAbortSession,
   isAbortPending = false,
-  isBusySendQueued = false,
-  isBusySendConfirmed = false,
-  onCancelBusySendQueue,
+  isInputQueuePaused = false,
+  onResumeInputQueue,
   isSubmitPending = false,
   tokenBudget,
   thinkingMode,
@@ -348,6 +348,7 @@ export default function ComposerV2({
   planModeAvailable = true,
   onPlanExecutionApproved,
   chromeless = false,
+  queueTray,
 }: ComposerV2Props) {
   const { t } = useTranslation('chat');
   const [isContextPopoverOpen, setIsContextPopoverOpen] = useState(false);
@@ -370,13 +371,11 @@ export default function ComposerV2({
   const hasUploadingImages = uploadingImages.size > 0;
   const attachmentLimitError = imageErrors.get(MAX_ATTACHMENTS_ERROR_KEY);
   const disabled = !hasDraftContent || isSubmitPending || hasUploadingImages;
-  const showAbortButton = isLoading && canAbortSession && !hasDraftContent;
+  const primaryAction = getComposerPrimaryAction({ isLoading, isInputQueuePaused, hasDraftContent });
   const sendTitle = isSubmitPending || hasUploadingImages
     ? (t('input.sending', { defaultValue: 'Sending...' }) as string)
-    : isBusySendConfirmed
-      ? (t('input.queuedSendConfirmed', { defaultValue: 'Stopping current turn — sending next message' }) as string)
-      : isBusySendQueued
-        ? (t('input.queuedSendConfirm', { defaultValue: 'Queued — click send again to stop this turn and send now' }) as string)
+    : isInputQueuePaused && !hasDraftContent
+      ? (t('inputQueue.resume', { defaultValue: 'Continue' }) as string)
       : isLoading
         ? (t('input.queueSend', { defaultValue: 'Queue message' }) as string)
         : (t('input.send', { defaultValue: 'Send' }) as string);
@@ -441,6 +440,7 @@ export default function ComposerV2({
       )}
     >
       <div className={cn('min-w-0', chromeless ? '' : 'mx-auto max-w-[720px]')}>
+        {queueTray}
         {pendingPermissionRequests.length > 0 ? (
           <div className="mb-3">
             <PermissionRequestsBanner
@@ -816,24 +816,6 @@ export default function ComposerV2({
                   </div>
                   </div>
 
-                  {isBusySendQueued ? (
-                    <div className="hidden min-w-0 flex-1 items-center justify-end gap-1 px-2 text-[12px] text-amber-700 dark:text-amber-300 sm:flex">
-                      <span className="truncate rounded-full bg-amber-50 px-2 py-1 dark:bg-amber-950/30">
-                        {isBusySendConfirmed
-                          ? t('input.queuedSendConfirmedInline', { defaultValue: 'Stopping current turn; sending next' })
-                          : t('input.queuedSendConfirmInline', { defaultValue: 'Queued; click again to stop this turn and send now' })}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={onCancelBusySendQueue}
-                        className="rounded-full px-2 py-1 text-amber-700 transition hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-950/50"
-                        title={t('input.cancelQueuedSend', { defaultValue: 'Cancel queued message' }) as string}
-                      >
-                        {t('input.cancelQueuedSendShort', { defaultValue: 'Cancel' })}
-                      </button>
-                    </div>
-                  ) : null}
-
                   <div className="pd-composer-toolbar-right ml-auto flex shrink-0 items-center gap-1">
                     <div
                       className="relative"
@@ -987,11 +969,11 @@ export default function ComposerV2({
                       ) : null}
                     </div>
 
-                    {showAbortButton ? (
+                    {primaryAction === 'stop' ? (
                       <button
                         type="button"
                         onClick={onAbortSession}
-                        disabled={isAbortPending}
+                        disabled={isAbortPending || !canAbortSession}
                         className={cn(
                           'inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-500 text-white transition hover:bg-red-600',
                           isAbortPending && 'cursor-wait opacity-70 hover:bg-red-500',
@@ -1008,29 +990,33 @@ export default function ComposerV2({
                           <Square className="h-3.5 w-3.5" strokeWidth={2.5} fill="currentColor" />
                         )}
                       </button>
-                    ) : null}
-                    <button
-                      type="submit"
-                      disabled={disabled}
-                      aria-busy={isSubmitPending || hasUploadingImages || isBusySendConfirmed}
-                      className={cn(
-                        'inline-flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-900 text-white transition hover:opacity-90 disabled:opacity-40 dark:bg-neutral-50 dark:text-neutral-900',
-                        isBusySendQueued && 'bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-400 dark:text-neutral-950 dark:hover:bg-amber-300',
-                        isBusySendConfirmed && 'cursor-wait',
-                        (isSubmitPending || hasUploadingImages) && 'cursor-wait',
-                      )}
-                      title={sendTitle}
-                    >
-                      {isSubmitPending || hasUploadingImages ? (
-                        <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2.25} />
-                      ) : isBusySendConfirmed ? (
-                        <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2.25} />
-                      ) : isBusySendQueued ? (
-                        <Check className="h-4 w-4" strokeWidth={2.25} />
-                      ) : (
-                        <ArrowUp className="h-4 w-4" strokeWidth={2} />
-                      )}
-                    </button>
+                    ) : primaryAction === 'resume' ? (
+                      <button
+                        type="button"
+                        onClick={onResumeInputQueue}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-900 text-white transition hover:opacity-90 dark:bg-neutral-50 dark:text-neutral-900"
+                        title={sendTitle}
+                      >
+                        <Play className="h-4 w-4" fill="currentColor" strokeWidth={2} />
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={disabled}
+                        aria-busy={isSubmitPending || hasUploadingImages}
+                        className={cn(
+                          'inline-flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-900 text-white transition hover:opacity-90 disabled:opacity-40 dark:bg-neutral-50 dark:text-neutral-900',
+                          (isSubmitPending || hasUploadingImages) && 'cursor-wait',
+                        )}
+                        title={sendTitle}
+                      >
+                        {isSubmitPending || hasUploadingImages ? (
+                          <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2.25} />
+                        ) : (
+                          <ArrowUp className="h-4 w-4" strokeWidth={2} />
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
             </div>

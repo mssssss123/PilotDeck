@@ -9,6 +9,7 @@ import { PluginRegistry } from "./PluginRegistry.js";
 import { truncateMcpInstructionString } from "./truncateMcpString.js";
 import type { PilotDeckHooksSettings } from "../../hooks/protocol/settings.js";
 import type { PilotDeckCustomRouter } from "../../../router/customRouter/customRouter.js";
+import { renderSkillContent } from "../../skills/renderSkillContent.js";
 
 /**
  * Static MCP server contribution shape callers can rely on. Manifests load
@@ -177,7 +178,7 @@ export class PluginRuntime {
     for (const plugin of plugins) {
       const skill = plugin.skills?.find((entry) => entry.name === extensionId);
       if (skill) {
-        return skill.content;
+        return renderSkillContent(skill.content, skill.path);
       }
     }
 
@@ -186,7 +187,7 @@ export class PluginRuntime {
     for (const plugin of plugins) {
       const skill = plugin.skills?.find((entry) => entry.name.endsWith(`:${extensionId}`));
       if (skill) {
-        return skill.content;
+        return renderSkillContent(skill.content, skill.path);
       }
     }
 
