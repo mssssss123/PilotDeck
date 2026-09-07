@@ -295,7 +295,7 @@ export class ApiServerChannel implements ChannelAdapter {
         status: 503,
         type: "server_error",
         scope: "preflight",
-        userHint: "Start or reconnect the PilotDeck gateway, then retry.",
+        userHint: "Start or reconnect the 9GClaw gateway, then retry.",
       }));
       return;
     }
@@ -341,7 +341,7 @@ export class ApiServerChannel implements ChannelAdapter {
           status: 500,
           type: "server_error",
           scope: "channel",
-          userHint: "PilotDeck failed before this API request could finish. Retry the request; if it repeats, check the API server and gateway logs.",
+          userHint: "9GClaw failed before this API request could finish. Retry the request; if it repeats, check the API server and gateway logs.",
         }))}\n\n`);
       } catch { /* best effort */ }
     } finally {
@@ -359,7 +359,7 @@ export class ApiServerChannel implements ChannelAdapter {
         status: 503,
         type: "server_error",
         scope: "preflight",
-        userHint: "Start or reconnect the PilotDeck gateway, then retry.",
+        userHint: "Start or reconnect the 9GClaw gateway, then retry.",
       }));
       return;
     }
@@ -395,7 +395,7 @@ export class ApiServerChannel implements ChannelAdapter {
         status: 500,
         type: "server_error",
         scope: "channel",
-        userHint: "PilotDeck failed before this API request could finish. Retry the request; if it repeats, check the API server and gateway logs.",
+        userHint: "9GClaw failed before this API request could finish. Retry the request; if it repeats, check the API server and gateway logs.",
       }));
       return;
     }

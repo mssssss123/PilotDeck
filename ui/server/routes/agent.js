@@ -845,7 +845,7 @@ router.post('/', validateExternalApiKey, async (req, res) => {
     return res.status(400).json({ error: 'message is required' });
   }
 
-  // After the PilotDeck-only migration any incoming `provider` is just a
+  // After the 9GClaw-only migration any incoming `provider` is just a
   // label — every request is routed through `src/gateway`. We accept the
   // legacy values plus the new `pilotdeck` alias for forward compatibility.
   if (!['claude', 'cursor', 'codex', 'gemini', 'pilotdeck'].includes(provider)) {
@@ -932,7 +932,7 @@ router.post('/', validateExternalApiKey, async (req, res) => {
       });
     }
 
-    console.log(`🛫 Starting PilotDeck gateway session (provider=${provider})`);
+    console.log(`🛫 Starting 9GClaw gateway session (provider=${provider})`);
 
     await runChatViaGateway(
       message.trim(),
@@ -1088,7 +1088,7 @@ router.post('/', validateExternalApiKey, async (req, res) => {
           } else {
             prBody += `Agent task: ${message}`;
           }
-          prBody += '\n\n---\n*This pull request was automatically created by PilotDeck Agent.*';
+          prBody += '\n\n---\n*This pull request was automatically created by 9GClaw Agent.*';
 
           console.log(`📝 PR Title: ${prTitle}`);
 

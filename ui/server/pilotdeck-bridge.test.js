@@ -788,11 +788,11 @@ describe('gatewayEventToFrames agent status errors', () => {
             type: 'agent_status',
             event: 'gateway_unavailable',
             detail: {
-                message: 'PilotDeck gateway is unavailable.',
+                message: '9GClaw gateway is unavailable.',
                 code: 'gateway_unavailable',
                 severity: 'error',
                 visible: true,
-                userHint: 'Start or restart the PilotDeck gateway, then retry this message.',
+                userHint: 'Start or restart the 9GClaw gateway, then retry this message.',
                 scope: 'preflight',
                 source: 'web_bridge',
             },
@@ -802,9 +802,9 @@ describe('gatewayEventToFrames agent status errors', () => {
         expect(frames[0]).toMatchObject({
             kind: 'error',
             terminal: true,
-            content: 'PilotDeck gateway is unavailable.',
+            content: '9GClaw gateway is unavailable.',
             code: 'gateway_unavailable',
-            userHint: 'Start or restart the PilotDeck gateway, then retry this message.',
+            userHint: 'Start or restart the 9GClaw gateway, then retry this message.',
         });
     });
 });

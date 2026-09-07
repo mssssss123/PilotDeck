@@ -629,7 +629,7 @@ export interface Gateway {
    */
   readSubagentMessages(input: WebReadSubagentMessagesInput): Promise<WebReadSubagentMessagesResult>;
   /**
-   * Web Phase 3 — enumerate projects from PilotDeck home + an optional
+   * Web Phase 3 — enumerate projects from 9GClaw home + an optional
    * registry.
    */
   listProjects(): Promise<WebListProjectsResult>;

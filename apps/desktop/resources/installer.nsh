@@ -1,4 +1,4 @@
-; Custom NSIS include for PilotDeck
+; Custom NSIS include for 9GClaw
 
 ; Fix 1: Reload icon after UAC elevation to prevent title bar icon loss.
 !define MUI_CUSTOMFUNCTION_GUIINIT fixInstallerIcon

@@ -22,7 +22,7 @@ test("lists historical sessions whose large inline image hides metadata from the
     await mkdir(chatDir, { recursive: true });
 
     const largeSessionId = "web:s_large-image";
-    const largeTitle = "Recovered PilotDeck session title";
+    const largeTitle = "Recovered 9GClaw session title";
     const largeInput = entry("accepted_input", largeSessionId, 1, {
       messages: [{
         role: "user",

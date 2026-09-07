@@ -394,7 +394,7 @@
     "apiDocsLink": "API Documentation",
     "documentation": {
       "title": "External API Documentation",
-      "description": "Learn how to use the external API to trigger PilotDeck sessions from your applications.",
+      "description": "Learn how to use the external API to trigger 9GClaw sessions from your applications.",
       "viewLink": "View API Documentation →"
     },
     "loading": "Loading...",
@@ -445,7 +445,7 @@
         "description": "Google Gemini AI assistant"
       },
       "pilotdeck": {
-        "description": "OpenBMB PilotDeck AI assistant"
+        "description": "9GClaw AI assistant"
       }
     },
     "connectionStatus": "Connection Status",
@@ -545,7 +545,7 @@
   "mcpServers": {
     "title": "MCP Servers",
     "description": {
-      "pilotdeck": "Model Context Protocol servers provide additional tools and data sources to PilotDeck",
+      "pilotdeck": "Model Context Protocol servers provide additional tools and data sources to 9GClaw",
       "cursor": "Model Context Protocol servers provide additional tools and data sources to Cursor",
       "codex": "Model Context Protocol servers provide additional tools and data sources to Codex"
     },
@@ -578,7 +578,7 @@
   },
   "mcpConfig": {
     "title": "MCP Servers",
-    "description": "Edit PilotDeck MCP config. Global config lives in ~/.pilotdeck/mcp.json; project config lives in .pilotdeck/mcp.json and overrides global servers with the same name.",
+    "description": "Edit 9GClaw MCP config. Global config lives in ~/.pilotdeck/mcp.json; project config lives in .pilotdeck/mcp.json and overrides global servers with the same name.",
     "project": "Project for project-scoped config",
     "scopes": {
       "global": "Global",
@@ -623,7 +623,7 @@
     }
   },
   "pilotDeckConfig": {
-    "loading": "Loading PilotDeck config...",
+    "loading": "Loading 9GClaw config...",
     "header": {
       "configFile": "Config file",
       "configPreview": "Config preview",
@@ -722,7 +722,7 @@
       },
       "memory": {
         "label": "Memory",
-        "description": "PilotDeck memory service"
+        "description": "9GClaw memory service"
       },
       "tools": {
         "label": "Search",
@@ -734,7 +734,7 @@
       },
       "router": {
         "label": "Router",
-        "description": "PilotDeck Router"
+        "description": "9GClaw Router"
       },
       "gateway": {
         "label": "Gateway",
@@ -763,7 +763,7 @@
       },
       "officePreview": {
         "title": "Office File Preview Service",
-        "description": "Choose how Office files are previewed in read-only mode. PDF always uses PilotDeck's built-in viewer.",
+        "description": "Choose how Office files are previewed in read-only mode. PDF always uses 9GClaw's built-in viewer.",
         "fields": {
           "service": {
             "label": "Preview service",
@@ -881,7 +881,7 @@
           "label": "Subagents default",
           "description": "Default model for subagents on non-router paths.",
           "inherit": "Inherit main agent model",
-          "routerNote": "When PilotDeck Router or Token Saver is enabled, subagent requests enter the router first. By default, the subagent policy re-judges each subagent turn and picks a tier model. This default only acts as a direct subagent fallback or inherited baseline; it does not override the subagent routing policy in Router advanced settings."
+          "routerNote": "When 9GClaw Router or Token Saver is enabled, subagent requests enter the router first. By default, the subagent policy re-judges each subagent turn and picks a tier model. This default only acts as a direct subagent fallback or inherited baseline; it does not override the subagent routing policy in Router advanced settings."
         }
       },
       "customEnv": {
@@ -1086,7 +1086,7 @@
         }
       },
       "router": {
-        "title": "PilotDeck Router",
+        "title": "9GClaw Router",
         "description": "Embedded router for fan-out across providers (tier-based routing, token saver, auto-orchestrate).",
         "enabled": { "label": "Enabled", "description": "When on, agents use the router instead of the configured provider directly." },
         "advancedToggle": "Advanced settings",
@@ -1251,11 +1251,11 @@
     "updateComplete": "Update complete!",
     "updateFailed": "Update failed",
     "restartToApply": "Restart to Apply",
-    "restartingTitle": "Restarting PilotDeck...",
+    "restartingTitle": "Restarting 9GClaw...",
     "restartingDescription": "Page will reload automatically when server is ready.",
     "restartWaitingDescription": "Restart may take a little while. Please wait.",
     "restartFailedTitle": "Automatic restart ran into a problem",
-    "restartFailedDescription": "Restart PilotDeck manually from the command line, then refresh this page.",
+    "restartFailedDescription": "Restart 9GClaw manually from the command line, then refresh this page.",
     "refreshPage": "Refresh page",
     "downloadUpdate": "Download Update",
     "downloading": "Downloading... {{percent}}%",

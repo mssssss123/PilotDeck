@@ -22,7 +22,7 @@ Desktop QA used a 2048×926 viewport. Responsive QA used a 390×844 viewport. Th
 - Menu and active state: the ellipsis menu contains Skills, Router, Memory, and Always-On. Selecting an item replaces the ellipsis with a highlighted icon-and-label button without a chevron. Clicking that button again closes the dashboard and restores the ellipsis.
 - Layout: File continues to use the full workbench. Auxiliary tools open beside the mounted chat surface in a closable, keyboard-accessible, resizable right panel. At mobile width the panel becomes an overlay instead of compressing chat.
 - Density and responsiveness: Skills, Router, and Always-On use compact one-column layouts in the panel; Skills detail replaces the list and provides a localized back action.
-- Visual system: existing PilotDeck typography, neutral surfaces, border radii, shadows, Lucide icons, and dark-mode tokens are preserved. No new raster assets or custom icon artwork were introduced.
+- Visual system: existing 9GClaw typography, neutral surfaces, border radii, shadows, Lucide icons, and dark-mode tokens are preserved. No new raster assets or custom icon artwork were introduced.
 - Accessibility: controls expose pressed/expanded states; the menu uses menu semantics; the resize handle is an adjustable separator; close and resize labels are localized; Escape closes the dashboard menu.
 
 ## Interaction checks
@@ -71,7 +71,7 @@ Comparison history:
 
 Fidelity surfaces:
 
-- Typography, colors, tokens, icons, and file-preview assets are unchanged from PilotDeck's existing system.
+- Typography, colors, tokens, icons, and file-preview assets are unchanged from 9GClaw's existing system.
 - Layout ownership is now unambiguous: chat is full-width after Files closes; Files owns the explorer, artifact, and compact assistant regions.
 - Existing copy and content are preserved; only navigation and containment behavior changed.
 - No new images, custom SVGs, CSS drawings, or replacement assets were introduced.
@@ -127,7 +127,7 @@ Interaction and comparison history:
 - A conversation with no mounted message pane exposes a visible but disabled Search control. Existing conversations enable it automatically.
 - Chinese search copy now uses localized labels and placeholders; keyboard and accessible names remain intact.
 - At 390×844 the header controls and search overlay remain within the viewport without clipping or horizontal overflow.
-- Fonts and typography, spacing/layout rhythm, colors/tokens, existing image assets, icons, and app-specific copy were checked against the source and current PilotDeck design system. No new raster assets, custom SVGs, CSS drawings, or replacement imagery were introduced.
+- Fonts and typography, spacing/layout rhythm, colors/tokens, existing image assets, icons, and app-specific copy were checked against the source and current 9GClaw design system. No new raster assets, custom SVGs, CSS drawings, or replacement imagery were introduced.
 - Browser console warnings/errors after the complete interaction flow: none.
 - P0/P1/P2 remaining: none.
 
@@ -274,7 +274,7 @@ Fidelity and interaction review:
 
 - Existing tabs, file icons, active treatment, close buttons, typography, and compact density are preserved.
 - The initially tested ellipsis entry was removed after user review because it crowded the active tab and file toolbar. The existing per-tab close button remains unchanged.
-- The menu follows PilotDeck's neutral surfaces, radius, border, shadow, spacing, and dark-mode tokens.
+- The menu follows 9GClaw's neutral surfaces, radius, border, shadow, spacing, and dark-mode tokens.
 - The menu exposes Close, Close other tabs, Close tabs to the right, and Close all tabs. Unavailable operations use a visible disabled state.
 - Right-clicking a tab opens the same menu with that tab as the operation target; middle-click and the existing close button still close one tab.
 - Closing all three tabs returns to the Files workspace empty state instead of leaving Files or exposing chat.
@@ -309,7 +309,7 @@ final result: passed
 ### Verification
 
 - Excel no longer renders a separate blue action in the formula bar.
-- Selecting a cell renders the shared “在 PilotDeck 中对话” pill next to the selection.
+- Selecting a cell renders the shared “在 9GClaw 中对话” pill next to the selection.
 - The action is clamped within the preview and moves below selections near the top edge.
 - Word and PDF text selections use the same shared pill styling.
 - Region selection uses the same floating surface while preserving its three actions.
@@ -369,7 +369,7 @@ final result: passed
 
 - Typography: the label reuses the existing 15 px header navigation treatment, matching Files in size, weight, and line height.
 - Spacing and layout: the existing ellipsis and the new label use the same 7 px icon/text gap and 34 px control height as Files; the 765 px-wide verification view shows no clipping or overlap.
-- Colors and tokens: the switcher reuses PilotDeck's existing light/dark header navigation tokens and hover treatment.
+- Colors and tokens: the switcher reuses 9GClaw's existing light/dark header navigation tokens and hover treatment.
 - Image and icon quality: no new raster asset or replacement icon was introduced; the existing ellipsis icon remains unchanged.
 - Copy: Chinese renders as `探索`; English renders as `Explore`; the accessible action remains `Open dashboards menu` / `打开看板菜单`.
 - Interaction: the labeled trigger opens the existing Routing, Memory, and Always-On menu and retains expanded/collapsed semantics.
@@ -378,7 +378,7 @@ final result: passed
 
 - First comparison found no actionable P0/P1/P2 mismatch. The source's product intent—turning an ambiguous ellipsis into a discoverable ellipsis-plus-label entry—is preserved.
 - No additional focused crop was required because the second source attachment is already a close crop of the exact icon-and-label relationship, while the open-state implementation capture shows that relationship at readable scale.
-- P3: the implementation uses PilotDeck's existing 15 px navigation density rather than attempting to reproduce the source application's exact typeface; this is intentional design-system consistency.
+- P3: the implementation uses 9GClaw's existing 15 px navigation density rather than attempting to reproduce the source application's exact typeface; this is intentional design-system consistency.
 
 ### Verification
 

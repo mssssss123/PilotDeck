@@ -1,17 +1,17 @@
 /**
  * `PluginToToolBridge` — converts the runtime view of MCP tools (advertised
- * by an `McpRuntime`) into PilotDeck `ToolDefinition`s suitable for
+ * by an `McpRuntime`) into 9GClaw `ToolDefinition`s suitable for
  * registration in `ToolRegistry`. Implements M10-M12 of §6.1:
  *
  *   - M10  wire name `mcp__<serverId>__<toolName>` (already produced by
  *          `McpClient.listTools`).
  *   - M11  description ≤ 2048 chars (already truncated).
  *   - M12  annotations.readOnlyHint / destructiveHint / openWorldHint
- *          reflected onto the PilotDeck tool flags so the permission
+ *          reflected onto the 9GClaw tool flags so the permission
  *          engine can decide whether to ask.
  *
  * Result transformation (M14): MCP ContentBlock types `text` and `image`
- * are mapped to their PilotDeck equivalents so that images (e.g. Playwright
+ * are mapped to their 9GClaw equivalents so that images (e.g. Playwright
  * screenshots) render inline in the chat UI. Remaining block types
  * (`audio`, `resource`, `resource_link`) fall through as a single `json`
  * block until the downstream pipeline supports them.

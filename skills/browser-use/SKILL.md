@@ -1,15 +1,15 @@
 ---
 name: browser-use
-description: "Use PilotDeck's browser-use plugin for browser automation, screenshots, form filling, and web UI checks."
+description: "Use 9GClaw's browser-use plugin for browser automation, screenshots, form filling, and web UI checks."
 ---
 
 # browser-use
 
-Use this skill when a task genuinely needs browser automation through PilotDeck's built-in `browser-use` plugin, especially for local Web UI smoke tests, screenshots, navigation, clicking, typing, and DOM inspection. For static pages, batch scraping, API responses, or plain text extraction, prefer ordinary HTTP/file tools first.
+Use this skill when a task genuinely needs browser automation through 9GClaw's built-in `browser-use` plugin, especially for local Web UI smoke tests, screenshots, navigation, clicking, typing, and DOM inspection. For static pages, batch scraping, API responses, or plain text extraction, prefer ordinary HTTP/file tools first.
 
 ## Availability
 
-PilotDeck ships the `browser-use` plugin, which runs `@playwright/mcp` with Chromium. Before installing anything, first try to use the existing browser/MCP setup or check the browser cache. If the browser is already present or browser-use launches successfully, do not reinstall it.
+9GClaw ships the `browser-use` plugin, which runs `@playwright/mcp` with Chromium. Before installing anything, first try to use the existing browser/MCP setup or check the browser cache. If the browser is already present or browser-use launches successfully, do not reinstall it.
 
 Check whether the browser is already installed:
 
@@ -32,11 +32,11 @@ Only install the browser when all of the following are true:
 
 The one-line installer uses the same check. If Chrome for Testing is already present, it prints `Chrome for Testing already installed` and does not download it again.
 
-Install it from a PilotDeck source checkout or installed app directory:
+Install it from a 9GClaw source checkout or installed app directory:
 
 ```bash
 cd /path/to/PilotDeck
-corepack pnpm install --frozen-lockfile --filter pilotdeck --filter pilotdeck-ui
+corepack pnpm install --frozen-lockfile --filter 9gclaw --filter 9gclaw-ui
 corepack pnpm run install:browser
 ```
 
@@ -56,11 +56,11 @@ PILOTDECK_SKIP_BROWSER_INSTALL=0 bash install.sh
 
 Repeated installs are safe only when the installer can confirm the cache first. In task containers or time-limited jobs, avoid ad hoc commands such as `playwright install chromium` unless the missing-browser error is confirmed and installation time is acceptable.
 
-If the download is slow or blocked, configure your network proxy first and rerun the install command. Browser automation is optional; PilotDeck core chat, files, skills, and settings work without it.
+If the download is slow or blocked, configure your network proxy first and rerun the install command. Browser automation is optional; 9GClaw core chat, files, skills, and settings work without it.
 
 ## Runtime Configuration
 
-PilotDeck starts browser-use through `playwright-mcp` and uses practical defaults for slower pages:
+9GClaw starts browser-use through `playwright-mcp` and uses practical defaults for slower pages:
 
 - `PILOTDECK_BROWSER_TIMEOUT_ACTION_MS`: browser action timeout, default `30000`.
 - `PILOTDECK_BROWSER_TIMEOUT_NAVIGATION_MS`: navigation timeout, default `90000`.
@@ -79,8 +79,8 @@ Use a direct browser proxy when command-line HTTP tools can reach the network bu
 - If a full-page screenshot times out while waiting for fonts or page stability, avoid retrying the identical screenshot. Try a viewport screenshot, a narrower element/clip, a short targeted wait, or a direct Playwright script with an explicit timeout.
 - If navigation to a public site times out but curl or Python succeeds, check whether `PILOTDECK_BROWSER_PROXY_SERVER` is set for Chromium.
 - Keep browser-use calls targeted: navigate to one URL, wait for a specific visible signal, extract the needed text/state, then stop. Avoid using browser automation as a general crawler.
-- For local PilotDeck checks, open the URL shown by `pilotdeck status`, usually `http://localhost:3001`.
-- If no model provider is configured, a clean PilotDeck instance should land on onboarding rather than settings or chat.
+- For local 9GClaw checks, open the URL shown by `pilotdeck status`, usually `http://localhost:3001`.
+- If no model provider is configured, a clean 9GClaw instance should land on onboarding rather than settings or chat.
 - Keep browser tasks small and observable: navigate, wait for a visible heading, inspect relevant text, then report evidence.
 - Do not store API keys, session cookies, or private credentials in screenshots or logs.
 

@@ -21,10 +21,10 @@ export function Header({
     <Box flexDirection="column" paddingX={1}>
       <Text>
         <Text color={pilotDeckDarkBlueTheme.brand} bold>
-          Pilot
+          9G
         </Text>
         <Text color={pilotDeckDarkBlueTheme.brandAccent} bold>
-          Deck
+          Claw
         </Text>
         <Text color={pilotDeckDarkBlueTheme.brandAccent}> ↗</Text>
         <Text color={pilotDeckDarkBlueTheme.subtle}>{"  "}v0.1.0</Text>

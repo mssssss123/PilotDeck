@@ -6,7 +6,7 @@
 | --- | --- |
 | 文档状态 | Draft |
 | 关联 PRD | `/Users/a1/Desktop/对话框改进.md` |
-| 适用版本 | PilotDeck Web API / Gateway |
+| 适用版本 | 9GClaw Web API / Gateway |
 | 目标读者 | 后端、Gateway、接口联调和测试 |
 
 ## 2. 背景与目标

@@ -179,7 +179,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
           .then(() => handleAdapterHotReload(event.nextSnapshot.config))
           .catch((err) =>
             console.warn(
-              `[pilotdeck] adapter hot-reload failed: ${err instanceof Error ? err.message : String(err)}`,
+              `[9gclaw] adapter hot-reload failed: ${err instanceof Error ? err.message : String(err)}`,
             ),
           );
       }
@@ -190,7 +190,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
         .then(() => handleSubsystemReload(aoChanged, cronChanged, event.nextSnapshot.config))
         .catch((err) =>
           console.warn(
-            `[pilotdeck] subsystem reload failed: ${err instanceof Error ? err.message : String(err)}`,
+            `[9gclaw] subsystem reload failed: ${err instanceof Error ? err.message : String(err)}`,
           ),
         );
     });
@@ -243,7 +243,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
       const parts: string[] = [];
       if (aoChanged) parts.push(`always-on=${alwaysOn ? "started" : "stopped"}`);
       if (cronChanged) parts.push(`cron=${cron ? "started" : "stopped"}`);
-      console.log(`[pilotdeck] Subsystem hot-reload complete: ${parts.join(", ")}`);
+      console.log(`[9gclaw] Subsystem hot-reload complete: ${parts.join(", ")}`);
     }
 
     // --- Channel state persistence ---
@@ -327,7 +327,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
       }
 
       if (parts.length) {
-        console.log(`[pilotdeck] Adapter hot-reload complete: ${parts.join(", ")}`);
+        console.log(`[9gclaw] Adapter hot-reload complete: ${parts.join(", ")}`);
       }
     }
 
@@ -409,7 +409,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
     });
     bindServer(server);
     deferredBroadcast = (name, payload) => server.broadcastNotification(name, payload);
-    console.log(`PilotDeck server listening: ${server.url}`);
+    console.log(`9GClaw server listening: ${server.url}`);
     console.log(`WebSocket: ${server.wsUrl}`);
     if (server.tokenPath) {
       console.log(`Token: ${server.tokenPath}`);
@@ -452,7 +452,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
       await runGatewaySetup(argv.slice(2));
       return;
     }
-    console.error("Usage: pilotdeck gateway setup [feishu|weixin|wecom]");
+    console.error("Usage: 9gclaw gateway setup [feishu|weixin|wecom]");
     process.exitCode = 1;
     return;
   }
@@ -480,7 +480,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
 
   if (command === "tui") {
     if (!process.stdin.isTTY) {
-      console.error("pilotdeck tui requires an interactive terminal.");
+      console.error("9gclaw tui requires an interactive terminal.");
       process.exitCode = 1;
       return;
     }
@@ -493,14 +493,14 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
       await new TuiChannel({
         projectKey: process.cwd(),
         cwd: process.cwd(),
-        model: "PilotDeck",
+        model: "9GClaw",
         probe: { url: probeUrl },
       }).start({ gateway: local });
     } catch (error) {
       await new TuiChannel({
         projectKey: process.cwd(),
         cwd: process.cwd(),
-        model: "PilotDeck",
+        model: "9GClaw",
         probe: { url: probeUrl },
       }).start({ gateway: fallbackGateway });
     }
@@ -572,7 +572,7 @@ async function handleUpdateCommand(argv: string[]): Promise<void> {
 async function handleCronCommand(argv: string[]): Promise<void> {
   const gateway = await connectRemoteGatewayIfAvailable();
   if (!gateway) {
-    console.error("pilotdeck cron requires a running pilotdeck server.");
+    console.error("9gclaw cron requires a running 9gclaw server.");
     process.exitCode = 1;
     return;
   }
@@ -591,7 +591,7 @@ async function handleCronCommand(argv: string[]): Promise<void> {
     const once = readStringFlag(argv, "--once");
     const cron = readStringFlag(argv, "--cron");
     if (!message || !sessionKey || (!once && !cron)) {
-      console.error("Usage: pilotdeck cron create --session <sessionKey> --message <text> (--once <iso> | --cron <expr>)");
+      console.error("Usage: 9gclaw cron create --session <sessionKey> --message <text> (--once <iso> | --cron <expr>)");
       process.exitCode = 1;
       return;
     }
@@ -609,7 +609,7 @@ async function handleCronCommand(argv: string[]): Promise<void> {
   if (command === "delete") {
     const taskId = argv[1] ?? readStringFlag(argv, "--task");
     if (!taskId) {
-      console.error("Usage: pilotdeck cron delete <taskId> [--stop-running]");
+      console.error("Usage: 9gclaw cron delete <taskId> [--stop-running]");
       process.exitCode = 1;
       return;
     }
@@ -621,7 +621,7 @@ async function handleCronCommand(argv: string[]): Promise<void> {
     const taskId = argv[1] ?? readStringFlag(argv, "--task");
     const runId = readStringFlag(argv, "--run");
     if (!taskId && !runId) {
-      console.error("Usage: pilotdeck cron stop <taskId> or pilotdeck cron stop --run <runId>");
+      console.error("Usage: 9gclaw cron stop <taskId> or 9gclaw cron stop --run <runId>");
       process.exitCode = 1;
       return;
     }
@@ -629,14 +629,14 @@ async function handleCronCommand(argv: string[]): Promise<void> {
     console.log(JSON.stringify(result, null, 2));
     return;
   }
-  console.error("Usage: pilotdeck cron <list|create|delete|stop>");
+  console.error("Usage: 9gclaw cron <list|create|delete|stop>");
   process.exitCode = 1;
 }
 
 async function handleSkillsCommand(argv: string[]): Promise<void> {
   const command = argv[0];
   if (command !== "migrate") {
-    console.error("Usage: pilotdeck skills migrate [--execute] [--from cc,openclaw,hermes] [--source <dir>] [--overwrite|--rename]");
+    console.error("Usage: 9gclaw skills migrate [--execute] [--from cc,openclaw,hermes] [--source <dir>] [--overwrite|--rename]");
     process.exitCode = 1;
     return;
   }
@@ -692,7 +692,7 @@ function parseSkillMigrationSources(value: string | undefined): Array<Exclude<Sk
 
 function printSkillMigrationReport(report: Awaited<ReturnType<typeof migrateSkillsToPilotDeck>>): void {
   const mode = report.mode === "execute" ? "EXECUTED" : "DRY RUN";
-  console.log(`PilotDeck skills migration (${mode})`);
+  console.log(`9GClaw skills migration (${mode})`);
   console.log(`Target: ${report.targetRoot}`);
   console.log(
     `Summary: migrated=${report.summary.migrated} would_migrate=${report.summary.would_migrate} ` +
@@ -772,7 +772,7 @@ function createFallbackGateway(): Gateway {
     yield {
       type: "error",
       code: "local_gateway_unavailable",
-      message: `No PilotDeck server is available and local config could not start session ${input.sessionKey}.`,
+      message: `No 9GClaw server is available and local config could not start session ${input.sessionKey}.`,
       recoverable: false,
     };
   }

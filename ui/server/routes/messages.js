@@ -1,5 +1,5 @@
 /**
- * Unified session messages endpoint (PilotDeck-only).
+ * Unified session messages endpoint (9GClaw-only).
  *
  * GET /api/sessions/:sessionId/messages?projectName=&projectPath=&limit=&offset=
  *
@@ -74,7 +74,7 @@ router.get('/:sessionId/messages', async (req, res) => {
       return res.status(503).json({
         error: {
           code: 'gateway_unavailable',
-          message: 'PilotDeck Gateway is restarting. Retry shortly.',
+          message: '9GClaw Gateway is restarting. Retry shortly.',
         },
       });
     }
@@ -154,7 +154,7 @@ router.get('/:sessionId/subagent/:subagentId/messages', async (req, res) => {
       return res.status(503).json({
         error: {
           code: 'gateway_unavailable',
-          message: 'PilotDeck Gateway is restarting. Retry shortly.',
+          message: '9GClaw Gateway is restarting. Retry shortly.',
         },
       });
     }

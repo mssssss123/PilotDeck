@@ -39,7 +39,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Compile desktop shell
-        run: pnpm --filter pilotdeck-desktop run compile
+        run: pnpm --filter 9gclaw-desktop run compile
 
       - name: Test desktop packaging helpers
-        run: pnpm --filter pilotdeck-desktop run test
+        run: pnpm --filter 9gclaw-desktop run test

@@ -86,13 +86,13 @@ function applyOptions(options) {
 
 function showHelp() {
   console.log(`
-${c.bright('pilotdeck - Command Line Tool')}
+${c.bright('9gclaw - Command Line Tool')}
 
 Usage:
-  pilotdeck [command] [options]
+  9gclaw [command] [options]
 
 Commands:
-  start          Start the PilotDeck web UI (default)
+  start          Start the 9GClaw web UI (default)
   status         Show configuration and data locations
   help           Show this help information
   version        Show version information
@@ -105,12 +105,12 @@ Options:
   -v, --version                 Show version information
 
 Examples:
-  pilotdeck
-  pilotdeck --port 8080
-  pilotdeck status
+  9gclaw
+  9gclaw --port 8080
+  9gclaw status
 
 Configuration:
-  PilotDeck reads ~/.pilotdeck/pilotdeck.yaml by default.
+  9GClaw reads ~/.pilotdeck/pilotdeck.yaml by default.
   First run opens the onboarding UI if no usable config exists.
 `);
 }
@@ -133,7 +133,7 @@ function showStatus() {
   const record = readPilotDeckConfigFile();
   const dbPath = process.env.DATABASE_PATH || defaultDatabasePath();
 
-  console.log(`\n${c.bright('pilotdeck - Status')}\n`);
+  console.log(`\n${c.bright('9gclaw - Status')}\n`);
   console.log(c.dim('═'.repeat(60)));
   console.log(`\n${c.info('[INFO]')} Version: ${c.bright(packageJson.version)}`);
   console.log(`${c.info('[INFO]')} Installation Directory: ${c.dim(getInstallDir())}`);
@@ -144,7 +144,7 @@ function showStatus() {
   console.log(`${c.info('[INFO]')} Database: ${c.dim(dbPath)}`);
   console.log(`       Status: ${fs.existsSync(dbPath) ? c.ok('[OK] Exists') : c.warn('[WARN] Not created yet')}`);
   console.log('\n' + c.dim('═'.repeat(60)));
-  console.log(`\n${c.tip('[TIP]')} Start with ${c.bright('pilotdeck')} and open http://localhost:${process.env.SERVER_PORT || '3001'}\n`);
+  console.log(`\n${c.tip('[TIP]')} Start with ${c.bright('9gclaw')} and open http://localhost:${process.env.SERVER_PORT || '3001'}\n`);
 }
 
 function assertPortAvailable(port, host) {
@@ -152,7 +152,7 @@ function assertPortAvailable(port, host) {
     const server = net.createServer();
     server.once('error', (error) => {
       if (error.code === 'EADDRINUSE') {
-        reject(new Error(`Port ${port} is already in use. Try: pilotdeck --port ${Number(port) + 1}`));
+        reject(new Error(`Port ${port} is already in use. Try: 9gclaw --port ${Number(port) + 1}`));
       } else {
         reject(error);
       }
@@ -193,7 +193,7 @@ async function startServer() {
   await assertPortAvailable(port, host);
   ensureFrontendBuild();
 
-  console.log(`\n${c.bright('pilotdeck')} starting...\n`);
+  console.log(`\n${c.bright('9gclaw')} starting...\n`);
   console.log(`${c.info('[INFO]')} Config: ${c.dim(getPilotDeckConfigPath())}`);
   console.log(`${c.info('[INFO]')} Database: ${c.dim(process.env.DATABASE_PATH || defaultDatabasePath())}`);
   console.log(`${c.info('[INFO]')} Server: http://localhost:${port}\n`);
@@ -221,7 +221,7 @@ async function main() {
       break;
     default:
       console.error(`${c.error('[ERROR]')} Unknown command: ${command}`);
-      console.error(`Run ${c.bright('pilotdeck help')} for usage information.`);
+      console.error(`Run ${c.bright('9gclaw help')} for usage information.`);
       process.exit(1);
   }
 }

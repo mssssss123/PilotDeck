@@ -1,6 +1,6 @@
 # Desktop build and release
 
-PilotDeck keeps Web and desktop sources on `main`. The desktop application is a
+9GClaw keeps Web and desktop sources on `main`. The desktop application is a
 thin Electron shell around the same gateway and Web UI; desktop-specific runtime
 behavior is enabled only when Electron sets `PILOTDECK_DESKTOP=1`.
 
@@ -75,12 +75,12 @@ Windows installer does not require a signing certificate. GitHub's automatic
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm --filter pilotdeck-desktop test
+pnpm --filter 9gclaw-desktop test
 # Run the command matching the Mac host architecture:
-pnpm --filter pilotdeck-desktop dist:mac:arm64
-pnpm --filter pilotdeck-desktop dist:mac:x64
+pnpm --filter 9gclaw-desktop dist:mac:arm64
+pnpm --filter 9gclaw-desktop dist:mac:x64
 # Run the following on Windows:
-pnpm --filter pilotdeck-desktop dist:win
+pnpm --filter 9gclaw-desktop dist:win
 ```
 
 Local macOS builds can use ad-hoc signing. Set

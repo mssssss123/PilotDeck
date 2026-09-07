@@ -83,7 +83,7 @@ test("command shell never falls back to Windows PowerShell 5", () => {
     env: { PATH: "C:\\Windows\\System32" },
     existsSync: () => false,
     commandAvailable: () => false,
-  }), /No supported PilotDeck command shell/);
+  }), /No supported 9GClaw command shell/);
 });
 
 test("command shell supports an explicit generic shell path", () => {

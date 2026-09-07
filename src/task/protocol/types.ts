@@ -14,7 +14,7 @@ export type PilotDeckBackgroundTaskKind = "bash" | "monitor";
 
 /**
  * State envelope for a single background bash task. The shape is a strict
- * superset of legacy `LocalShellTaskState` for the fields PilotDeck actually
+ * superset of legacy `LocalShellTaskState` for the fields 9GClaw actually
  * uses; legacy-only "task" classes (`local_agent`, `remote`) are not part of
  * this PR (D-tier).
  */

@@ -23,13 +23,13 @@ function findRuntimeRoot() {
   for (const candidate of candidates) {
     if (isRuntimeRoot(candidate)) return candidate;
   }
-  throw new Error("PilotDeck runtime root not found. Set PILOTDECK_RUNTIME_ROOT and retry.");
+  throw new Error("9GClaw runtime root not found. Set PILOTDECK_RUNTIME_ROOT and retry.");
 }
 
 function assertRuntimeRoot(candidate, source) {
   if (isRuntimeRoot(candidate)) return candidate;
   throw new Error(
-    `PilotDeck runtime root from ${source} is incomplete: ${candidate}. ` +
+    `9GClaw runtime root from ${source} is incomplete: ${candidate}. ` +
       "Expected node_modules/@playwright/mcp/cli.js, node_modules/playwright-core/browsers.json, " +
       "and dist/src/cli/pilotdeck.js.",
   );
@@ -48,7 +48,7 @@ function resolveBrowsersPath(runtimeRoot) {
   if (explicit === "0" && hasInstalledBrowserMarker(bundledBrowsersPath)) return bundledBrowsersPath;
 
   if (process.env.APPDATA) {
-    return resolve(process.env.APPDATA, "PilotDeck", "playwright-browsers");
+    return resolve(process.env.APPDATA, "9GClaw", "playwright-browsers");
   }
   return resolve(homedir(), ".pilotdeck", "playwright-browsers");
 }

@@ -477,7 +477,7 @@ export class WeComChannel implements ChannelAdapter {
     if (this.dmPolicy === "disabled") return false;
     if (this.dmPolicy === "allowlist") return entryMatches(this.allowFrom, senderId);
     if (this.dmPolicy === "open") return true;
-    this.logger?.warn?.("wecom: dm_policy=pairing is not supported in PilotDeck; DM ignored");
+    this.logger?.warn?.("wecom: dm_policy=pairing is not supported in 9GClaw; DM ignored");
     return false;
   }
 
@@ -485,7 +485,7 @@ export class WeComChannel implements ChannelAdapter {
     if (!chatId) return false;
     if (this.groupPolicy === "disabled") return false;
     if (this.groupPolicy === "pairing") {
-      this.logger?.warn?.("wecom: group_policy=pairing is not supported in PilotDeck; group message ignored");
+      this.logger?.warn?.("wecom: group_policy=pairing is not supported in 9GClaw; group message ignored");
       return false;
     }
     if (this.groupPolicy === "allowlist" && !entryMatches(this.groupAllowFrom, chatId)) {
@@ -1222,7 +1222,7 @@ export class WeComChannel implements ChannelAdapter {
       throw new Error(`unsupported media URL protocol: ${parsed.protocol}`);
     }
     const response = await fetch(url, {
-      headers: { "User-Agent": "PilotDeck/1.0", "Accept": "*/*" },
+      headers: { "User-Agent": "9GClaw/1.0", "Accept": "*/*" },
       signal: AbortSignal.timeout(30_000),
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);

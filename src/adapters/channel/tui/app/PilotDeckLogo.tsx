@@ -3,27 +3,15 @@ import { Box, Text, useStdout } from "ink";
 import { pilotDeckDarkBlueTheme } from "./theme.js";
 
 const ANSI_SHADOW_LOGO = [
-  "██████╗ ██╗██╗      ██████╗ ████████╗██████╗ ███████╗ ██████╗██╗  ██╗",
-  "██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝██╔══██╗██╔════╝██╔════╝██║ ██╔╝",
-  "██████╔╝██║██║     ██║   ██║   ██║   ██║  ██║█████╗  ██║     █████╔╝ ",
-  "██╔═══╝ ██║██║     ██║   ██║   ██║   ██║  ██║██╔══╝  ██║     ██╔═██╗ ",
-  "██║     ██║███████╗╚██████╔╝   ██║   ██████╔╝███████╗╚██████╗██║  ██╗",
-  "╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝   ╚═════╝ ╚══════╝ ╚═════╝╚═╝  ╚═╝",
+  " 9999    GGGG   CCC  l               ",
+  "9    9  G      C     l   aa  w     w ",
+  " 99999  G  GG  C     l  a a  w  w  w ",
+  "     9  G   G  C     l  a a   w w w  ",
+  " 9999    GGGG   CCC  l   aa    w w   ",
 ];
-
-// "Pilot" 占 ANSI Shadow logo 前 37 列；"Deck" 占其后。
-const ANSI_SHADOW_PILOT_WIDTH = 37;
-const ANSI_SHADOW_VISIBLE_COLS = 69;
-// border (2) + paddingX (4) + marginX (2) on the WelcomeCard wrapper.
-const ANSI_SHADOW_MIN_TERMINAL_COLS = ANSI_SHADOW_VISIBLE_COLS + 8;
-
-const STANDARD_LOGO = [
-  "  ____  _ _       _   ____            _    ",
-  " |  _ \\(_) | ___ | |_|  _ \\  ___  ___| | __",
-  " | |_) | | |/ _ \\| __| | | |/ _ \\/ __| |/ /",
-  " |  __/| | | (_) | |_| |_| |  __/ (__|   < ",
-  " |_|   |_|_|\\___/ \\__|____/ \\___|\\___|_|\\_\\",
-];
+const ANSI_SHADOW_PILOT_WIDTH = 14;
+const ANSI_SHADOW_MIN_TERMINAL_COLS = 46;
+const STANDARD_LOGO = ["9GClaw"];
 
 export function PilotDeckLogo({ tagline }: { tagline?: string } = {}): React.ReactNode {
   const { stdout } = useStdout();
@@ -68,10 +56,10 @@ export function CondensedLogo(): React.ReactNode {
   return (
     <Text>
       <Text color={pilotDeckDarkBlueTheme.brand} bold>
-        Pilot
+        9G
       </Text>
       <Text color={pilotDeckDarkBlueTheme.brandAccent} bold>
-        Deck
+        Claw
       </Text>
       <Text color={pilotDeckDarkBlueTheme.brandAccent}> ↗</Text>
     </Text>

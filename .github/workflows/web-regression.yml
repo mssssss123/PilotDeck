@@ -28,7 +28,7 @@ jobs:
           cache: pnpm
 
       - name: Install Web/Gateway dependencies only
-        run: pnpm install --frozen-lockfile --filter pilotdeck --filter pilotdeck-ui
+        run: pnpm install --frozen-lockfile --filter 9gclaw --filter 9gclaw-ui
 
       - name: Build Gateway and Web UI
         run: pnpm run build:web
@@ -53,4 +53,4 @@ jobs:
         with:
           context: .
           push: false
-          tags: pilotdeck:web-regression
+          tags: 9gclaw:web-regression

@@ -1,8 +1,8 @@
 {
-  "name": "pilotdeck-desktop",
+  "name": "9gclaw-desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "Cross-platform Electron shell for PilotDeck.",
+  "description": "Cross-platform Electron shell for 9GClaw.",
   "author": "PilotDeck",
   "main": "dist/main.js",
   "scripts": {
@@ -28,8 +28,8 @@
     "typescript": "^5.9.3"
   },
   "build": {
-    "appId": "cn.pilotdeck.desktop",
-    "productName": "PilotDeck",
+    "appId": "cn.ninegclaw.desktop",
+    "productName": "9GClaw",
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "compression": "maximum",
     "directories": {

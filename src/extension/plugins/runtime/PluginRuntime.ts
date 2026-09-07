@@ -34,7 +34,7 @@ export type PilotDeckMcpInstructionEntry = {
 export type PluginRuntimeOptions = {
   projectRoot: string;
   pilotHome: string;
-  /** Read-only skills shipped with the active PilotDeck build. */
+  /** Read-only skills shipped with the active 9GClaw build. */
   builtinSkillsRoot?: string;
   builtinPlugins?: PilotDeckLoadedPlugin[];
   builtinPluginsEnabled?: Record<string, boolean>;

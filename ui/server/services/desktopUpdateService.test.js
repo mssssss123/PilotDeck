@@ -11,7 +11,7 @@ import {
 
 describe('desktop release versions', () => {
   it('defaults desktop updates to the upstream repository', () => {
-    expect(normalizeRepository()).toBe('OpenBMB/PilotDeck');
+    expect(normalizeRepository()).toBe('mssssss123/PilotDeck');
     expect(normalizeRepository('https://github.com/mssssss123/PilotDeck.git')).toBe('mssssss123/PilotDeck');
   });
 
@@ -39,21 +39,21 @@ describe('desktop release versions', () => {
   it('selects the native macOS installer for the current architecture', () => {
     const release = {
       assets: [
-        { name: 'PilotDeck-2026.903.0-mac-x64.dmg' },
-        { name: 'PilotDeck-2026.903.0-mac-arm64.dmg' },
-        { name: 'PilotDeck-2026.903.0-mac-universal.dmg' },
+        { name: '9GClaw-2026.903.0-mac-x64.dmg' },
+        { name: '9GClaw-2026.903.0-mac-arm64.dmg' },
+        { name: '9GClaw-2026.903.0-mac-universal.dmg' },
       ],
     };
 
     expect(selectDesktopAsset(release, { platform: 'darwin', arch: 'arm64' })?.name)
-      .toBe('PilotDeck-2026.903.0-mac-arm64.dmg');
+      .toBe('9GClaw-2026.903.0-mac-arm64.dmg');
     expect(selectDesktopAsset(release, { platform: 'darwin', arch: 'x64' })?.name)
-      .toBe('PilotDeck-2026.903.0-mac-x64.dmg');
+      .toBe('9GClaw-2026.903.0-mac-x64.dmg');
   });
 
   it('never offers a macOS installer built only for another architecture', () => {
     const release = {
-      assets: [{ name: 'PilotDeck-2026.903.0-mac-x64.dmg' }],
+      assets: [{ name: '9GClaw-2026.903.0-mac-x64.dmg' }],
     };
 
     expect(selectDesktopAsset(release, { platform: 'darwin', arch: 'arm64' })).toBeNull();

@@ -372,7 +372,7 @@ async function buildRealRepositoryHistory(input: {
     role: "user",
     content: [{
       type: "text",
-      text: "Inspect the PilotDeck context, compaction, agent loop, transcript, and model code paths, preserving concrete findings for a final status response.",
+      text: "Inspect the 9GClaw context, compaction, agent loop, transcript, and model code paths, preserving concrete findings for a final status response.",
     }],
   }];
   let projectedMessages: CanonicalMessage[] = messages;

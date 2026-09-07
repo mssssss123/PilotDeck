@@ -762,7 +762,7 @@ export function useChatComposerState({
           }
           if (data.installed) {
             lines.push('');
-            lines.push('_New skill is on disk — open a fresh chat (or `/clear-caches`) to make PilotDeck see it. The UI slash menu picks it up next time you open `/`._');
+            lines.push('_New skill is on disk — open a fresh chat (or `/clear-caches`) to make 9GClaw see it. The UI slash menu picks it up next time you open `/`._');
           }
           addMessage({
             type: 'assistant',

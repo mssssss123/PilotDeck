@@ -218,10 +218,10 @@
     "openInEditor": "在编辑器中打开"
   },
   "mainContent": {
-    "loading": "正在加载 PilotDeck",
+    "loading": "正在加载 9GClaw",
     "settingUpWorkspace": "正在设置您的工作空间...",
     "chooseProject": "选择您的项目",
-    "selectProjectDescription": "从侧边栏选择一个项目以开始使用 PilotDeck 进行编程。每个项目包含您的聊天会话和文件历史。",
+    "selectProjectDescription": "从侧边栏选择一个项目以开始使用 9GClaw 进行编程。每个项目包含您的聊天会话和文件历史。",
     "tip": "提示",
     "createProjectMobile": "点击上方的菜单按钮以访问项目",
     "createProjectDesktop": "点击侧边栏中的文件夹图标以创建新项目",
@@ -456,9 +456,9 @@
       "usingProvidedToken": "使用提供的令牌",
       "noAuthentication": "无身份验证",
       "sshKey": "SSH 密钥",
-      "existingInfo": "工作区将添加到您的项目列表，可用于 PilotDeck 会话。",
+      "existingInfo": "工作区将添加到您的项目列表，可用于 9GClaw 会话。",
       "newWithClone": "仓库将从此文件夹克隆。",
-      "newEmpty": "工作区将添加到您的项目列表，可用于 PilotDeck 会话。",
+      "newEmpty": "工作区将添加到您的项目列表，可用于 9GClaw 会话。",
       "cloningRepository": "正在克隆仓库..."
     },
     "buttons": {

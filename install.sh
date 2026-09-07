@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# PilotDeck one-line installer for macOS and Linux.
+# 9GClaw one-line installer for macOS and Linux.
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/OpenBMB/PilotDeck/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/mssssss123/PilotDeck/feat/9gclaw/install.sh | bash
 
-REPO_URL="${PILOTDECK_REPO_URL:-https://github.com/OpenBMB/PilotDeck.git}"
-BRANCH="${PILOTDECK_BRANCH:-main}"
+REPO_URL="${PILOTDECK_REPO_URL:-https://github.com/mssssss123/PilotDeck.git}"
+BRANCH="${PILOTDECK_BRANCH:-feat/9gclaw}"
 INSTALL_DIR="${PILOTDECK_INSTALL_DIR:-$HOME/.pilotdeck/app}"
 CONFIG_FILE="${PILOTDECK_CONFIG_PATH:-$HOME/.pilotdeck/pilotdeck.yaml}"
 LAUNCH_DIR="$(pwd -P)"
@@ -14,7 +14,7 @@ case "$CONFIG_FILE" in
   /*) ;;
   *) CONFIG_FILE="$LAUNCH_DIR/$CONFIG_FILE" ;;
 esac
-BIN_LINK="${PILOTDECK_BIN_LINK:-/usr/local/bin/pilotdeck}"
+BIN_LINK="${PILOTDECK_BIN_LINK:-/usr/local/bin/9gclaw}"
 MAX_PORT_TRIES="${PILOTDECK_MAX_PORT_TRIES:-20}"
 MIN_NODE_VERSION="22.13.0"
 MAX_NODE_MAJOR="22"
@@ -105,7 +105,7 @@ print_getting_started_en() {
   echo "==============="
   echo ""
   echo -e "  ${BOLD}1. Configure your model & API key${RESET}"
-  echo -e "     If no model is configured, PilotDeck starts the Web UI directly in onboarding."
+  echo -e "     If no model is configured, 9GClaw starts the Web UI directly in onboarding."
   echo -e "     Open ${GREEN}${ui_url}${RESET} — it redirects to the onboarding screen where you"
   echo -e "     choose a provider, paste an API key, and pick a model."
   echo -e "     ${DIM}Supported: OpenAI, Anthropic, Google Gemini, DeepSeek, Qwen, Kimi, MiniMax,${RESET}"
@@ -123,15 +123,15 @@ print_getting_started_en() {
   echo -e "       ${DIM}      url: https://api.deepseek.com/v1${RESET}"
   echo -e "       ${DIM}      apiKey: sk-your-api-key${RESET}"
   echo ""
-  echo -e "  ${BOLD}3. Manage PilotDeck from the CLI${RESET}"
-  echo -e "     ${GREEN}pilotdeck${RESET}         start the server"
-  echo -e "     ${GREEN}pilotdeck status${RESET}  show install path, config, and URL"
-  echo -e "     ${GREEN}pilotdeck help${RESET}    list all commands"
+  echo -e "  ${BOLD}3. Manage 9GClaw from the CLI${RESET}"
+  echo -e "     ${GREEN}9gclaw${RESET}         start the server"
+  echo -e "     ${GREEN}9gclaw status${RESET}  show install path, config, and URL"
+  echo -e "     ${GREEN}9gclaw help${RESET}    list all commands"
   echo ""
   echo -e "  ${BOLD}Docs & community${RESET}"
   echo -e "     Tutorial:  ${DIM}https://pilotdeck.openbmb.cn/pilotdeck.github.io/docs/en/introduction${RESET}"
   echo -e "     Website:   ${DIM}https://pilotdeck.openbmb.cn${RESET}"
-  echo -e "     Issues:    ${DIM}https://github.com/OpenBMB/PilotDeck/issues${RESET}"
+  echo -e "     Issues:    ${DIM}https://github.com/mssssss123/PilotDeck/issues${RESET}"
   echo ""
 }
 
@@ -142,7 +142,7 @@ print_getting_started_zh() {
   echo "========"
   echo ""
   echo -e "  ${BOLD}1. 配置模型与 API Key${RESET}"
-  echo -e "     如果尚未配置模型,PilotDeck 会直接启动 Web UI 并进入引导界面。"
+  echo -e "     如果尚未配置模型,9GClaw 会直接启动 Web UI 并进入引导界面。"
   echo -e "     打开 ${GREEN}${ui_url}${RESET} — 页面会自动跳转到引导界面,"
   echo -e "     在这里选择服务商、粘贴 API Key 并选择模型。"
   echo -e "     ${DIM}已支持:OpenAI、Anthropic、Google Gemini、DeepSeek、Qwen、Kimi、MiniMax,${RESET}"
@@ -160,15 +160,15 @@ print_getting_started_zh() {
   echo -e "       ${DIM}      url: https://api.deepseek.com/v1${RESET}"
   echo -e "       ${DIM}      apiKey: sk-your-api-key${RESET}"
   echo ""
-  echo -e "  ${BOLD}3. 通过命令行管理 PilotDeck${RESET}"
-  echo -e "     ${GREEN}pilotdeck${RESET}         启动服务"
-  echo -e "     ${GREEN}pilotdeck status${RESET}  查看安装路径、配置和访问地址"
-  echo -e "     ${GREEN}pilotdeck help${RESET}    查看全部命令"
+  echo -e "  ${BOLD}3. 通过命令行管理 9GClaw${RESET}"
+  echo -e "     ${GREEN}9gclaw${RESET}         启动服务"
+  echo -e "     ${GREEN}9gclaw status${RESET}  查看安装路径、配置和访问地址"
+  echo -e "     ${GREEN}9gclaw help${RESET}    查看全部命令"
   echo ""
   echo -e "  ${BOLD}文档与社区${RESET}"
   echo -e "     教程:  ${DIM}https://pilotdeck.openbmb.cn/pilotdeck.github.io/docs/en/introduction${RESET}"
   echo -e "     官网:  ${DIM}https://pilotdeck.openbmb.cn${RESET}"
-  echo -e "     反馈:  ${DIM}https://github.com/OpenBMB/PilotDeck/issues${RESET}"
+  echo -e "     反馈:  ${DIM}https://github.com/mssssss123/PilotDeck/issues${RESET}"
   echo ""
 }
 
@@ -568,7 +568,7 @@ check_bootstrap_requirements() {
   print_minimum_requirements
 
   if [[ -z "${BASH_VERSION:-}" ]]; then
-    fail "$(L "This installer must run with bash. Try: curl -fsSL https://raw.githubusercontent.com/OpenBMB/PilotDeck/main/install.sh | bash" "该安装器必须使用 bash 运行。请尝试:curl -fsSL https://raw.githubusercontent.com/OpenBMB/PilotDeck/main/install.sh | bash")"
+    fail "$(L "This installer must run with bash. Try: curl -fsSL https://raw.githubusercontent.com/mssssss123/PilotDeck/feat/9gclaw/install.sh | bash" "该安装器必须使用 bash 运行。请尝试:curl -fsSL https://raw.githubusercontent.com/mssssss123/PilotDeck/feat/9gclaw/install.sh | bash")"
   fi
 
   if ! command -v curl >/dev/null 2>&1; then
@@ -683,7 +683,7 @@ install_git_lfs() {
   elif [[ "$PLATFORM" == "linux" ]]; then
     install_linux_packages git-lfs
   else
-    fail "$(L "git-lfs is required for PilotDeck assets. On macOS, install Homebrew and run: brew install git-lfs" "PilotDeck 素材需要 git-lfs。在 macOS 上请安装 Homebrew 后运行:brew install git-lfs")"
+    fail "$(L "git-lfs is required for 9GClaw assets. On macOS, install Homebrew and run: brew install git-lfs" "9GClaw 素材需要 git-lfs。在 macOS 上请安装 Homebrew 后运行:brew install git-lfs")"
   fi
 }
 
@@ -987,7 +987,7 @@ ensure_lfs_assets() {
   git lfs pull
 
   local pointer_file=""
-  for pointer_file in assets/banner.png ui/public/favicon.png ui/src/assets/pilotdeck-logo.png; do
+  for pointer_file in assets/banner.png ui/public/favicon.png ui/src/assets/9gclaw-logo.png; do
     if [[ -f "$pointer_file" ]] && grep -q "version https://git-lfs.github.com/spec/v1" "$pointer_file"; then
       fail "$(L "Git LFS asset was not downloaded correctly: ${pointer_file}" "Git LFS 素材未正确下载:${pointer_file}")"
     fi
@@ -1037,7 +1037,7 @@ has_playwright_chrome_for_testing() {
 }
 
 echo ""
-echo -e "${BOLD}PilotDeck Installer${RESET}"
+echo -e "${BOLD}9GClaw Installer${RESET}"
 echo "====================="
 
 select_language
@@ -1101,7 +1101,7 @@ echo "$(L "Checking ripgrep..." "正在检查 ripgrep...")"
 if command -v rg >/dev/null 2>&1; then
   ok "$(L "ripgrep $(rg --version | head -1) found" "已找到 ripgrep $(rg --version | head -1)")"
 elif ! can_install_optional_system_packages; then
-  warn "$(L "ripgrep not found and sudo is unavailable; continuing because PilotDeck uses its bundled ripgrep dependency." "未找到 ripgrep 且 sudo 不可用;PilotDeck 会使用内置 ripgrep 依赖,继续安装。")"
+  warn "$(L "ripgrep not found and sudo is unavailable; continuing because 9GClaw uses its bundled ripgrep dependency." "未找到 ripgrep 且 sudo 不可用;9GClaw 会使用内置 ripgrep 依赖,继续安装。")"
 else
   warn "$(L "ripgrep not found. Installing..." "未找到 ripgrep,正在安装...")"
   install_ripgrep
@@ -1127,7 +1127,7 @@ echo "$(L "Checking native build tools..." "正在检查原生编译工具...")"
 ensure_native_build_tools
 echo ""
 
-echo -e "$(L "Installing PilotDeck to" "正在安装 PilotDeck 到") ${DIM}${INSTALL_DIR}${RESET} ..."
+echo -e "$(L "Installing 9GClaw to" "正在安装 9GClaw 到") ${DIM}${INSTALL_DIR}${RESET} ..."
 install_or_update_repo
 ensure_lfs_assets
 echo ""
@@ -1141,14 +1141,14 @@ else
   echo -e "  ${DIM}$(L "This can take several minutes — native modules use prebuilt packages when available, and pnpm output is quiet." "这一步可能需要数分钟 —— 原生模块会优先使用预编译包,且 pnpm 输出为静默模式。")${RESET}"
   cd "$INSTALL_DIR"
   HUSKY=0 run_pnpm install --frozen-lockfile --reporter=append-only \
-    --filter pilotdeck --filter pilotdeck-ui </dev/null
+    --filter 9gclaw --filter 9gclaw-ui </dev/null
   ok "$(L "Dependencies installed" "依赖已安装")"
   warn "$(L "Keeping dev dependencies because runtime uses source tooling." "保留 dev 依赖,因为运行时需使用源码工具链。")"
   echo ""
 
   echo "$(L "Building frontend..." "正在构建前端...")"
   cd "$INSTALL_DIR"
-  run_pnpm --filter pilotdeck-ui run build
+  run_pnpm --filter 9gclaw-ui run build
   ok "$(L "Frontend built" "前端已构建")"
   echo ""
 fi
@@ -1160,7 +1160,7 @@ if has_playwright_chrome_for_testing; then
   ok "$(L "Chrome for Testing already installed" "Chrome for Testing 已安装")"
 elif [[ "${PILOTDECK_SKIP_BROWSER_INSTALL:-1}" == "1" ]]; then
   warn "$(L "Skipping Chrome for Testing download (default) to keep install fast." "默认跳过 Chrome for Testing 下载,以加快安装速度。")"
-  warn "$(L "PilotDeck core features are still available without this optional browser-use dependency." "缺少该可选 browser-use 依赖时,PilotDeck 核心功能仍可正常使用。")"
+  warn "$(L "9GClaw core features are still available without this optional browser-use dependency." "缺少该可选 browser-use 依赖时,9GClaw 核心功能仍可正常使用。")"
   warn "$(L "To enable browser-use, run: cd \"$INSTALL_DIR\" && npm run install:browser" "如需启用 browser-use,请运行:cd \"$INSTALL_DIR\" && npm run install:browser")"
   warn "$(L "Or re-run the installer with PILOTDECK_SKIP_BROWSER_INSTALL=0." "或以 PILOTDECK_SKIP_BROWSER_INSTALL=0 重新运行安装器。")"
 else
@@ -1175,7 +1175,7 @@ else
     else
       warn "$(L "Chrome for Testing install failed (exit code $exit_code)." "Chrome for Testing 安装失败(退出码 $exit_code)。")"
     fi
-    warn "$(L "PilotDeck core features are still available." "PilotDeck 核心功能仍可正常使用。")"
+    warn "$(L "9GClaw core features are still available." "9GClaw 核心功能仍可正常使用。")"
     warn "$(L "To enable browser-use later, run: cd \"$INSTALL_DIR\" && npm run install:browser" "如需稍后启用 browser-use,请运行:cd \"$INSTALL_DIR\" && npm run install:browser")"
     warn "$(L "To increase timeout, set PILOTDECK_BROWSER_INSTALL_TIMEOUT=600 and re-run." "如需延长超时,请设置 PILOTDECK_BROWSER_INSTALL_TIMEOUT=600 后重新运行。")"
   fi
@@ -1194,7 +1194,7 @@ echo ""
 
 echo "$(L "Setting up CLI command..." "正在设置 CLI 命令...")"
 WRAPPER_DIR="$INSTALL_DIR/bin"
-CLI_TARGET="$WRAPPER_DIR/pilotdeck"
+CLI_TARGET="$WRAPPER_DIR/9gclaw"
 mkdir -p "$WRAPPER_DIR"
 cat > "$CLI_TARGET" <<'EOF'
 #!/usr/bin/env bash
@@ -1221,8 +1221,8 @@ NODE_FALLBACK_VERSION="${PILOTDECK_NODE_FALLBACK_VERSION:-22.13.0}"
 NODE_DIRECT_INSTALL_ROOT="$HOME/.local/share/pilotdeck-node"
 NODE_DIST_MIRROR="${PILOTDECK_NODE_DIST_MIRROR:-https://nodejs.org/dist}"
 
-fail() { printf "pilotdeck: %s\n" "$1" >&2; exit 1; }
-warn() { printf "pilotdeck: %s\n" "$1" >&2; }
+fail() { printf "9gclaw: %s\n" "$1" >&2; exit 1; }
+warn() { printf "9gclaw: %s\n" "$1" >&2; }
 
 version_at_least() {
   local version="${1#v}"
@@ -1328,7 +1328,7 @@ ensure_node_runtime() {
   local node_version
   node_version="$(node --version)"
   if ! version_at_least "$node_version" "$MIN_NODE_VERSION" || [[ "$(node_major "$node_version")" != "$MAX_NODE_MAJOR" ]]; then
-    fail "Node.js >=${MIN_NODE_VERSION} and <23 is required because PilotDeck uses node:sqlite and native packages are tested on Node.js 22. Current: ${node_version}. Re-run install.sh or switch Node with fnm/nvm."
+    fail "Node.js >=${MIN_NODE_VERSION} and <23 is required because 9GClaw uses node:sqlite and native packages are tested on Node.js 22. Current: ${node_version}. Re-run install.sh or switch Node with fnm/nvm."
   fi
   if ! node -e "import('node:sqlite').then(() => {}, () => process.exit(1))" >/dev/null 2>&1; then
     fail "Current Node.js (${node_version}) does not provide node:sqlite. Re-run install.sh or switch to Node.js 22.13+."
@@ -1416,14 +1416,14 @@ esac
 
 if [[ "$COMMAND" == "help" ]]; then
   cat <<HELP
-pilotdeck - start the PilotDeck web UI
+9gclaw - start the 9GClaw web UI
 
 Usage:
-  pilotdeck [start] [--port <port>] [--config <path>]
-  pilotdeck status
-  pilotdeck help
+  9gclaw [start] [--port <port>] [--config <path>]
+  9gclaw status
+  9gclaw help
 
-First run? Start PilotDeck, open the printed URL, and complete onboarding
+First run? Start 9GClaw, open the printed URL, and complete onboarding
 (choose a provider, paste an API key, pick a model). You can also edit the
 config directly at: ${CONFIG_FILE}
 
@@ -1462,7 +1462,7 @@ if [[ "$PILOTDECK_GATEWAY_PORT" != "$GATEWAY_BASE" ]]; then
   warn "Gateway port ${GATEWAY_BASE} is busy; using ${PILOTDECK_GATEWAY_PORT} instead."
 fi
 
-printf "pilotdeck: starting at http://localhost:%s\n" "$SERVER_PORT"
+printf "9gclaw: starting at http://localhost:%s\n" "$SERVER_PORT"
 cd "$INSTALL_DIR/ui"
 exec npm run start:built
 EOF
@@ -1476,7 +1476,7 @@ if [[ -e "$BIN_LINK" || -L "$BIN_LINK" ]]; then
     :
   else
     warn "$(L "Cannot update ${BIN_LINK} without sudo; falling back to user-local bin." "无 sudo 权限,无法更新 ${BIN_LINK};改用用户本地 bin 目录。")"
-    TARGET_BIN="$HOME/.local/bin/pilotdeck"
+    TARGET_BIN="$HOME/.local/bin/9gclaw"
   fi
 fi
 
@@ -1489,16 +1489,16 @@ fi
 
 if [[ "$TARGET_BIN" == "$BIN_LINK" && -d "$TARGET_BIN_DIR" && -w "$TARGET_BIN_DIR" ]]; then
   ln -sf "$CLI_TARGET" "$TARGET_BIN"
-  ok "$(L "pilotdeck command linked to" "pilotdeck 命令已链接到") ${DIM}${TARGET_BIN}${RESET}"
+  ok "$(L "9gclaw command linked to" "9gclaw 命令已链接到") ${DIM}${TARGET_BIN}${RESET}"
 elif sudo -n true 2>/dev/null; then
   sudo mkdir -p "$TARGET_BIN_DIR"
   sudo ln -sf "$CLI_TARGET" "$TARGET_BIN"
-  ok "$(L "pilotdeck command linked to" "pilotdeck 命令已链接到") ${DIM}${TARGET_BIN}${RESET}"
+  ok "$(L "9gclaw command linked to" "9gclaw 命令已链接到") ${DIM}${TARGET_BIN}${RESET}"
 else
   LOCAL_BIN="$HOME/.local/bin"
   mkdir -p "$LOCAL_BIN"
-  ln -sf "$CLI_TARGET" "$LOCAL_BIN/pilotdeck"
-  ok "$(L "pilotdeck command linked to" "pilotdeck 命令已链接到") ${DIM}${LOCAL_BIN}/pilotdeck${RESET}"
+  ln -sf "$CLI_TARGET" "$LOCAL_BIN/9gclaw"
+  ok "$(L "9gclaw command linked to" "9gclaw 命令已链接到") ${DIM}${LOCAL_BIN}/9gclaw${RESET}"
   if [[ ":$PATH:" != *":$LOCAL_BIN:"* ]]; then
     PATH_LINE='export PATH="$HOME/.local/bin:$PATH"'
     SHELL_RC=""
@@ -1517,9 +1517,9 @@ else
 
     if [[ -n "$SHELL_RC" ]]; then
       if [[ ! -f "$SHELL_RC" ]] || ! grep -qF '.local/bin' "$SHELL_RC" 2>/dev/null; then
-        printf '\n# Added by PilotDeck installer\n%s\n' "$PATH_LINE" >> "$SHELL_RC"
+        printf '\n# Added by 9GClaw installer\n%s\n' "$PATH_LINE" >> "$SHELL_RC"
         ok "$(L "PATH updated in" "已在以下文件更新 PATH:") ${DIM}${SHELL_RC}${RESET}"
-        warn "$(L "Run ${BOLD}source ${SHELL_RC}${RESET} or open a new terminal to use the ${BOLD}pilotdeck${RESET} command" "运行 ${BOLD}source ${SHELL_RC}${RESET} 或新开一个终端即可使用 ${BOLD}pilotdeck${RESET} 命令")"
+        warn "$(L "Run ${BOLD}source ${SHELL_RC}${RESET} or open a new terminal to use the ${BOLD}9gclaw${RESET} command" "运行 ${BOLD}source ${SHELL_RC}${RESET} 或新开一个终端即可使用 ${BOLD}9gclaw${RESET} 命令")"
       else
         ok "$(L "${DIM}${SHELL_RC}${RESET} already contains .local/bin PATH entry" "${DIM}${SHELL_RC}${RESET} 已包含 .local/bin 的 PATH 配置")"
       fi
@@ -1539,7 +1539,7 @@ if [[ "$PD_LANG" == "zh" ]]; then
   echo -e "  配置文件:   ${DIM}${CONFIG_FILE}${RESET}"
   echo -e "  CLI 命令:   ${DIM}${TARGET_BIN}${RESET}"
   echo ""
-  echo "正在启动 PilotDeck..."
+  echo "正在启动 9GClaw..."
 else
   echo -e "${BOLD}Installation complete!${RESET}"
   echo ""
@@ -1547,7 +1547,7 @@ else
   echo -e "  Config file:    ${DIM}${CONFIG_FILE}${RESET}"
   echo -e "  CLI command:    ${DIM}${TARGET_BIN}${RESET}"
   echo ""
-  echo "Starting PilotDeck..."
+  echo "Starting 9GClaw..."
 fi
 echo ""
 export PILOTDECK_CONFIG_PATH="$CONFIG_FILE"

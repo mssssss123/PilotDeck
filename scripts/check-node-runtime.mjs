@@ -52,7 +52,7 @@ const skipSqliteCheck = testMode && process.env.PILOTDECK_TEST_SKIP_SQLITE === "
 
 if (!isAtLeastMinimum(nodeVersion) || !isSupportedMajor(nodeVersion)) {
   fail(
-    `Node.js ${nodeVersionRequirementLabel} is required because PilotDeck uses node:sqlite and native packages are built for Node.js ${supportedNodeMajor}. Current: ${formatNodeVersion(nodeVersion)}. Switch to Node.js ${supportedNodeMajor} and reinstall dependencies.`,
+    `Node.js ${nodeVersionRequirementLabel} is required because 9GClaw uses node:sqlite and native packages are built for Node.js ${supportedNodeMajor}. Current: ${formatNodeVersion(nodeVersion)}. Switch to Node.js ${supportedNodeMajor} and reinstall dependencies.`,
   );
 }
 

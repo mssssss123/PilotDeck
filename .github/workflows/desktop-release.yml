@@ -111,7 +111,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          pattern: pilotdeck-desktop-*
+          pattern: 9gclaw-desktop-*
           path: release-assets
           merge-multiple: true
 

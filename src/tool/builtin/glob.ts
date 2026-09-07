@@ -71,7 +71,7 @@ export function createGlobTool(): PilotDeckToolDefinition<GlobInput> {
         limit: {
           type: "integer",
           description:
-            "Maximum number of file paths to return. This is a PilotDeck-specific output cap; defaults to 1000. Results remain stable and sorted before truncation.",
+            "Maximum number of file paths to return. This is a 9GClaw-specific output cap; defaults to 1000. Results remain stable and sorted before truncation.",
         },
       },
     },

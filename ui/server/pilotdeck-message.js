@@ -1,5 +1,5 @@
 /**
- * PilotDeck-flavored chat message helper.
+ * 9GClaw-flavored chat message helper.
  *
  * Replaces the legacy `providers/types.js` module. The shape on the wire
  * is unchanged (frontend reads `kind`, `sessionId`, `provider`, `timestamp`,

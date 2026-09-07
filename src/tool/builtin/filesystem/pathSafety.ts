@@ -73,7 +73,7 @@ export function resolvePilotDeckWorkspacePath(
 
     return {
       ok: false,
-      error: toolError("path_not_allowed", `Path ${inputPath} is outside the PilotDeck workspace.`),
+      error: toolError("path_not_allowed", `Path ${inputPath} is outside the 9GClaw workspace.`),
     };
   }
 
@@ -98,7 +98,7 @@ export function resolvePilotDeckWorkspacePath(
     if (!isPathWithinRoot(real, realRoot)) {
       return {
         ok: false,
-        error: toolError("path_not_allowed", `Path ${inputPath} resolves outside the PilotDeck workspace.`),
+        error: toolError("path_not_allowed", `Path ${inputPath} resolves outside the 9GClaw workspace.`),
       };
     }
   }

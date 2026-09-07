@@ -17,8 +17,8 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $LaunchDirectory = (Get-Location).Path
 
-if (-not $RepoUrl) { $RepoUrl = 'https://github.com/OpenBMB/PilotDeck.git' }
-if (-not $Branch) { $Branch = 'main' }
+if (-not $RepoUrl) { $RepoUrl = 'https://github.com/mssssss123/PilotDeck.git' }
+if (-not $Branch) { $Branch = 'feat/9gclaw' }
 if (-not $InstallDir) { $InstallDir = Join-Path $HOME '.pilotdeck\app' }
 if (-not $ConfigPath) { $ConfigPath = Join-Path $HOME '.pilotdeck\pilotdeck.yaml' }
 if (-not [System.IO.Path]::IsPathRooted($ConfigPath)) {
@@ -122,7 +122,7 @@ function Add-UserPath([string]$Directory) {
   [Environment]::SetEnvironmentVariable('Path', (($parts + $resolved) -join ';'), 'User')
   $env:Path = "$resolved;$env:Path"
   Write-Ok "Added $resolved to the user PATH"
-  Write-Step "Open a new PowerShell window before using pilotdeck globally."
+  Write-Step "Open a new PowerShell window before using 9gclaw globally."
 }
 
 function Add-FnmNodeToPath {
@@ -431,7 +431,7 @@ function Ensure-BrowserUseDependency {
 
   if ($env:PILOTDECK_SKIP_BROWSER_INSTALL -ne '0') {
     Write-Step 'Skipping Chrome for Testing download (default) to keep install fast.'
-    Write-Step 'PilotDeck core features are still available without this optional browser-use dependency.'
+    Write-Step '9GClaw core features are still available without this optional browser-use dependency.'
     Write-Step "To enable browser-use later, run: Set-Location `"$InstallDir`"; npm run install:browser"
     Write-Step 'Or re-run the installer with PILOTDECK_SKIP_BROWSER_INSTALL=0.'
     return
@@ -475,14 +475,14 @@ function Install-AndBuild {
   $env:PILOTDECK_CONFIG_PATH = $ConfigPath
   Invoke-Npm -Arguments @('run', 'build') -WorkingDirectory $InstallDir
   Invoke-Npm -Arguments @('run', 'build') -WorkingDirectory (Join-Path $InstallDir 'ui')
-  Write-Ok 'PilotDeck built successfully'
+  Write-Ok '9GClaw built successfully'
 }
 
 function Write-CmdLauncher {
   $binDir = Join-Path $HOME '.pilotdeck\bin'
   New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-  $cmdPath = Join-Path $binDir 'pilotdeck.cmd'
-  $ps1Path = Join-Path $binDir 'pilotdeck.ps1'
+  $cmdPath = Join-Path $binDir '9gclaw.cmd'
+  $ps1Path = Join-Path $binDir '9gclaw.ps1'
   $escapedInstallDir = $InstallDir.Replace("'", "''")
   $escapedConfigPath = $ConfigPath.Replace("'", "''")
   $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
@@ -492,7 +492,7 @@ function Write-CmdLauncher {
 
   @"
 @echo off
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0pilotdeck.ps1" %*
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp09gclaw.ps1" %*
 "@ | Set-Content -LiteralPath $cmdPath -Encoding ASCII
 
   @"
@@ -538,7 +538,7 @@ if (`$args.Count -gt 0 -and `$args[0] -eq 'status') {
   exit 0
 }
 if (`$args.Count -gt 0 -and (`$args[0] -eq 'help' -or `$args[0] -eq '--help' -or `$args[0] -eq '-h')) {
-  Write-Host 'Usage: pilotdeck [status|help] [--port PORT] [--config PATH]'
+  Write-Host 'Usage: 9gclaw [status|help] [--port PORT] [--config PATH]'
   exit 0
 }
 for (`$i = 0; `$i -lt `$args.Count; `$i++) {
@@ -557,13 +557,13 @@ for (`$i = 0; `$i -lt `$args.Count; `$i++) {
 `$env:SERVER_PORT = [string](Find-FreePort `$ServerPort)
 `$env:PILOTDECK_GATEWAY_PORT = [string](Find-FreePort `$GatewayPort)
 `$env:PILOTDECK_GATEWAY_URL = "ws://127.0.0.1:`$env:PILOTDECK_GATEWAY_PORT/ws"
-Write-Host "pilotdeck: starting at http://localhost:`$env:SERVER_PORT"
+Write-Host "9gclaw: starting at http://localhost:`$env:SERVER_PORT"
 Set-Location (Join-Path `$InstallDir 'ui')
 & `$NpmPath run start:built
 "@ | Set-Content -LiteralPath $ps1Path -Encoding UTF8
 
   if (-not $NoPathUpdate) { Add-UserPath $binDir }
-  Write-Ok "pilotdeck launcher written to $cmdPath"
+  Write-Ok "9gclaw launcher written to $cmdPath"
 }
 
 Ensure-NodeRuntime
@@ -584,7 +584,7 @@ Write-Host ''
 Write-Host 'Installation complete!' -ForegroundColor Green
 Write-Host "  App location: $InstallDir"
 Write-Host "  Config file:  $ConfigPath"
-Write-Host "  CLI command:  pilotdeck"
+Write-Host "  CLI command:  9gclaw"
 Write-Host "  UI:           http://localhost:$env:SERVER_PORT"
 Write-Host "  Gateway:      $env:PILOTDECK_GATEWAY_URL"
 Write-Host ''

@@ -1,10 +1,10 @@
 # 源码安装指南
 
-本文档适合希望直接从源码运行 PilotDeck 的开发者。如果只是想快速体验，建议优先使用一键安装脚本或 Docker。
+本文档适合希望直接从源码运行 9GClaw 的开发者。如果只是想快速体验，建议优先使用一键安装脚本或 Docker。
 
 ## 环境要求
 
-PilotDeck 需要：
+9GClaw 需要：
 
 - Node.js v22.13.0 或更新的 Node.js 22 版本，并且支持内置 `node:sqlite` 运行时。
 - Git。
@@ -82,7 +82,7 @@ node -p "process.arch" # Intel Mac 上应输出 x64
 某些 Python 发行版（尤其是通过包管理器安装的 Python 3.12）可能不包含 `distutils`，而旧版 `node-gyp` 在源码编译原生包时仍会用到它。一键安装脚本会尝试自动选择带 `distutils` 的 Python。如果你手动运行 npm 命令并看到 `ModuleNotFoundError: No module named 'distutils'`，请使用带 `distutils` 的 Python，例如：
 
 ```bash
-PYTHON=/usr/bin/python3 corepack pnpm install --frozen-lockfile --filter pilotdeck --filter pilotdeck-ui
+PYTHON=/usr/bin/python3 corepack pnpm install --frozen-lockfile --filter 9gclaw --filter 9gclaw-ui
 ```
 
 只安装 CLT 即可，不需要完整 Xcode。如果已安装但 `xcrun --find clang` 仍失败，请运行 `sudo xcode-select --reset`，或重新安装 Xcode Command Line Tools 后重试。
@@ -142,7 +142,7 @@ Windows 支持多种源码部署路径。你不需要为每条路径安装所有
 | 路径 | 需要在 Windows 安装 | 适合场景 |
 |---|---|---|
 | WSL2 Ubuntu | WSL2、Ubuntu，然后在 Ubuntu 内安装 Linux 编译工具 | 源码部署和开发 |
-| Docker Desktop | 启用 WSL2 backend 的 Docker Desktop、Git for Windows | 不想在本机管理 Node/native build 环境，只想运行 PilotDeck |
+| Docker Desktop | 启用 WSL2 backend 的 Docker Desktop、Git for Windows | 不想在本机管理 Node/native build 环境，只想运行 9GClaw |
 | 原生 Windows | Node.js、Git LFS、Python、Visual Studio C++ Build Tools、ripgrep | 只用 PowerShell 进行开发 |
 | Portable Node | 官方 Node.js zip、Git for Windows、Git LFS、ripgrep | 不修改系统 Node 设置，先验证部署流程 |
 
@@ -160,7 +160,7 @@ docker compose version
 wsl --status
 ```
 
-缺少命令说明对应工具还没有安装，或还没有加入 `PATH`。安装工具后，请关闭并重新打开 PowerShell 再检查。Git for Windows 会包含 Git Bash；PilotDeck 在 Windows 上会优先使用 Git Bash 作为默认终端 shell，只有找不到 Git Bash 时才回退到 PowerShell。
+缺少命令说明对应工具还没有安装，或还没有加入 `PATH`。安装工具后，请关闭并重新打开 PowerShell 再检查。Git for Windows 会包含 Git Bash；9GClaw 在 Windows 上会优先使用 Git Bash 作为默认终端 shell，只有找不到 Git Bash 时才回退到 PowerShell。
 
 #### WSL2 Ubuntu（推荐）
 
@@ -219,11 +219,11 @@ rg --version
 
 原生 Windows 源码安装按 x64 Node.js 验证。如果 `node -p "process.arch"` 不是 `x64`，请先切换到官方 x64 Node.js 22 zip，或其他 x64 Node.js 运行时，再安装依赖。
 
-执行上面的前置依赖检查命令时，请使用分开的 PowerShell 命令行，不要使用 Bash 风格的链式命令。安装 Git for Windows 后，PilotDeck 内置终端会自动优先使用 Git Bash。如果 PowerShell 拦截 `npm.ps1`，请改用 `npm.cmd`。
+执行上面的前置依赖检查命令时，请使用分开的 PowerShell 命令行，不要使用 Bash 风格的链式命令。安装 Git for Windows 后，9GClaw 内置终端会自动优先使用 Git Bash。如果 PowerShell 拦截 `npm.ps1`，请改用 `npm.cmd`。
 
 #### Portable Node 验证路径
 
-如果想在全局安装 Node.js 前先验证 PilotDeck，可只在当前 PowerShell 会话中使用官方 Windows Node.js zip：
+如果想在全局安装 Node.js 前先验证 9GClaw，可只在当前 PowerShell 会话中使用官方 Windows Node.js zip：
 
 ```powershell
 $NodeVersion = '22.23.1'
@@ -244,15 +244,15 @@ node --version
 npm.cmd --version
 ```
 
-使用 Portable Node 时，仍然请按下面的源码安装命令执行：`corepack pnpm install --frozen-lockfile --filter pilotdeck --filter pilotdeck-ui`、`corepack pnpm run build` 和 `corepack pnpm --prefix ui run build`。只有在确实需要直接调用 npm 且 PowerShell 拦截 `npm.ps1` 时，才改用 `npm.cmd`。
+使用 Portable Node 时，仍然请按下面的源码安装命令执行：`corepack pnpm install --frozen-lockfile --filter 9gclaw --filter 9gclaw-ui`、`corepack pnpm run build` 和 `corepack pnpm --prefix ui run build`。只有在确实需要直接调用 npm 且 PowerShell 拦截 `npm.ps1` 时，才改用 `npm.cmd`。
 
 ## 克隆仓库
 
 克隆源码，默认不下载 Git LFS 管理的大型演示媒体文件：
 
 ```bash
-GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/OpenBMB/PilotDeck.git
-cd PilotDeck
+GIT_LFS_SKIP_SMUDGE=1 git clone --branch feat/9gclaw https://github.com/mssssss123/PilotDeck.git 9GClaw
+cd 9GClaw
 ```
 
 如果之后需要演示视频/GIF，可在克隆后下载：
@@ -266,14 +266,14 @@ git lfs pull
 ```bash
 node --version          # 必须为 v22.13.0 或更新版本，且低于 v23
 corepack enable         # 启用 package.json 中固定的 pnpm 版本
-corepack pnpm install --frozen-lockfile --filter pilotdeck --filter pilotdeck-ui
+corepack pnpm install --frozen-lockfile --filter 9gclaw --filter 9gclaw-ui
 ```
 
 如果当前环境没有 Corepack，或正在使用用户目录安装的 Portable Node，可改用固定版本的全局 pnpm：
 
 ```bash
 npm install -g pnpm@10.32.1
-pnpm install --frozen-lockfile --filter pilotdeck --filter pilotdeck-ui
+pnpm install --frozen-lockfile --filter 9gclaw --filter 9gclaw-ui
 ```
 
 源码安装请使用仓库提交的 `pnpm-lock.yaml`。上述 workspace 过滤参数会排除 Web 部署不需要的 Electron 打包依赖。不要把这一步替换成 `npm install`；当前 lockfile 和 workspace 构建配置按 pnpm 维护，一键安装脚本验证的也是这条路径。
@@ -287,13 +287,13 @@ npm install -g clawhub
 clawhub --version
 ```
 
-在 Windows 上，如果 PowerShell 拦截 `npm.ps1`，请使用 `npm.cmd install -g clawhub`。如果使用 Portable Node，`clawhub` 会安装到当前 portable Node 前缀下；运行 PilotDeck 时需要继续保留该 Node 目录在 `PATH` 中。
+在 Windows 上，如果 PowerShell 拦截 `npm.ps1`，请使用 `npm.cmd install -g clawhub`。如果使用 Portable Node，`clawhub` 会安装到当前 portable Node 前缀下；运行 9GClaw 时需要继续保留该 Node 目录在 `PATH` 中。
 
 ## 首次 Onboarding
 
-PilotDeck 读取 `~/.pilotdeck/pilotdeck.yaml`。如果文件不存在，直接正常启动 PilotDeck：Web UI 会在不启动 Gateway 的情况下进入 onboarding。保存真实的 Provider、API Key 和模型后，PilotDeck 会写入配置并自动启动 Gateway。
+9GClaw 读取 `~/.pilotdeck/pilotdeck.yaml`。如果文件不存在，直接正常启动 9GClaw：Web UI 会在不启动 Gateway 的情况下进入 onboarding。保存真实的 Provider、API Key 和模型后，9GClaw 会写入配置并自动启动 Gateway。
 
-## 启动 PilotDeck
+## 启动 9GClaw
 
 开发模式，支持 HMR：
 
@@ -322,10 +322,10 @@ SERVER_PORT=3002 PILOTDECK_GATEWAY_PORT=18790 PILOTDECK_GATEWAY_URL=ws://127.0.0
 ## 常见问题
 
 - 出现 `Node.js >=22.13.0 and <23 is required`：切换到 Node.js 22.13.0 或更新的 Node.js 22 版本，并重新安装依赖。
-- 原生包编译失败：确认已安装 Python 3、`make` 和 C/C++ 编译器，然后重新运行 `corepack pnpm install --frozen-lockfile --filter pilotdeck --filter pilotdeck-ui`。
+- 原生包编译失败：确认已安装 Python 3、`make` 和 C/C++ 编译器，然后重新运行 `corepack pnpm install --frozen-lockfile --filter 9gclaw --filter 9gclaw-ui`。
 - Linux 上 `node-pty`、`better-sqlite3` 编译时下载 `node-v*-headers.tar.gz` 超时：先运行 `export npm_config_disturl=https://npmmirror.com/mirrors/node`，再重新安装依赖。
 - `pnpm install --frozen-lockfile` 下载 npm 包超时：运行 `pnpm config set registry https://registry.npmmirror.com` 后重试上面的过滤安装命令。
-- macOS 出现 `ModuleNotFoundError: No module named 'distutils'`：一键安装脚本会尝试自动选择兼容 Python；手动运行 npm 命令时，可用 `PYTHON=/usr/bin/python3 corepack pnpm install --frozen-lockfile --filter pilotdeck --filter pilotdeck-ui` 重试，或切换到其他带 `distutils` 的 Python。
+- macOS 出现 `ModuleNotFoundError: No module named 'distutils'`：一键安装脚本会尝试自动选择兼容 Python；手动运行 npm 命令时，可用 `PYTHON=/usr/bin/python3 corepack pnpm install --frozen-lockfile --filter 9gclaw --filter 9gclaw-ui` 重试，或切换到其他带 `distutils` 的 Python。
 - macOS 缺少编译工具：不需要完整 Xcode，但 `xcrun --find clang` 必须可用。可运行 `xcode-select --install` 重新安装 Xcode Command Line Tools；如果已安装但状态异常，可运行 `sudo xcode-select --reset` 后重试。
 - 启动时报 `EADDRINUSE`：默认 `3001` 或 `18789` 已被占用，设置 `SERVER_PORT`、`PILOTDECK_GATEWAY_PORT` 和 `PILOTDECK_GATEWAY_URL` 后重试。
 - 旧版 `~/.pilotdeck/pilotdeck.yaml` 仍进入 onboarding：`PLACEHOLDER_RUN_ONBOARDING_TO_REPLACE`、`_placeholder/_placeholder` 等历史占位值会在保存真实 Provider、API Key 和模型时自动迁移。

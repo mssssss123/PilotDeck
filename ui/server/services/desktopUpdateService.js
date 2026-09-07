@@ -11,10 +11,10 @@ const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..');
-const DEFAULT_REPOSITORY = 'OpenBMB/PilotDeck';
+const DEFAULT_REPOSITORY = 'mssssss123/PilotDeck';
 const DEFAULT_TIMEOUT_MS = 15_000;
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const USER_AGENT = 'PilotDeck-Updater/1.0';
+const USER_AGENT = '9GClaw-Updater/1.0';
 
 let cachedStatus = null;
 let downloadJob = createIdleDownloadJob();
@@ -38,7 +38,7 @@ export function compareVersions(current, latest) {
 export function parseVersionParts(value) {
   const normalized = String(value || '')
     .trim()
-    .replace(/^pilotdeck[-_ ]?/i, '')
+    .replace(/^(?:9gclaw|pilotdeck)[-_ ]?/i, '')
     .replace(/^desktop[-_ ]?/i, '')
     .replace(/^v/i, '');
   const dateMatch = /^(\d{4})[.-](\d{1,2})[.-](\d{1,2})(?:-r(\d+))?$/i.exec(normalized);
@@ -329,7 +329,7 @@ export function launchDownloadedDesktopUpdate(options = {}) {
   const resolvedPath = path.resolve(filePath);
   const relativeToCache = path.relative(path.resolve(cacheRoot), resolvedPath);
   if (relativeToCache.startsWith('..') || path.isAbsolute(relativeToCache)) {
-    const error = new Error('Installer path is outside the PilotDeck update cache.');
+    const error = new Error('Installer path is outside the 9GClaw update cache.');
     error.statusCode = 400;
     throw error;
   }
@@ -345,7 +345,7 @@ export function launchDownloadedDesktopUpdate(options = {}) {
     launched: true,
     filePath: resolvedPath,
     needsRestart: true,
-    message: 'Installer launched. Complete the installer flow, then restart PilotDeck.',
+    message: 'Installer launched. Complete the installer flow, then restart 9GClaw.',
   };
 }
 
@@ -358,7 +358,7 @@ export function resetDesktopUpdateStateForTesting() {
 async function fetchLatestRelease(options) {
   const releases = await fetchReleases({ ...options, limit: 30, desktopOnly: true });
   const release = releases.find((item) => !item.draft);
-  if (!release) throw new Error('No PilotDeck desktop releases are available.');
+  if (!release) throw new Error('No 9GClaw desktop releases are available.');
   return release;
 }
 

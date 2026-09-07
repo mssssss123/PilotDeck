@@ -268,7 +268,7 @@ function prepareRuntimeTree(installEnv = process.env) {
   writeFileSync(
     resolve(runtimeRoot, "ui", "package.json"),
     `${JSON.stringify({
-      name: "pilotdeck-ui-runtime",
+      name: "9gclaw-ui-runtime",
       version: uiPackage.version,
       private: true,
       type: "module",
@@ -498,7 +498,7 @@ if (process.platform === "win32") {
 if (process.env.PILOTDECK_DESKTOP_SKIP_RUNTIME_BUILD !== "1") {
   runPnpm(["--dir", repoRoot, "run", "build"]);
   runPnpm(
-    ["--dir", repoRoot, "--filter", "pilotdeck-ui", "run", "build"],
+    ["--dir", repoRoot, "--filter", "9gclaw-ui", "run", "build"],
     repoRoot,
     { ...process.env, VITE_PILOTDECK_DESKTOP_BUILD: DESKTOP_BUILD },
   );

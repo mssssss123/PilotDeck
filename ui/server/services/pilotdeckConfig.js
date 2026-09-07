@@ -1004,7 +1004,7 @@ export async function writePilotDeckConfig(config, { previousConfig } = {}) {
   }
   const validation = validatePilotDeckConfig(sanitized);
   if (!validation.valid) {
-    const error = new Error('Invalid PilotDeck config');
+    const error = new Error('Invalid 9GClaw config');
     error.validation = validation;
     throw error;
   }

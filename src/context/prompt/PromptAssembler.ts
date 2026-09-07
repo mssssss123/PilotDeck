@@ -37,7 +37,7 @@ export type PromptAssemblerResult = {
 /**
  * Build the system prompt for a turn. Mirrors legacy `fetchSystemPromptParts`
  * information slots (tool catalog / cwd / git / env / mcp instructions /
- * commands / skills) but uses PilotDeck-authored copy.
+ * commands / skills) but uses 9GClaw-authored copy.
  *
  * Sections (review decision 2026-05):
  *   1 default_system_prompt   — product identity + tool catalog + permission mode
@@ -94,7 +94,7 @@ export class PromptAssembler {
         ? "When implementing code against an API, SDK, framework, CLI, config schema, or file format whose usage is not clear, prefer installed types, local source, examples, and project docs. If a relevant official documentation URL is already known, use web_fetch to inspect it. Otherwise state the uncertainty and proceed conservatively."
         : "When implementing code against an API, SDK, framework, CLI, config schema, or file format whose usage is not clear, prefer installed types, local source, examples, and project docs. State any remaining uncertainty and proceed conservatively.";
     const lines: string[] = [
-      "You are PilotDeck, an AI agent runtime. You execute tasks across CLI, TUI, web, and chat channels by calling structured tools and reasoning over their results.",
+      "You are 9GClaw, an AI agent runtime. You execute tasks across CLI, TUI, web, and chat channels by calling structured tools and reasoning over their results.",
       "Operate decisively: prefer using available tools to gather facts before answering, prefer concise replies, and surface uncertainty when present.",
       "",
       "Documentation lookup policy:",

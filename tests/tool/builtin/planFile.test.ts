@@ -10,7 +10,7 @@ test("desktop runtime plan files are stored under pilotHome project artifacts", 
   const root = mkdtempSync(join(tmpdir(), "pilotdeck-plan-runtime-"));
   try {
     const pilotHome = join(root, "pilot-home");
-    const projectRoot = join(root, "Program Files", "PilotDeck", "resources", "runtime");
+    const projectRoot = join(root, "Program Files", "9GClaw", "resources", "runtime");
     const manager = createPlanFileManager({
       projectRoot,
       pilotHome,

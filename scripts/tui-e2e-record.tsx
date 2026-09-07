@@ -62,7 +62,7 @@ async function main(): Promise<void> {
     model: MODEL,
     cwd,
     systemPrompt:
-      "You are PilotDeck running an end-to-end TUI test. When asked for arithmetic, you MUST call the provided add_numbers tool exactly once instead of computing it yourself, then report the answer in plain text.",
+      "You are 9GClaw running an end-to-end TUI test. When asked for arithmetic, you MUST call the provided add_numbers tool exactly once instead of computing it yourself, then report the answer in plain text.",
     maxOutputTokens: 1024,
     temperature: 0,
     permissionMode: "default",

@@ -1,5 +1,5 @@
 {
-  "brand": "PilotDeck",
+  "brand": "9GClaw",
   "sidebar": {
     "kicker": "First-time setup",
     "title": "Prepare your AI workspace",
@@ -12,7 +12,7 @@
     "workspace": "Workspace"
   },
   "language": {
-    "eyebrow": "Welcome to PilotDeck",
+    "eyebrow": "Welcome to 9GClaw",
     "title": "Connect your model and start collaborating",
     "intro": "Finish model setup in a few steps. You can change the provider, model, or key in Settings at any time.",
     "legend": "Choose your interface language",
@@ -28,7 +28,7 @@
   },
   "provider": {
     "title": "Choose your model provider",
-    "intro": "Pick a provider first. PilotDeck will fill in the recommended endpoint format.",
+    "intro": "Pick a provider first. 9GClaw will fill in the recommended endpoint format.",
     "customTitle": "Custom",
     "customHint": "OpenAI / Anthropic / Google"
   },
@@ -71,8 +71,8 @@
     "testNeedApiKey": "Enter an API key before testing the connection.",
     "testNeedModel": "Select at least one model ID before testing the connection.",
     "testNeedConnection": "Enter an Endpoint before testing the connection.",
-    "testHint": "PilotDeck will test text for the selected models, and image input for {{count}} unknown models. This may incur a small API charge.",
-    "testHintKnown": "PilotDeck will test text for the selected models. Image support is taken from the built-in catalog.",
+    "testHint": "9GClaw will test text for the selected models, and image input for {{count}} unknown models. This may incur a small API charge.",
+    "testHintKnown": "9GClaw will test text for the selected models. Image support is taken from the built-in catalog.",
     "testSuccess": "Connection succeeded.",
     "testFailed": "Connection failed",
     "manualTitle": "Automatic detection failed. Please mark whether each model supports image input.",

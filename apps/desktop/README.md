@@ -1,24 +1,24 @@
-# PilotDeck Desktop
+# 9GClaw Desktop
 
-Electron desktop shell for the existing PilotDeck Web UI and local gateway runtime.
+Electron desktop shell for the existing 9GClaw Web UI and local gateway runtime.
 
 ## Development
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm --filter pilotdeck-desktop dev
+pnpm --filter 9gclaw-desktop dev
 ```
 
-The desktop process starts the existing PilotDeck gateway and UI server as local
+The desktop process starts the existing 9GClaw gateway and UI server as local
 child processes, then opens the packaged Web UI inside an Electron window.
 
 ## Packaging
 
 ```bash
 # Run the command matching the Mac host architecture:
-pnpm --filter pilotdeck-desktop dist:mac:arm64
-pnpm --filter pilotdeck-desktop dist:mac:x64
-pnpm --filter pilotdeck-desktop dist:win
+pnpm --filter 9gclaw-desktop dist:mac:arm64
+pnpm --filter 9gclaw-desktop dist:mac:x64
+pnpm --filter 9gclaw-desktop dist:win
 ```
 
 Platform release builds should run on matching GitHub Actions runners:

@@ -22,7 +22,7 @@ const version = process.env.PILOTDECK_DESKTOP_VERSION || buildDateVersion(releas
 const releaseTag = process.env.PILOTDECK_DESKTOP_RELEASE_TAG || buildReleaseTag(releaseDate, revision);
 const buildTime = process.env.PILOTDECK_DESKTOP_BUILD_TIME || new Date().toISOString();
 const commitSha = process.env.PILOTDECK_COMMIT_SHA || process.env.GITHUB_SHA || resolveGitCommit();
-const repository = process.env.PILOTDECK_UPDATE_REPOSITORY || process.env.GITHUB_REPOSITORY || "OpenBMB/PilotDeck";
+const repository = process.env.PILOTDECK_UPDATE_REPOSITORY || process.env.GITHUB_REPOSITORY || "mssssss123/PilotDeck";
 
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
 packageJson.version = version;
@@ -45,10 +45,10 @@ exportGitHubEnv({
 });
 exportGitHubOutput({ version, release_date: releaseDate, release_tag: releaseTag, commit_sha: commitSha });
 
-console.log(`PilotDeck desktop version set to ${version}`);
-console.log(`PilotDeck desktop release tag set to ${releaseTag}`);
-console.log(`PilotDeck desktop commit set to ${commitSha}`);
-console.log(`PilotDeck desktop build time set to ${buildTime}`);
+console.log(`9GClaw desktop version set to ${version}`);
+console.log(`9GClaw desktop release tag set to ${releaseTag}`);
+console.log(`9GClaw desktop commit set to ${commitSha}`);
+console.log(`9GClaw desktop build time set to ${buildTime}`);
 
 function resolveGitCommit() {
   try {

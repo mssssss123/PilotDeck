@@ -199,7 +199,7 @@ export function useChatProviderState({ selectedProject, selectedSession }: UseCh
         setThinkingModelContext(readThinkingModelContext(data?.config));
       })
       .catch((error) => {
-        console.error('Error loading PilotDeck config:', error);
+        console.error('Error loading 9GClaw config:', error);
       });
 
     return () => {

@@ -131,7 +131,7 @@ const commands: ChannelCommand[] = [
   {
     name: "update",
     aliases: ["升级", "更新"],
-    description: "Pull latest code, rebuild, and restart PilotDeck",
+    description: "Pull latest code, rebuild, and restart 9GClaw",
     systemLevel: true,
     handler: async (ctx, arg) => {
       const { execFile } = await import("node:child_process");
@@ -181,7 +181,7 @@ const commands: ChannelCommand[] = [
       }
 
       // Execute the update
-      await ctx.reply("🚀 开始更新 PilotDeck...\n正在拉取最新代码、重新构建...");
+      await ctx.reply("🚀 开始更新 9GClaw...\n正在拉取最新代码、重新构建...");
       try {
         const { stdout, stderr } = await execFileAsync("bash", [scriptPath, "--restart"], {
           cwd: projectRoot,
@@ -211,7 +211,7 @@ const commands: ChannelCommand[] = [
   {
     name: "status",
     aliases: ["状态"],
-    description: "Show PilotDeck status and version",
+    description: "Show 9GClaw status and version",
     systemLevel: true,
     handler: async (ctx, _arg) => {
       const { execFile } = await import("node:child_process");
@@ -232,7 +232,7 @@ const commands: ChannelCommand[] = [
         const uptimeStr = uptimeH > 0 ? `${uptimeH}h ${uptimeMin % 60}m` : `${uptimeMin}m`;
 
         const lines = [
-          "📊 PilotDeck Status",
+          "📊 9GClaw Status",
           "",
           `分支: ${branch.trim()}`,
           `提交: ${commit.trim()}`,

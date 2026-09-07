@@ -156,7 +156,7 @@ async function tryRealpath(value: string): Promise<string | undefined> {
 }
 
 function internalAttachmentMessage(inputPath: string, internalRoot: string): string {
-  return `Cannot send ${inputPath} directly because it is inside PilotDeck's internal work directory (${internalRoot}). `
+  return `Cannot send ${inputPath} directly because it is inside 9GClaw's internal work directory (${internalRoot}). `
     + "Internal candidates may be incomplete or unreviewed. Publish the reviewed final artifact outside PILOTDECK_WORK_DIR with the relevant skill's delivery workflow (for DOCX, use docx.sh deliver), then send the delivered path.";
 }
 

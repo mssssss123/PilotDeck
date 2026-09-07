@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# PilotDeck self-update script.
+# 9GClaw self-update script.
 # Pulls latest code, rebuilds, and signals the parent process to restart.
 #
 # Usage:
@@ -70,8 +70,8 @@ git pull --ff-only origin "$CURRENT_BRANCH" 2>&1 || {
 
 log "Installing dependencies..."
 if command -v pnpm >/dev/null 2>&1; then
-  HUSKY=0 pnpm install --frozen-lockfile --filter pilotdeck --filter pilotdeck-ui 2>&1 \
-    || HUSKY=0 pnpm install --filter pilotdeck --filter pilotdeck-ui 2>&1
+  HUSKY=0 pnpm install --frozen-lockfile --filter 9gclaw --filter 9gclaw-ui 2>&1 \
+    || HUSKY=0 pnpm install --filter 9gclaw --filter 9gclaw-ui 2>&1
 else
   HUSKY=0 npm install --no-audit --no-fund --workspaces=false 2>&1
   HUSKY=0 npm --prefix ui install --no-audit --no-fund --workspaces=false 2>&1
@@ -92,7 +92,7 @@ COMMIT_MSG="$(git log --oneline -1 HEAD)"
 log "Latest commit: $COMMIT_MSG"
 
 if [[ "$DO_RESTART" -eq 1 ]]; then
-  log "Restarting PilotDeck..."
+  log "Restarting 9GClaw..."
   if [[ -n "${PILOTDECK_PID:-}" ]] && kill -0 "$PILOTDECK_PID" 2>/dev/null; then
     kill -SIGUSR2 "$PILOTDECK_PID" 2>/dev/null || true
   fi

@@ -2,15 +2,15 @@
 name: pilotdeck-skills-migration
 description: >-
   Migrate Claude Code, OpenClaw, Hermes, or custom Agent Skill directories into
-  PilotDeck's global skills directory. Use when the user asks to migrate,
-  import, copy, or consolidate skills into PilotDeck, or mentions
+  9GClaw's global skills directory. Use when the user asks to migrate,
+  import, copy, or consolidate skills into 9GClaw, or mentions
   ~/.claude/skills, ~/.openclaw, ~/.hermes, ~/.agents/skills, or
   ~/.pilotdeck/skills.
 ---
 
-# PilotDeck Skills Migration
+# 9GClaw Skills Migration
 
-Use this skill to migrate Agent Skill folders into PilotDeck's global skill
+Use this skill to migrate Agent Skill folders into 9GClaw's global skill
 store, `~/.pilotdeck/skills`.
 
 ## Workflow
@@ -30,7 +30,7 @@ itself stays available as `npm run skills:migrate` without requiring a global
    Use `ask_user_question` with these options:
 
 ```text
-Which skills should I migrate into PilotDeck?
+Which skills should I migrate into 9GClaw?
 - Claude Code
 - OpenClaw
 - Hermes
@@ -94,7 +94,7 @@ npm run skills:migrate -- --json
 
 ## Default Sources
 
-The PilotDeck migrator scans immediate child directories containing `SKILL.md`
+The 9GClaw migrator scans immediate child directories containing `SKILL.md`
 from:
 
 - Claude Code: `~/.claude/skills`, `<project>/.claude/skills`
@@ -113,6 +113,6 @@ from:
   found.
 - Do not delete source skills.
 - Prefer `--rename` over `--overwrite` unless the user explicitly wants to
-  replace existing PilotDeck skills.
+  replace existing 9GClaw skills.
 - The repo bootstrap syncs this skill into `$PILOT_HOME/skills` from
   `skills/pilotdeck-skills-migration/SKILL.md`; it skips existing targets.

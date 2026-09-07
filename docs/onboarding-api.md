@@ -1,11 +1,11 @@
-# PilotDeck Onboarding 后端接口文档
+# 9GClaw Onboarding 后端接口文档
 
 ## 1. 接口说明
 
 - Base URL：`http://127.0.0.1:{SERVER_PORT}/api/v1`
 - 默认本机端口：`3001`
 - 数据格式：`application/json`
-- 认证：`Authorization: Bearer <PilotDeck JWT>`
+- 认证：`Authorization: Bearer <9GClaw JWT>`
 - 可选实例鉴权：服务端配置 `API_KEY` 时还必须提供 `X-API-Key`
 - 时间格式：ISO 8601 UTC
 - OpenAPI：`docs/pilotdeck-onboarding-api.openapi.yaml`
@@ -456,9 +456,9 @@ POST model-connection-tests
 
 | URL | 仓库文件 |
 | --- | --- |
-| `/pilotdeck-logo-lockup-transparent.png` | `ui/public/pilotdeck-logo-lockup-transparent.png` |
-| `/pilotdeck-p-mark-transparent.png` | `ui/public/pilotdeck-p-mark-transparent.png` |
-| `/pilotdeck-p-mark-transparent-v2.png` | `ui/public/pilotdeck-p-mark-transparent-v2.png` |
+| `/9gclaw-logo-lockup-transparent.png` | `ui/public/9gclaw-logo-lockup-transparent.png` |
+| `/9gclaw-p-mark-transparent.png` | `ui/public/9gclaw-p-mark-transparent.png` |
+| `/9gclaw-p-mark-transparent-v2.png` | `ui/public/9gclaw-p-mark-transparent-v2.png` |
 | `/onboarding/providers/anthropic.svg` | `ui/public/onboarding/providers/anthropic.svg` |
 | `/onboarding/providers/bailian-color.svg` | `ui/public/onboarding/providers/bailian-color.svg` |
 | `/onboarding/providers/deepseek-color.svg` | `ui/public/onboarding/providers/deepseek-color.svg` |
