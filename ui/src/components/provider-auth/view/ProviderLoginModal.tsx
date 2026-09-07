@@ -54,7 +54,7 @@ const getProviderCommand = ({
 };
 
 const getProviderTitle = (provider: CliProvider) => {
-  if (provider === 'pilotdeck') return 'OpenBMB PilotDeck API Login';
+  if (provider === 'pilotdeck') return 'OpenBMB 9GClaw API Login';
   if (provider === 'claude') return 'Anthropic API Login';
   if (provider === 'cursor') return 'Cursor CLI Login';
   if (provider === 'codex') return 'Codex CLI Login';

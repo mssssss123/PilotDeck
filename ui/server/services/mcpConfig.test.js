@@ -14,7 +14,7 @@ describe('MCP config writable paths', () => {
   let previousDesktop;
 
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'pilotdeck-ui-mcp-config-'));
+    root = mkdtempSync(join(tmpdir(), '9gclaw-ui-mcp-config-'));
     previousPilotHome = process.env.PILOT_HOME;
     previousDesktop = process.env.PILOTDECK_DESKTOP;
     process.env.PILOT_HOME = join(root, 'pilot-home');
@@ -36,7 +36,7 @@ describe('MCP config writable paths', () => {
   });
 
   it('disables project MCP config for desktop runtime roots', async () => {
-    const runtimeRoot = join(root, 'Program Files', 'PilotDeck', 'resources', 'runtime');
+    const runtimeRoot = join(root, 'Program Files', '9GClaw', 'resources', 'runtime');
 
     const config = await readMcpConfigFile('project', runtimeRoot);
 

@@ -94,7 +94,7 @@ test("send_attachment rejects symlinks that resolve into an internal work direct
     assert.equal(validation?.ok, false);
     await assert.rejects(
       () => tool.execute({ file_path: publishedAlias }, context(projectRoot, workDir)),
-      /inside PilotDeck's internal work directory/,
+      /inside 9GClaw's internal work directory/,
     );
   } finally {
     await rm(projectRoot, { recursive: true, force: true });

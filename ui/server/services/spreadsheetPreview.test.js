@@ -29,7 +29,7 @@ const PREFIXED_WORKBOOK_XML = `<?xml version="1.0" encoding="UTF-8"?>
 
 async function createInteractiveFixture(workbookPath) {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'PilotDeck test';
+  workbook.creator = '9GClaw test';
   workbook.views = [{ activeTab: 0 }];
   const summary = workbook.addWorksheet('管理摘要', {
     views: [{ state: 'frozen', xSplit: 1, ySplit: 1 }],

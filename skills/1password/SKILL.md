@@ -51,8 +51,8 @@ tmux -S "$SOCKET" kill-session -t "$SESSION"
 - If a command returns "account is not signed in", re-run `op signin` inside tmux and authorize in the app.
 - Do not run `op` outside tmux; stop and ask if tmux is unavailable.
 
-## PilotDeck Migration Note
+## 9GClaw Migration Note
 
 - Source: /var/folders/27/xyyzc_n172l3jjmnxgqmhhzh0000gn/T/tmp.AyWDWGKoS4/openclaw/skills/1password
-- Review status: candidate for PilotDeck native skills pack.
+- Review status: candidate for 9GClaw native skills pack.
 - Platform-specific OpenClaw/Hermes metadata was removed or should be ignored during review.

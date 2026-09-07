@@ -1,5 +1,5 @@
 {
-  "name": "pilotdeck",
+  "name": "9gclaw",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,6 +11,7 @@
     "ui"
   ],
   "bin": {
+    "9gclaw": "./dist/src/cli/pilotdeck.js",
     "pilotdeck": "./dist/src/cli/pilotdeck.js"
   },
   "scripts": {
@@ -20,8 +21,8 @@
     "prebuild": "npm run check:runtime && cd src/context/memory/edgeclaw-memory-core && npm run build",
     "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json && node -e \"require('fs').cpSync('src/extension/plugins/builtin','dist/src/extension/plugins/builtin',{recursive:true})\"",
     "build:web": "npm run build && pnpm --dir ui run build",
-    "build:desktop": "pnpm --filter pilotdeck-desktop run compile",
-    "package:desktop": "pnpm --filter pilotdeck-desktop run pack",
+    "build:desktop": "pnpm --filter 9gclaw-desktop run compile",
+    "package:desktop": "pnpm --filter 9gclaw-desktop run pack",
     "server": "npm run check:runtime && tsx src/cli/pilotdeck.ts server",
     "server:built": "npm run check:runtime && node dist/src/cli/pilotdeck.js server",
     "skills:migrate": "tsx src/cli/pilotdeck.ts skills migrate",

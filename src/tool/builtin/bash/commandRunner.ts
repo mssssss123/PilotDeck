@@ -84,7 +84,7 @@ export class NodeShellCommandRunner implements PilotDeckCommandRunner {
           resolve({
             exitCode: null,
             stdout,
-            stderr: stderr + "\n[PilotDeck] Process did not exit within 15s after termination; force-resolved.",
+            stderr: stderr + "\n[9GClaw] Process did not exit within 15s after termination; force-resolved.",
             timedOut: true,
             durationMs: Date.now() - startedAt,
           });

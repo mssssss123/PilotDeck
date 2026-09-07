@@ -1,6 +1,6 @@
-# PilotDeck Docker 部署
+# 9GClaw Docker 部署
 
-PilotDeck 在容器内由两个协作的 Node.js 进程组成：
+9GClaw 在容器内由两个协作的 Node.js 进程组成：
 
 - **Gateway**：智能体运行时，监听 `PILOTDECK_GATEWAY_PORT`（默认 `18789`）
 - **UI Server**：Web 前端 + REST/WebSocket 适配层，监听 `SERVER_PORT`（默认 `3001`）
@@ -16,7 +16,7 @@ English version: [README_DOCKER.md](./README_DOCKER.md)
 - [Docker](https://docs.docker.com/get-docker/) v20+
 - [Docker Compose](https://docs.docker.com/compose/) v2+
 
-启动 PilotDeck 前，请确认 Docker daemon 正在运行。macOS/Windows 用户需要先启动 Docker Desktop，并等待 engine ready：
+启动 9GClaw 前，请确认 Docker daemon 正在运行。macOS/Windows 用户需要先启动 Docker Desktop，并等待 engine ready：
 
 ```bash
 docker info
@@ -24,7 +24,7 @@ docker info
 
 首次构建会从 Docker Hub 拉取 `node:22-bookworm` 和 `node:22-bookworm-slim` 等基础镜像。如果拉取镜像很慢，或出现 `context deadline exceeded`，请配置 Docker registry mirror 或 Docker Desktop proxy 后重试 `docker compose up -d --build`。Docker Desktop 可在 **Settings → Docker Engine** 中配置 registry mirrors；Linux 可在 `/etc/docker/daemon.json` 中添加 mirror，然后重启 Docker。
 
-容器会在镜像内使用 Node.js 22 和仓库提交的 `pnpm-lock.yaml` 安装依赖，因此不会使用宿主机 Node.js 运行时，也不会受宿主机 CPU 架构影响。PilotDeck 不需要旧的 `sqlite`/`sqlite3` 包，它们不属于源码安装路径。
+容器会在镜像内使用 Node.js 22 和仓库提交的 `pnpm-lock.yaml` 安装依赖，因此不会使用宿主机 Node.js 运行时，也不会受宿主机 CPU 架构影响。9GClaw 不需要旧的 `sqlite`/`sqlite3` 包，它们不属于源码安装路径。
 
 如果只是临时处理 Docker Hub 连接不稳定问题，可以先从可访问的镜像源拉取所需 Node 镜像，并打成本仓库 Dockerfile 使用的名称：
 
@@ -109,62 +109,62 @@ volumes:
 ### 构建镜像
 
 ```bash
-docker build -t pilotdeck:latest .
+docker build -t 9gclaw:latest .
 ```
 
 ### 使用环境变量运行
 
 ```bash
-docker run -d --name pilotdeck \
+docker run -d --name 9gclaw \
   -p 3001:3001 \
   -v pilotdeck-home:/root/.pilotdeck \
   -e PILOTDECK_MODEL=openai/gpt-4.1 \
   -e PILOTDECK_API_KEY=sk-your-api-key \
   -e PILOTDECK_API_URL=https://api.openai.com/v1 \
-  pilotdeck:latest
+  9gclaw:latest
 ```
 
 ### 使用配置文件运行
 
 ```bash
-docker run -d --name pilotdeck \
+docker run -d --name 9gclaw \
   -p 3001:3001 \
   -v pilotdeck-home:/root/.pilotdeck \
   -v ~/.pilotdeck/pilotdeck.yaml:/root/.pilotdeck/pilotdeck.yaml:ro \
-  pilotdeck:latest
+  9gclaw:latest
 ```
 
 ### 挂载工作区运行
 
 ```bash
-docker run -d --name pilotdeck \
+docker run -d --name 9gclaw \
   -p 3001:3001 \
   -v pilotdeck-home:/root/.pilotdeck \
   -v "$PWD":/workspace \
   -e PILOTDECK_MODEL=openai/gpt-4.1 \
   -e PILOTDECK_API_KEY=sk-your-api-key \
   -e PILOTDECK_API_URL=https://api.openai.com/v1 \
-  pilotdeck:latest
+  9gclaw:latest
 ```
 
 ### 使用代理运行
 
 ```bash
-docker run -d --name pilotdeck \
+docker run -d --name 9gclaw \
   -p 3001:3001 \
   -v pilotdeck-home:/root/.pilotdeck \
   -e PILOTDECK_MODEL=openai/gpt-4.1 \
   -e PILOTDECK_API_KEY=sk-your-api-key \
   -e PILOTDECK_API_URL=https://api.openai.com/v1 \
   -e PILOTDECK_PROXY=http://host.docker.internal:7890 \
-  pilotdeck:latest
+  9gclaw:latest
 ```
 
 ## 环境变量
 
 | 变量 | 说明 | 默认值 |
 |---|---|---|
-| `PILOT_HOME` | 容器内 PilotDeck 状态目录 | `/root/.pilotdeck` |
+| `PILOT_HOME` | 容器内 9GClaw 状态目录 | `/root/.pilotdeck` |
 | `PILOTDECK_MODEL` | 主模型标识，格式为 `provider/model` | `openrouter/deepseek/deepseek-v4-flash` |
 | `PILOTDECK_LIGHT_MODEL` | 路由/判别用轻量模型标识 | `openrouter/qwen/qwen3-8b` |
 | `PILOTDECK_API_KEY` | 主模型 Provider API Key；未提供时在 onboarding 中配置 | — |

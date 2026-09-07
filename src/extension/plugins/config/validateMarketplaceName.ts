@@ -10,7 +10,7 @@ export function validateMarketplaceName(name: string): string | undefined {
     return `Marketplace name ${name} is reserved.`;
   }
   if (NON_ASCII_PATTERN.test(name) || RESERVED_PILOTDECK_PATTERN.test(name)) {
-    return "Marketplace name impersonates an official PilotDeck marketplace.";
+    return "Marketplace name impersonates an official 9GClaw marketplace.";
   }
   return undefined;
 }

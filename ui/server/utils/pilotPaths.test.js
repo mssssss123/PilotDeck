@@ -16,7 +16,7 @@ import { getAlwaysOnRoot } from '../services/always-on-paths.js';
 
 describe('UI project storage ID resolution', () => {
     it('matches the core resolver for colliding non-ASCII workspaces', () => {
-        const root = mkdtempSync(join(tmpdir(), 'pilotdeck-ui-project-id-'));
+        const root = mkdtempSync(join(tmpdir(), '9gclaw-ui-project-id-'));
         try {
             const pilotHome = join(root, 'pilot-home');
             const projectA = join(root, 'home', '内部测试');
@@ -49,7 +49,7 @@ describe('UI project storage ID resolution', () => {
     });
 
     it('matches core fallback behavior for missing and invalid markers', () => {
-        const root = mkdtempSync(join(tmpdir(), 'pilotdeck-ui-project-id-fallback-'));
+        const root = mkdtempSync(join(tmpdir(), '9gclaw-ui-project-id-fallback-'));
         try {
             const pilotHome = join(root, 'pilot-home');
             const projectRoot = join(root, 'workspace', 'ascii-project');
@@ -69,7 +69,7 @@ describe('UI project storage ID resolution', () => {
     });
 
     it('uses the resolved storage ID for the UI Always-On root', () => {
-        const root = mkdtempSync(join(tmpdir(), 'pilotdeck-ui-always-on-root-'));
+        const root = mkdtempSync(join(tmpdir(), '9gclaw-ui-always-on-root-'));
         const previousPilotHome = process.env.PILOT_HOME;
         try {
             const pilotHome = join(root, 'pilot-home');

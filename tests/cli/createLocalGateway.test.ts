@@ -11,7 +11,7 @@ test("resolveBrowserUseOutputDir stores browser-use output under pilot home", ()
   const root = mkdtempSync(join(tmpdir(), "pilotdeck-browser-use-"));
   try {
     const pilotHome = join(root, "pilot-home");
-    const projectRoot = join(root, "Program Files", "PilotDeck", "resources", "runtime");
+    const projectRoot = join(root, "Program Files", "9GClaw", "resources", "runtime");
     const sessionKey = "feishu-chat=oc_fe6d8e3b3960b8575b683b84c2a416d4/general";
 
     const outputDir = resolveBrowserUseOutputDir({ pilotHome, projectRoot, sessionKey });

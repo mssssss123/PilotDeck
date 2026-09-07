@@ -78,7 +78,7 @@ vi.mock('../main-content-v2/SkillsV2', () => ({
 
 const project: Project = {
   name: 'pilotdeck',
-  displayName: 'PilotDeck',
+  displayName: '9GClaw',
   fullPath: '/workspace/PilotDeck',
 };
 

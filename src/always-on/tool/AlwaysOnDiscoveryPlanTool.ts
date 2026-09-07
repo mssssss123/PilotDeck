@@ -40,7 +40,7 @@ export function createAlwaysOnDiscoveryPlanTool(
     name: ALWAYS_ON_PLAN_TOOL_NAME,
     aliases: ["AlwaysOnDiscoveryPlan"],
     description:
-      "Save the single discovery plan for this Always-On fire. Returns plan_quota_exhausted if called more than once per fire. Plan content must follow the PilotDeck Always-On plan markdown contract.",
+      "Save the single discovery plan for this Always-On fire. Returns plan_quota_exhausted if called more than once per fire. Plan content must follow the 9GClaw Always-On plan markdown contract.",
     kind: "session",
     inputSchema: {
       type: "object",

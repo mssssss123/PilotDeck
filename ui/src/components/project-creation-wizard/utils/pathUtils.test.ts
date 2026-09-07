@@ -12,7 +12,7 @@ describe('project creation path utilities', () => {
   });
 
   it('keeps normal Windows parent navigation under a drive', () => {
-    expect(getParentPath('D:\\Projects\\PilotDeck')).toBe('D:\\Projects');
+    expect(getParentPath('D:\\Projects\\9GClaw')).toBe('D:\\Projects');
     expect(getParentPath('D:\\Projects')).toBe('D:\\');
   });
 });

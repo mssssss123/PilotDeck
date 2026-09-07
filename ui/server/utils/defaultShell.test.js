@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getDefaultPtyShell, resolveWindowsGitBash } from './defaultShell.js';
 
 describe('resolveWindowsGitBash', () => {
-    it('prefers explicit PilotDeck Git Bash path', () => {
+    it('prefers explicit 9GClaw Git Bash path', () => {
         const env = {
             PILOTDECK_GIT_BASH_PATH: 'D:\\Git\\bin\\bash.exe',
             ProgramFiles: 'C:\\Program Files',

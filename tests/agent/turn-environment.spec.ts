@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { buildTurnEnvironment } from "../../src/agent/loop/AgentLoop.js";
 
-test("turn environment provides an isolated PilotDeck-owned work directory", () => {
+test("turn environment provides an isolated 9GClaw-owned work directory", () => {
   const cwd = "/workspace/project";
   const env = buildTurnEnvironment(
     { PATH: "/custom/bin", KEEP_ME: "yes" },

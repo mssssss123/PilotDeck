@@ -8,7 +8,7 @@ import type { GatewayPermissionBus, GatewayPermissionDecision } from "./GatewayP
 export const GATEWAY_PERMISSION_CALLBACK_NAME = "pilotdeck.gateway.permission";
 
 export type CreateGatewayPermissionHookOptions = {
-  /** PilotDeck session this hook owns. Used to scope bus pending entries. */
+  /** 9GClaw session this hook owns. Used to scope bus pending entries. */
   sessionKey: string;
   /** Shared permission bus where decisions arrive from the Web UI. */
   bus: GatewayPermissionBus;

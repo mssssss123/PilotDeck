@@ -23,7 +23,7 @@ COPY ui/scripts/ ui/scripts/
 # before the lockfile/workspace config is updated.
 RUN npm install -g pnpm@10.32.1 \
     && pnpm --version \
-    && HUSKY=0 pnpm install --frozen-lockfile --filter pilotdeck --filter pilotdeck-ui
+    && HUSKY=0 pnpm install --frozen-lockfile --filter 9gclaw --filter 9gclaw-ui
 
 # Copy all source files
 COPY src/ src/
@@ -68,7 +68,7 @@ COPY --from=builder /build/ui/scripts/ ui/scripts/
 COPY --from=builder /build/ui/shared/ ui/shared/
 COPY --from=builder /build/ui/vite.config.js ui/vite.config.js
 
-# Create PilotDeck state/workspace directories used by the gateway, UI server,
+# Create 9GClaw state/workspace directories used by the gateway, UI server,
 # permissions, skills/plugins, memory, auth, and router stats.
 RUN mkdir -p \
     /root/.pilotdeck/projects \

@@ -34,7 +34,7 @@ describe('commands routes', () => {
       body: JSON.stringify({
         commandName: '/hello',
         commandPath,
-        args: ['PilotDeck'],
+        args: ['9GClaw'],
       }),
     });
 
@@ -42,7 +42,7 @@ describe('commands routes', () => {
     expect(result.body).toMatchObject({
       type: 'custom',
       command: '/hello',
-      content: 'Hello PilotDeck',
+      content: 'Hello 9GClaw',
     });
   });
 });

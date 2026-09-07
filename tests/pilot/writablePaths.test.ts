@@ -11,7 +11,7 @@ import {
 } from "../../src/pilot/index.js";
 
 test("isDesktopRuntimeProjectRoot recognizes desktop resources/runtime only in desktop mode", () => {
-  const root = join("C:\\Program Files", "PilotDeck", "resources", "runtime");
+  const root = join("C:\\Program Files", "9GClaw", "resources", "runtime");
 
   assert.equal(
     isDesktopRuntimeProjectRoot({
@@ -33,7 +33,7 @@ test("isVirtualProjectRoot treats pilotHome and desktop runtime roots as non-pro
   const root = mkdtempSync(join(tmpdir(), "pilotdeck-virtual-root-"));
   try {
     const pilotHome = join(root, "pilot-home");
-    const runtimeRoot = join(root, "Program Files", "PilotDeck", "resources", "runtime");
+    const runtimeRoot = join(root, "Program Files", "9GClaw", "resources", "runtime");
 
     assert.equal(isVirtualProjectRoot({ projectRoot: pilotHome, pilotHome }), true);
     assert.equal(

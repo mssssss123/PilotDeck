@@ -8,7 +8,7 @@ vi.mock('react-i18next', () => ({
         return options.defaultValue;
       }
       if (key === 'messageTypes.error') return 'Error';
-      if (key === 'messageTypes.pilotdeck') return 'PilotDeck';
+      if (key === 'messageTypes.pilotdeck') return '9GClaw';
       if (key === 'permissions.grant') return `Grant ${String(options?.tool || 'tool')} for this chat`;
       if (key === 'permissions.openSettings') return 'Open settings';
       if (key === 'permissions.addTo') return `Temporarily allows ${String(options?.entry || '')} in this chat only.`;

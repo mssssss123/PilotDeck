@@ -109,7 +109,7 @@ def run_smoke_test() -> dict[str, Any]:
                             {
                                 "match": "项目简报",
                                 "text": "请确认标题。",
-                                "author": "PilotDeck",
+                                "author": "9GClaw",
                             }
                         ]
                     },

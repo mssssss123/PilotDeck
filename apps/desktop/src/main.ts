@@ -54,10 +54,10 @@ let runtimeStartPromise: Promise<RuntimeInfo> | null = null;
 let lastRuntimeStatus: RuntimeStatus | null = null;
 let updateOrigin: string | null = null;
 
-const APP_ID = "cn.pilotdeck.desktop";
+const APP_ID = "cn.ninegclaw.desktop";
 const EXTERNAL_NAVIGATION_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 const PLAYWRIGHT_BROWSER_DIR = "playwright-browsers";
-const DEFAULT_UPDATE_REPOSITORY = "OpenBMB/PilotDeck";
+const DEFAULT_UPDATE_REPOSITORY = "mssssss123/PilotDeck";
 const PROCESS_LAUNCH_CWD = process.cwd();
 
 type BuildMetadata = {
@@ -107,10 +107,10 @@ class RuntimeManager {
     this.logStream = fs.createWriteStream(this.logPath, { flags: "a" });
     publishRuntimeStatus({
       phase: "starting",
-      message: "Preparing PilotDeck runtime...",
+      message: "Preparing 9GClaw runtime...",
       logPath: this.logPath,
     });
-    this.log(`PilotDeck Desktop runtime starting from ${this.runtimeRoot}`);
+    this.log(`9GClaw Desktop runtime starting from ${this.runtimeRoot}`);
     publishRuntimeStatus({
       phase: "config",
       message: "Checking local configuration...",
@@ -185,11 +185,11 @@ class RuntimeManager {
       runtimeRoot: this.runtimeRoot,
       logPath: this.logPath,
     };
-    this.log(`PilotDeck Web UI ready: http://127.0.0.1:${serverPort}`);
+    this.log(`9GClaw Web UI ready: http://127.0.0.1:${serverPort}`);
     if (!this.configurationState || this.configurationState.state !== "ready") {
       publishRuntimeStatus({
         phase: "awaiting_configuration",
-        message: "PilotDeck is ready for model setup.",
+        message: "9GClaw is ready for model setup.",
         logPath: this.logPath,
       });
     }
@@ -214,7 +214,7 @@ class RuntimeManager {
     this.serverProcess = null;
     this.gatewayProcess = null;
     this.gatewayStartPromise = null;
-    this.log("PilotDeck Desktop runtime stopped");
+    this.log("9GClaw Desktop runtime stopped");
     this.logStream?.end();
     this.logStream = null;
     this.info = null;
@@ -226,7 +226,7 @@ class RuntimeManager {
     this.gatewayState = { state: "stopped" };
     publishRuntimeStatus({
       phase: "stopped",
-      message: "PilotDeck runtime stopped.",
+      message: "9GClaw runtime stopped.",
       logPath: this.logPath,
     });
   }
@@ -237,7 +237,7 @@ class RuntimeManager {
       return [this.nodeBinary, builtEntry, "server"];
     }
     if (app.isPackaged || process.env.PILOTDECK_DESKTOP_RUNTIME_ROOT) {
-      throw new Error(`Compiled PilotDeck gateway entry not found: ${builtEntry}`);
+      throw new Error(`Compiled 9GClaw gateway entry not found: ${builtEntry}`);
     }
     return [this.nodeBinary, "--import", "tsx", path.join(this.runtimeRoot, "src", "cli", "pilotdeck.ts"), "server"];
   }
@@ -319,7 +319,7 @@ class RuntimeManager {
           phase: "awaiting_configuration",
           message: runtimeMessage.configuration.state === "invalid"
             ? "Model configuration needs attention."
-            : "PilotDeck is ready for model setup.",
+            : "9GClaw is ready for model setup.",
           logPath: this.logPath,
         });
       }
@@ -388,7 +388,7 @@ class RuntimeManager {
       this.setGatewayState({ state: "ready" });
       publishRuntimeStatus({
         phase: "ready",
-        message: "PilotDeck is ready.",
+        message: "9GClaw is ready.",
         logPath: this.logPath,
       });
     } catch (error) {
@@ -506,7 +506,7 @@ async function createOrShowWindow(): Promise<void> {
     height: 900,
     minWidth: 960,
     minHeight: 640,
-    title: "PilotDeck",
+    title: "9GClaw",
     ...(icon ? { icon } : {}),
     autoHideMenuBar: true,
     webPreferences: {
@@ -610,7 +610,7 @@ async function startRuntimeAndLoad(): Promise<void> {
     const detail = error instanceof Error ? error.stack ?? error.message : String(error);
     publishRuntimeStatus({
       phase: "error",
-      message: "PilotDeck failed to start.",
+      message: "9GClaw failed to start.",
       logPath: runtime?.getLogPath(),
       error: detail,
     });
@@ -773,7 +773,7 @@ function ensurePilotHome(log: (message: string) => void): { pilotHome: string } 
     ? path.resolve(process.env.PILOT_HOME)
     : path.join(os.homedir(), ".pilotdeck");
   fs.mkdirSync(pilotHome, { recursive: true });
-  log(`PilotDeck home ready at ${pilotHome}`);
+  log(`9GClaw home ready at ${pilotHome}`);
   return { pilotHome };
 }
 
@@ -860,7 +860,7 @@ function getUpdateController() {
   const network = createUpdateNetwork(updater.netSession, () => {
     const configService = require(path.join(resolveRuntimeRoot(), "ui/server/services/pilotdeckConfig.js"));
     const record = configService.readPilotDeckConfigFile();
-    if (record.parseError) throw new Error("Invalid PilotDeck proxy configuration");
+    if (record.parseError) throw new Error("Invalid 9GClaw proxy configuration");
     return record.config.proxy;
   });
   updater.on("login", network.login);
@@ -955,7 +955,7 @@ app.whenReady()
     await runtime?.stop().catch(() => undefined);
     publishRuntimeStatus({
       phase: "error",
-      message: "PilotDeck failed to start.",
+      message: "9GClaw failed to start.",
       logPath: runtime?.getLogPath(),
       error: detail,
     });
@@ -974,7 +974,7 @@ app.on("activate", () => {
         const detail = error instanceof Error ? error.stack ?? error.message : String(error);
         publishRuntimeStatus({
           phase: "error",
-          message: "PilotDeck failed to restore window.",
+          message: "9GClaw failed to restore window.",
           logPath: runtime?.getLogPath(),
           error: detail,
         });
@@ -995,6 +995,6 @@ app.on("before-quit", (event) => {
     stoppingForQuit = false;
     runtime = currentRuntime;
     isQuitting = false;
-    dialog.showErrorBox(startupText("PilotDeck could not stop", readAppearance().language), String(error));
+    dialog.showErrorBox(startupText("9GClaw could not stop", readAppearance().language), String(error));
   });
 });

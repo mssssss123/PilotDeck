@@ -13,14 +13,14 @@ test("unified release manifest links the source tag and checksummed installers",
   const assetsDir = mkdtempSync(join(tmpdir(), "pilotdeck-release-assets-"));
   try {
     for (const name of [
-      "PilotDeck-2026.903.0-mac-arm64.dmg",
-      "PilotDeck-2026.903.0-mac-x64.dmg",
-      "PilotDeck-2026.903.0-mac-arm64.zip",
-      "PilotDeck-2026.903.0-mac-x64.zip",
+      "9GClaw-2026.903.0-mac-arm64.dmg",
+      "9GClaw-2026.903.0-mac-x64.dmg",
+      "9GClaw-2026.903.0-mac-arm64.zip",
+      "9GClaw-2026.903.0-mac-x64.zip",
       "latest-arm64-mac.yml",
       "latest-x64-mac.yml",
       "latest-x64.yml",
-      "PilotDeck-2026.903.0-win-x64-setup.exe",
+      "9GClaw-2026.903.0-win-x64-setup.exe",
     ]) {
       writeFileSync(resolve(assetsDir, name), name);
     }
@@ -37,7 +37,7 @@ test("unified release manifest links the source tag and checksummed installers",
           PILOTDECK_RELEASE_DATE: "2026-09-03",
           PILOTDECK_RELEASE_BUILD_TIME: "2026-09-03T02:00:00+08:00",
           PILOTDECK_COMMIT_SHA: "0123456789abcdef",
-          PILOTDECK_UPDATE_REPOSITORY: "OpenBMB/PilotDeck",
+          PILOTDECK_UPDATE_REPOSITORY: "mssssss123/PilotDeck",
         },
       },
     );
@@ -66,11 +66,11 @@ test("unified release manifest links the source tag and checksummed installers",
         { name: "latest-arm64-mac.yml", platform: "darwin", arch: "arm64" },
         { name: "latest-x64-mac.yml", platform: "darwin", arch: "x64" },
         { name: "latest-x64.yml", platform: "unknown", arch: "x64" },
-        { name: "PilotDeck-2026.903.0-mac-arm64.zip", platform: "darwin", arch: "arm64" },
-        { name: "PilotDeck-2026.903.0-mac-x64.zip", platform: "darwin", arch: "x64" },
-        { name: "PilotDeck-2026.903.0-mac-arm64.dmg", platform: "darwin", arch: "arm64" },
-        { name: "PilotDeck-2026.903.0-mac-x64.dmg", platform: "darwin", arch: "x64" },
-        { name: "PilotDeck-2026.903.0-win-x64-setup.exe", platform: "win32", arch: "x64" },
+        { name: "9GClaw-2026.903.0-mac-arm64.zip", platform: "darwin", arch: "arm64" },
+        { name: "9GClaw-2026.903.0-mac-x64.zip", platform: "darwin", arch: "x64" },
+        { name: "9GClaw-2026.903.0-mac-arm64.dmg", platform: "darwin", arch: "arm64" },
+        { name: "9GClaw-2026.903.0-mac-x64.dmg", platform: "darwin", arch: "x64" },
+        { name: "9GClaw-2026.903.0-win-x64-setup.exe", platform: "win32", arch: "x64" },
       ].sort((left, right) => left.name.localeCompare(right.name)),
     );
   } finally {
