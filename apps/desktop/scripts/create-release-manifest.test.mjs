@@ -13,14 +13,14 @@ test("unified release manifest links the source tag and checksummed installers",
   const assetsDir = mkdtempSync(join(tmpdir(), "pilotdeck-release-assets-"));
   try {
     for (const name of [
-      "9GClaw-2026.903.0-mac-arm64.dmg",
-      "9GClaw-2026.903.0-mac-x64.dmg",
-      "9GClaw-2026.903.0-mac-arm64.zip",
-      "9GClaw-2026.903.0-mac-x64.zip",
+      "九格智能体平台-2026.903.0-mac-arm64.dmg",
+      "九格智能体平台-2026.903.0-mac-x64.dmg",
+      "九格智能体平台-2026.903.0-mac-arm64.zip",
+      "九格智能体平台-2026.903.0-mac-x64.zip",
       "latest-arm64-mac.yml",
       "latest-x64-mac.yml",
       "latest-x64.yml",
-      "9GClaw-2026.903.0-win-x64-setup.exe",
+      "九格智能体平台-2026.903.0-win-x64-setup.exe",
     ]) {
       writeFileSync(resolve(assetsDir, name), name);
     }
@@ -47,7 +47,7 @@ test("unified release manifest links the source tag and checksummed installers",
     assert.equal(manifest.tag, "v2026.09.03");
     assert.equal(manifest.version, "2026.903.0");
     assert.equal(manifest.sourceSha, "0123456789abcdef");
-    assert.equal(manifest.repository, "OpenBMB/PilotDeck");
+    assert.equal(manifest.repository, "mssssss123/PilotDeck");
     assert.equal(manifest.date, "2026-09-03");
     const checksums = readFileSync(resolve(assetsDir, "SHA256SUMS.txt"), "utf8");
     for (const asset of manifest.assets) {
@@ -66,11 +66,11 @@ test("unified release manifest links the source tag and checksummed installers",
         { name: "latest-arm64-mac.yml", platform: "darwin", arch: "arm64" },
         { name: "latest-x64-mac.yml", platform: "darwin", arch: "x64" },
         { name: "latest-x64.yml", platform: "unknown", arch: "x64" },
-        { name: "9GClaw-2026.903.0-mac-arm64.zip", platform: "darwin", arch: "arm64" },
-        { name: "9GClaw-2026.903.0-mac-x64.zip", platform: "darwin", arch: "x64" },
-        { name: "9GClaw-2026.903.0-mac-arm64.dmg", platform: "darwin", arch: "arm64" },
-        { name: "9GClaw-2026.903.0-mac-x64.dmg", platform: "darwin", arch: "x64" },
-        { name: "9GClaw-2026.903.0-win-x64-setup.exe", platform: "win32", arch: "x64" },
+        { name: "九格智能体平台-2026.903.0-mac-arm64.zip", platform: "darwin", arch: "arm64" },
+        { name: "九格智能体平台-2026.903.0-mac-x64.zip", platform: "darwin", arch: "x64" },
+        { name: "九格智能体平台-2026.903.0-mac-arm64.dmg", platform: "darwin", arch: "arm64" },
+        { name: "九格智能体平台-2026.903.0-mac-x64.dmg", platform: "darwin", arch: "x64" },
+        { name: "九格智能体平台-2026.903.0-win-x64-setup.exe", platform: "win32", arch: "x64" },
       ].sort((left, right) => left.name.localeCompare(right.name)),
     );
   } finally {

@@ -13,7 +13,7 @@ export type StructuredOutputExtractionError =
 
 export type ExtractStructuredOutputOptions = {
   /**
-   * Optional minimal validator. 9GClaw does not pull in `ajv` for this
+   * Optional minimal validator. 九格智能体平台 does not pull in `ajv` for this
    * (deps stay zero); callers that want strict validation pass their own
    * validator. The extractor only catches structural errors otherwise.
    */

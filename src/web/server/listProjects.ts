@@ -1,5 +1,5 @@
 /**
- * Enumerate 9GClaw projects.
+ * Enumerate 九格智能体平台 projects.
  *
  * Source of truth: the `projects/` directory under `pilotHome`.
  * Each subdirectory is a project ID; we surface its derived name + the

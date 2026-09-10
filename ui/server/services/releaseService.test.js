@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { compareVersions, getLatestRelease, normalizeRepository, releaseVersion } from './releaseService.js';
 
 const release = (tag, extras = {}) => ({ tag_name: tag, assets: [{ name: 'release.json' }], ...extras });
-const manifest = { schemaVersion: 1, tag: 'v2026.09.07-r10', sourceSha: 'a'.repeat(40), repository: 'OpenBMB/PilotDeck', version: '2026.907.9', assets: [] };
+const manifest = { schemaVersion: 1, tag: 'v2026.09.07-r10', sourceSha: 'a'.repeat(40), repository: 'mssssss123/PilotDeck', version: '2026.907.9', assets: [] };
 const response = (data) => ({ ok: true, json: async () => data });
 describe('unified release discovery', () => {
   it('selects the latest stable dated release and validates its source manifest', async () => {
@@ -12,7 +12,7 @@ describe('unified release discovery', () => {
       release('v2026.09.07-r10'), release('v2026.09.09', { prerelease: true }), release('v2026.09.10', { draft: true }),
     ])).mockResolvedValueOnce(response(manifest));
     expect(await getLatestRelease({ fetchImpl, env: {} })).toMatchObject({ tagName: manifest.tag, sourceSha: manifest.sourceSha });
-    expect(fetchImpl.mock.calls[1][0]).toBe('https://github.com/OpenBMB/PilotDeck/releases/download/v2026.09.07-r10/release.json');
+    expect(fetchImpl.mock.calls[1][0]).toBe('https://github.com/mssssss123/PilotDeck/releases/download/v2026.09.07-r10/release.json');
   });
   it.each([{ ...manifest, tag: 'wrong' }, { ...manifest, sourceSha: 'main' }, { ...manifest, repository: 'fork/PilotDeck' }])('rejects invalid source metadata', async (data) => {
     const fetchImpl = vi.fn().mockResolvedValueOnce(response([release(manifest.tag)])).mockResolvedValueOnce(response(data));
@@ -39,11 +39,11 @@ describe('release versions and installer manifest validation', () => {
     expect(() => releaseVersion(tag)).toThrow();
   });
   it('normalizes repository URLs without falling back to a different repository', () => {
-    expect(normalizeRepository()).toBe('OpenBMB/PilotDeck');
+    expect(normalizeRepository()).toBe('mssssss123/PilotDeck');
     expect(normalizeRepository('https://github.com/example/PilotDeck.git')).toBe('example/PilotDeck');
     expect(() => normalizeRepository('../PilotDeck')).toThrow();
   });
-  const asset = { name: 'PilotDeck-mac-arm64.dmg', platform: 'darwin', arch: 'arm64', size: 42, sha256: 'a'.repeat(64) };
+  const asset = { name: '九格智能体平台-mac-arm64.dmg', platform: 'darwin', arch: 'arm64', size: 42, sha256: 'a'.repeat(64) };
   async function discover(data, published = asset) {
     const fetchImpl = vi.fn().mockResolvedValueOnce(response([release(manifest.tag, { assets: [{ name: 'release.json' }, published] })]))
       .mockResolvedValueOnce(response(data));
@@ -51,7 +51,7 @@ describe('release versions and installer manifest validation', () => {
   }
   it('uses the verified manifest and canonical download URL', async () => {
     const result = await discover({ ...manifest, assets: [asset] }, { ...asset, browser_download_url: 'https://untrusted.invalid/file' });
-    expect(result.assets[0].downloadUrl).toBe(`https://github.com/OpenBMB/PilotDeck/releases/download/${manifest.tag}/${asset.name}`);
+    expect(result.assets[0].downloadUrl).toBe(`https://github.com/mssssss123/PilotDeck/releases/download/${manifest.tag}/${encodeURIComponent(asset.name)}`);
   });
   it.each([
     { ...manifest, version: '2026.907.1' },

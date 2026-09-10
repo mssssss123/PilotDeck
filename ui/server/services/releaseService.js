@@ -1,5 +1,5 @@
 // Shared release discovery. Installation policy belongs to each platform.
-export const RELEASE_REPOSITORY = 'OpenBMB/PilotDeck';
+export const RELEASE_REPOSITORY = 'mssssss123/PilotDeck';
 export const RELEASE_TAG = /^v\d{4}\.\d{2}\.\d{2}(?:-r[1-9]\d*)?$/;
 export const COMMIT_SHA = /^[a-f0-9]{40}$/;
 
@@ -32,7 +32,7 @@ export function compareVersions(current, latest) {
 async function requestJson(url, { fetchImpl = fetch, env = process.env } = {}) {
   const token = env.PILOTDECK_GITHUB_TOKEN || env.GITHUB_TOKEN;
   const response = await fetchImpl(url, {
-    headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'PilotDeck-Updater', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: { Accept: 'application/vnd.github+json', 'User-Agent': '9gclaw-Updater', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) throw new Error(`Release request failed (${response.status}).`);
@@ -52,7 +52,7 @@ export async function listReleases(options = {}) {
 export async function getLatestRelease(options = {}) {
   const repository = normalizeRepository(options.repository);
   const [release] = await listReleases({ ...options, repository });
-  if (!release) throw new Error('No unified PilotDeck release is available.');
+  if (!release) throw new Error('No unified 九格智能体平台 release is available.');
   if (!release.assets?.some((asset) => asset.name === 'release.json')) throw new Error('The release has no release.json manifest.');
   const base = `https://github.com/${repository}/releases/download/${release.tag_name}`;
   const manifest = await requestJson(`${base}/release.json`, options);
@@ -63,7 +63,7 @@ export async function getLatestRelease(options = {}) {
   }
   const names = new Set();
   const assets = manifest.assets.map((asset) => {
-    if (!/^[\w.-]+$/.test(asset.name || '') || /^\.+$/.test(asset.name) || names.has(asset.name)
+    if (!/^[\p{L}\p{N}_.-]+$/u.test(asset.name || '') || /^\.+$/.test(asset.name) || names.has(asset.name)
         || !/^[a-f0-9]{64}$/i.test(asset.sha256 || '') || !Number.isSafeInteger(asset.size) || asset.size <= 0
         || typeof asset.platform !== 'string' || typeof asset.arch !== 'string') throw new Error('Invalid installer manifest.');
     names.add(asset.name);

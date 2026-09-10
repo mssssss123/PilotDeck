@@ -12,7 +12,7 @@ export type AutoCompactionPolicyOptions = {
 
 /**
  * Decides when the loop should call `CompactionEngine` proactively. Uses the
- * staged 9GClaw thresholds (warn 80% / block 90%) but pushes
+ * staged 九格智能体平台 thresholds (warn 80% / block 90%) but pushes
  * the actual model call out to AgentLoop (decision §3.2).
  */
 export class AutoCompactionPolicy {

@@ -39,7 +39,7 @@ $env:PATH -split ';'
 Run commands in sequence with explicit lines:
 
 ```powershell
-Set-Location C:\path\to\9GClaw
+Set-Location C:\path\to\九格智能体平台
 node --version
 corepack enable
 corepack pnpm install --frozen-lockfile --filter 9gclaw --filter 9gclaw-ui
@@ -52,7 +52,7 @@ npm.cmd --version
 pnpm.cmd --version
 ```
 
-## 9GClaw Native Windows Notes
+## 九格智能体平台 Native Windows Notes
 
 Native Windows source installs need Node.js 22, Git/Git LFS, Python, Visual Studio C++ Build Tools, and ripgrep. WSL2 is usually simpler for development, but native PowerShell is supported for users who want a Windows-only workflow.
 

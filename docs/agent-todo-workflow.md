@@ -1,6 +1,6 @@
 # Agent Todo Workflow
 
-This document defines the common 9GClaw agent workflow for using `todo_write` outside and inside Plan Mode. It is an implementation-facing specification for prompt, tool, and runtime behavior.
+This document defines the common 九格智能体平台 agent workflow for using `todo_write` outside and inside Plan Mode. It is an implementation-facing specification for prompt, tool, and runtime behavior.
 
 ## Goals
 

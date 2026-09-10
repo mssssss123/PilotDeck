@@ -9,7 +9,7 @@ import type {
 } from "../protocol/types.js";
 
 /**
- * `web_search` is a local 9GClaw tool backed by exactly one configured
+ * `web_search` is a local 九格智能体平台 tool backed by exactly one configured
  * provider. The model still sees one stable tool surface; provider-specific
  * request/response shapes stay behind this adapter.
  */

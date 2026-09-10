@@ -8,7 +8,7 @@
  */
 
 /**
- * "builtin" is shipped with 9GClaw and is read-only. "user" lives in
+ * "builtin" is shipped with 九格智能体平台 and is read-only. "user" lives in
  * `~/.pilotdeck/skills/`, available to every project. "project" lives in
  * `<projectRoot>/.pilotdeck/skills/`, scoped to the active project.
  */

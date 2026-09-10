@@ -1,13 +1,13 @@
 openapi: 3.1.0
 info:
-  title: 9GClaw Onboarding Local API
+  title: 九格智能体平台 Onboarding Local API
   version: 0.1.0
   description: >-
-    9GClaw 首次配置引导使用的本机后端接口。接口运行在现有 UI Server，
+    九格智能体平台 首次配置引导使用的本机后端接口。接口运行在现有 UI Server，
     API Key 按当前兼容策略写入本机 pilotdeck.yaml，不得出现在响应或日志中。
 servers:
   - url: http://127.0.0.1:{port}/api/v1
-    description: 9GClaw local UI server
+    description: 九格智能体平台 local UI server
     variables:
       port:
         default: "3001"

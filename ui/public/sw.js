@@ -1,10 +1,10 @@
-// Service Worker for 9GClaw PWA
+// Service Worker for 九格智能体平台 PWA
 // Cache only manifest (needed for PWA install). HTML and JS are never pre-cached
 // so a rebuild + refresh always picks up the latest assets.
 // Bump this token whenever a cached asset's contents change (icons, manifest).
 // The activate handler below purges every cache whose name doesn't match,
 // so existing PWAs pick up the new visuals on the next page load.
-const CACHE_NAME = '9gclaw-v1';
+const CACHE_NAME = 'jiuge-v1';
 const urlsToCache = [
   '/manifest.json'
 ];
@@ -100,7 +100,7 @@ self.addEventListener('push', event => {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: '9GClaw', body: event.data.text() };
+    payload = { title: '九格智能体平台', body: event.data.text() };
   }
 
   const options = {
@@ -113,7 +113,7 @@ self.addEventListener('push', event => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(payload.title || '9GClaw', options)
+    self.registration.showNotification(payload.title || '九格智能体平台', options)
   );
 });
 

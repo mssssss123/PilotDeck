@@ -5,7 +5,7 @@
  * W5 (60 s timeout), W6 (10 redirect hops), W7 (permitted redirect),
  * W8 (LRU cache + TTL), W9 (egress proxy detection — skipped, see notes
  * in §5.2), W10 (binary persistence — minimal stub: persistedPath set to
- * `undefined` because 9GClaw's MCP storage is feature-gated; behaviour
+ * `undefined` because 九格智能体平台's MCP storage is feature-gated; behaviour
  * intentional_difference recorded in checklist), W11 (HTML→Markdown via
  * turndown), W12 (truncation at 100 KB).
  */
@@ -27,7 +27,7 @@ export const FETCH_TIMEOUT_MS = 60_000;
 export const MAX_REDIRECTS = 10;
 export const MAX_MARKDOWN_LENGTH = 100_000;
 export const WEB_FETCH_USER_AGENT =
-  "9GClaw/0.1 (+https://github.com/pilotdeck) WebFetch";
+  "9gclaw/0.1 (+https://github.com/mssssss123/PilotDeck) WebFetch";
 
 export type RedirectInfo = {
   type: "redirect";

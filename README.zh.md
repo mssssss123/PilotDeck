@@ -1,9 +1,9 @@
-> **9GClaw** 是 [PilotDeck](https://github.com/OpenBMB/PilotDeck) 的品牌定制版本，基于上游 2026-09-05 提交 `8ba2eb04cefec52fd9068d46a1a0d18b47689bea`。下文原始作者、许可和历史演示归属于上游项目。兼容性说明见[品牌说明](docs/9gclaw-branding.md)。
+> **九格智能体平台** 是 [PilotDeck](https://github.com/OpenBMB/PilotDeck) 的品牌定制版本，基于上游 2026-09-05 提交 `8ba2eb04cefec52fd9068d46a1a0d18b47689bea`。下文原始作者、许可和历史演示归属于上游项目。兼容性说明见[品牌说明](docs/9gclaw-branding.md)。
 
 <p align="center">
-  <img src="ui/public/logo-256.png" alt="9GClaw" width="128"/>
+  <img src="ui/public/logo-256.png" alt="九格智能体平台" width="128"/>
 </p>
-<h1 align="center">9GClaw</h1>
+<h1 align="center">九格智能体平台</h1>
 
 <p align="center">
   面向任务制的 AI Agent 生产力平台 —— 以 WorkSpace 为单位，重新定义智能体的操作边界与记忆演化。
@@ -40,9 +40,9 @@
 
 ---
 
-## 💡 关于 9GClaw
+## 💡 关于 九格智能体平台
 
-**9GClaw** 是一个以「WorkSpace（工作舱）」为核心设计的开源智能体操作系统，其上游 PilotDeck 由清华大学 [THUNLP](https://nlp.csai.tsinghua.edu.cn/) 实验室、[面壁智能](https://modelbest.cn/)、[OpenBMB](https://www.openbmb.cn/) 与 [AI9Stars](https://github.com/AI9Stars) 联合研发并开源，面向通用场景、适用于多任务，是 Agent 时代一个真正的「生产力工具」。
+**九格智能体平台** 是一个以「WorkSpace（工作舱）」为核心设计的开源智能体操作系统，其上游 PilotDeck 由清华大学 [THUNLP](https://nlp.csai.tsinghua.edu.cn/) 实验室、[面壁智能](https://modelbest.cn/)、[OpenBMB](https://www.openbmb.cn/) 与 [AI9Stars](https://github.com/AI9Stars) 联合研发并开源，面向通用场景、适用于多任务，是 Agent 时代一个真正的「生产力工具」。
 
 当前 AI Agent Harness 领域已涌现出一批优秀的代表成果，各有侧重：**Claude Code / Cursor / Trae Solo** 把模型的推理能力深度集成进了编程 IDE；**Claude Cowork** 引入了项目隔离的概念，把 Agent 带到了桌面端的知识工作场景；**WorkBuddy** 打通了 IM 生态，让 AI 在企微 / 飞书等通讯工具中触手可及。
 
@@ -53,7 +53,7 @@
 - 不同难度的任务，能否 **自动匹配不同模型**？而不是简单任务也跑最贵的旗舰模型？
 - 人离开电脑后，活能否继续推进？Agent 能否 **主动发现值得做的事、汇报进展、把成果落地为文件**？
 
-9GClaw 正是围绕这些问题做的增量探索。它以 WorkSpace 为基本单位，将文件、记忆、技能在项目级别完整隔离与沉淀，并配套提供 **白盒记忆**、**智能路由**、**Always-on** 三大能力，整套系统原生支持 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)，跨前端（Web / CLI / IM）行为一致。
+九格智能体平台 正是围绕这些问题做的增量探索。它以 WorkSpace 为基本单位，将文件、记忆、技能在项目级别完整隔离与沉淀，并配套提供 **白盒记忆**、**智能路由**、**Always-on** 三大能力，整套系统原生支持 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)，跨前端（Web / CLI / IM）行为一致。
 
 ### ✨ 核心亮点
 
@@ -110,7 +110,7 @@
 
 ### 📊 核心能力实测数据
 
-9GClaw 的三大核心能力在实际生产环境中展现出了显著的优势：
+九格智能体平台 的三大核心能力在实际生产环境中展现出了显著的优势：
 
 #### 1. 智能路由：社媒场景节省 ～70% 成本
 
@@ -178,14 +178,14 @@
 
 #### 3. 白盒记忆：排版与文风不再"串台"
 
-在传统的黑盒 Agent 中，多任务混居会导致记忆全局污染。9GClaw 通过 WorkSpace 实现了记忆的白盒化管理：
+在传统的黑盒 Agent 中，多任务混居会导致记忆全局污染。九格智能体平台 通过 WorkSpace 实现了记忆的白盒化管理：
 
 <table width="100%">
 <thead>
 <tr>
   <th width="14%" align="left">维度</th>
   <th width="41%" align="left">现有 AI Agent（黑盒）</th>
-  <th width="45%" align="left">9GClaw（白盒）</th>
+  <th width="45%" align="left">九格智能体平台（白盒）</th>
 </tr>
 </thead>
 <tbody>
@@ -221,7 +221,7 @@
 
 ## 🖥️ 交互界面与演示
 
-9GClaw 提供了开箱即用的 Web UI，支持完整的 WorkSpace 管理、白盒记忆编辑、以及多智能体协作过程的可视化。
+九格智能体平台 提供了开箱即用的 Web UI，支持完整的 WorkSpace 管理、白盒记忆编辑、以及多智能体协作过程的可视化。
 
 ### 使用场景
 
@@ -320,7 +320,7 @@ curl -fsSL https://raw.githubusercontent.com/mssssss123/PilotDeck/feat/9gclaw/in
 9gclaw status     # 查看运行状态
 ```
 
-之后如果想在 macOS / Linux 上再次打开 9GClaw，请在终端运行 `9gclaw`，然后在浏览器中打开终端打印的地址。如果当前 shell 还没有刷新 PATH，请新开一个终端，或先 source 对应的 shell 配置文件。
+之后如果想在 macOS / Linux 上再次打开 九格智能体平台，请在终端运行 `9gclaw`，然后在浏览器中打开终端打印的地址。如果当前 shell 还没有刷新 PATH，请新开一个终端，或先 source 对应的 shell 配置文件。
 
 ```bash
 9gclaw
@@ -335,9 +335,9 @@ curl -fsSL https://raw.githubusercontent.com/mssssss123/PilotDeck/feat/9gclaw/in
 powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/mssssss123/PilotDeck/feat/9gclaw/install.ps1 | iex"
 ```
 
-PowerShell 安装脚本会使用 `%USERPROFILE%\.pilotdeck` 下的 Windows 原生路径，检查 Node.js 22.13+ 与 `node:sqlite`，在可用时通过 `winget` 安装缺失依赖，构建 9GClaw，并在 `%USERPROFILE%\.pilotdeck\bin` 生成 `pilotdeck.cmd` 启动器。Git LFS 媒体资源对核心功能是可选的；如果 Git LFS 不可用或下载超时，安装脚本会跳过演示视频/GIF 并继续安装。
+PowerShell 安装脚本会使用 `%USERPROFILE%\.pilotdeck` 下的 Windows 原生路径，检查 Node.js 22.13+ 与 `node:sqlite`，在可用时通过 `winget` 安装缺失依赖，构建 九格智能体平台，并在 `%USERPROFILE%\.pilotdeck\bin` 生成 `pilotdeck.cmd` 启动器。Git LFS 媒体资源对核心功能是可选的；如果 Git LFS 不可用或下载超时，安装脚本会跳过演示视频/GIF 并继续安装。
 
-安装完成后，脚本会启动 9GClaw 并打印 UI 地址，通常是 `http://localhost:3001`。脚本不会自动打开浏览器，请把该地址复制到浏览器中完成初始化配置（Provider + API key）。也可以在 PowerShell 中打开：
+安装完成后，脚本会启动 九格智能体平台 并打印 UI 地址，通常是 `http://localhost:3001`。脚本不会自动打开浏览器，请把该地址复制到浏览器中完成初始化配置（Provider + API key）。也可以在 PowerShell 中打开：
 
 ```powershell
 Start-Process http://localhost:3001
@@ -350,7 +350,7 @@ Start-Process http://localhost:3001
 9gclaw status     # 查看运行状态
 ```
 
-之后如果想再次打开 9GClaw，请在新的 PowerShell 窗口运行 `9gclaw`，然后在浏览器中打开终端打印的地址。如果当前窗口还识别不到 `9gclaw`，可以直接运行启动器：
+之后如果想再次打开 九格智能体平台，请在新的 PowerShell 窗口运行 `9gclaw`，然后在浏览器中打开终端打印的地址。如果当前窗口还识别不到 `9gclaw`，可以直接运行启动器：
 
 ```powershell
 & "$HOME\.pilotdeck\bin\9gclaw.cmd"
@@ -391,21 +391,21 @@ npm.cmd run dev
 > 源码安装默认跳过 Git LFS 管理的大型演示媒体文件，以保持安装轻量。如果之后需要演示视频/GIF，可在克隆后运行 `git lfs pull` 下载。
 
 ```bash
-GIT_LFS_SKIP_SMUDGE=1 git clone --branch feat/9gclaw https://github.com/mssssss123/PilotDeck.git 9GClaw
-cd 9GClaw
+GIT_LFS_SKIP_SMUDGE=1 git clone --branch feat/9gclaw https://github.com/mssssss123/PilotDeck.git 九格智能体平台
+cd 九格智能体平台
 
 node --version          # 必须为 v22.13.0 或更新版本，且低于 v23
 corepack enable         # 启用 package.json 中固定的 pnpm 版本
 corepack pnpm install --frozen-lockfile --filter 9gclaw --filter 9gclaw-ui
 ```
 
-9GClaw 使用仓库提交的 `pnpm-lock.yaml` 保证源码安装可复现。上述过滤参数会避免 Web 部署安装 Electron 打包依赖。请优先使用上面的 `corepack pnpm ...`，不要改用 `npm install`；在 macOS 上，这也能减少原生依赖不必要地回退到源码编译的概率。
+九格智能体平台 使用仓库提交的 `pnpm-lock.yaml` 保证源码安装可复现。上述过滤参数会避免 Web 部署安装 Electron 打包依赖。请优先使用上面的 `corepack pnpm ...`，不要改用 `npm install`；在 macOS 上，这也能减少原生依赖不必要地回退到源码编译的概率。
 
 **2. 配置模型 Provider**
-9GClaw 依赖 `~/.pilotdeck/pilotdeck.yaml` 进行配置。您可以手动创建，**或者启动 Web UI 后直接在 onboarding 中进行可视化配置**。
+九格智能体平台 依赖 `~/.pilotdeck/pilotdeck.yaml` 进行配置。您可以手动创建，**或者启动 Web UI 后直接在 onboarding 中进行可视化配置**。
 支持 OpenAI、Anthropic、原生 Google Gemini、DeepSeek、Qwen、Kimi、MiniMax 等多种协议。
 
-如果配置文件不存在，9GClaw 会先启动 Web UI 而不启动 Gateway，并直接进入 onboarding。保存有效的 Provider、API Key 和模型后，9GClaw 会写入配置并自动启动 Gateway。
+如果配置文件不存在，九格智能体平台 会先启动 Web UI 而不启动 Gateway，并直接进入 onboarding。保存有效的 Provider、API Key 和模型后，九格智能体平台 会写入配置并自动启动 Gateway。
 
 ```yaml
 schemaVersion: 1
@@ -457,7 +457,7 @@ docker compose up -d --build
 
 ## 🛠️ 扩展与插件 (Extension Protocol)
 
-9GClaw 采用开放的插件架构，插件代码与开源核心严格隔离。开发者可以通过 `plugin.json` 轻松扩展系统能力：
+九格智能体平台 采用开放的插件架构，插件代码与开源核心严格隔离。开发者可以通过 `plugin.json` 轻松扩展系统能力：
 
 - **MCP Servers**: 原生支持集成 Model Context Protocol 服务器。
 - **Tools & Skills**: 注册自定义工具，或通过 [ClawHub](https://www.npmjs.com/package/clawhub) 引入社区 Skill。
@@ -468,7 +468,7 @@ docker compose up -d --build
 
 ## 🤝 参与贡献
 
-感谢所有为 9GClaw 提交代码与反馈的开发者！我们欢迎新的成员加入，共同构建下一代智能体操作系统。
+感谢所有为 九格智能体平台 提交代码与反馈的开发者！我们欢迎新的成员加入，共同构建下一代智能体操作系统。
 
 贡献流程：**Fork 本仓库 → 创建 Feature 分支 → 提交 PR**。
 
@@ -498,13 +498,13 @@ docker compose up -d --build
 
 ### 🏆 社区贡献者
 
-感谢以下社区开发者在 9GClaw 生态共创挑战赛中贡献的工具、Skill、MCP 与实践案例。
+感谢以下社区开发者在 九格智能体平台 生态共创挑战赛中贡献的工具、Skill、MCP 与实践案例。
 
 #### 🧩 Skill & MCP
 
 | 作者 | 作品 | 类型 | 链接 | 简介 |
 |:---|:---|:---|:---|:---|
-| 盛夏de背影 / [@panda-lsy](https://github.com/panda-lsy) | **ChemVision 化学查询 Skill** | Skill | [GitHub](https://github.com/panda-lsy/chemvision-skill) · [ClawHub](https://clawhub.ai/panda-lsy/skills/chemvision-skill) · [ModelScope](https://www.modelscope.cn/skills/mcshengxia/chemvision) · [小红书](http://xhslink.com/o/7wjpZRCb2aO) · [个人博客](https://shengxia.me/#/posts/4) | 9GClaw 首个垂直学科 Skill，调用 PubChem / OPSIN 真实化学数据库，支持分子结构查询、安全信息与反应预测。 |
+| 盛夏de背影 / [@panda-lsy](https://github.com/panda-lsy) | **ChemVision 化学查询 Skill** | Skill | [GitHub](https://github.com/panda-lsy/chemvision-skill) · [ClawHub](https://clawhub.ai/panda-lsy/skills/chemvision-skill) · [ModelScope](https://www.modelscope.cn/skills/mcshengxia/chemvision) · [小红书](http://xhslink.com/o/7wjpZRCb2aO) · [个人博客](https://shengxia.me/#/posts/4) | 九格智能体平台 首个垂直学科 Skill，调用 PubChem / OPSIN 真实化学数据库，支持分子结构查询、安全信息与反应预测。 |
 | Butterbeer / [@AaronAust1n](https://github.com/AaronAust1n) | **china-productivity-skills 中文生产力 Skill 包** | Skill Collection | [GitHub](https://github.com/AaronAust1n/PilotDeck/tree/feat/china-productivity-skills) · [PR #335](https://github.com/OpenBMB/PilotDeck/pull/335) · [知乎](https://zhuanlan.zhihu.com/p/2057150697896931426) | 一次性补齐 13 个中文互联网 Skill，覆盖微信公众号、知乎、B站、豆瓣、掘金、微博热搜、arXiv、HN、GitHub Trending 等，可组合成 AIGC 情报雷达流水线。 |
 | Butterbeer / [@AaronAust1n](https://github.com/AaronAust1n) | **industry-landscape-research 行业研究 Skill** | Skill | [GitHub](https://github.com/AaronAust1n/PilotDeck/tree/feat/industry-landscape-research) · [PR #336](https://github.com/OpenBMB/PilotDeck/pull/336) | 8 步行业研究方法论 Skill，覆盖研究章程、赛道拆解、公司画像、估值追踪、分析框架、单位经济学与投资论点综合。 |
 
@@ -512,21 +512,21 @@ docker compose up -d --build
 
 | 作者 | 作品 | 类型 | 链接 | 简介 |
 |:---|:---|:---|:---|:---|
-| Andrew / [@umr2015](https://github.com/umr2015) | **9GClaw-ReadyKit** | 部署工具 | [GitHub](https://github.com/umr2015/PilotDeck-ReadyKit) | Windows + Docker 一键部署包，PowerShell 脚本自动检查环境、生成配置、启动服务与健康验证，支持 Ollama / vLLM 本地模型接入。 |
+| Andrew / [@umr2015](https://github.com/umr2015) | **九格智能体平台-ReadyKit** | 部署工具 | [GitHub](https://github.com/umr2015/PilotDeck-ReadyKit) | Windows + Docker 一键部署包，PowerShell 脚本自动检查环境、生成配置、启动服务与健康验证，支持 Ollama / vLLM 本地模型接入。 |
 
 #### 📊 测评与反馈
 
 | 作者 | 作品 | 类型 | 链接 | 简介 |
 |:---|:---|:---|:---|:---|
-| 程序员暮闲 | **国产开源智能体 PilotDeck 实测** | 测评 | [B站](https://www.bilibili.com/video/BV1mjj46PEZb) · [小红书](https://www.xiaohongshu.com/explore/6a375641000000001702aa75) · [YouTube](https://www.youtube.com/watch?v=EP2mW6el5JM) | 全面覆盖 9GClaw 安装、配置、项目管理、IM 接入、Skills、MCP、路由、记忆与定时任务等核心功能。 |
-| Butterbeer / [@AaronAust1n](https://github.com/AaronAust1n) | **9GClaw vs Hermes vs OpenClaw 冷启动实测** | 横评 | [知乎](https://zhuanlan.zhihu.com/p/2057163316859081709) | 从技术人员冷启动视角横评三款产品，记录关键问题并给出分优先级的产品改进建议。 |
+| 程序员暮闲 | **国产开源智能体 PilotDeck 实测** | 测评 | [B站](https://www.bilibili.com/video/BV1mjj46PEZb) · [小红书](https://www.xiaohongshu.com/explore/6a375641000000001702aa75) · [YouTube](https://www.youtube.com/watch?v=EP2mW6el5JM) | 全面覆盖 九格智能体平台 安装、配置、项目管理、IM 接入、Skills、MCP、路由、记忆与定时任务等核心功能。 |
+| Butterbeer / [@AaronAust1n](https://github.com/AaronAust1n) | **九格智能体平台 vs Hermes vs OpenClaw 冷启动实测** | 横评 | [知乎](https://zhuanlan.zhihu.com/p/2057163316859081709) | 从技术人员冷启动视角横评三款产品，记录关键问题并给出分优先级的产品改进建议。 |
 
 #### 💡 创意分享
 
 | 作者 | 作品 | 类型 | 链接 | 简介 |
 |:---|:---|:---|:---|:---|
-| 熊有饭 | **用 9GClaw 开发在线智能数据系统** | 实践案例 | [微信公众号](https://mp.weixin.qq.com/s/7p-A7TumCK2CEP3ouAmZsA) | 制造业真实落地案例，用 9GClaw 将纸质不合格报告与卡顿 Excel 改造为在线智能图表系统，并接入 AI 助手实现自然语言查询。 |
-| Agent 折腾日志 | **Hermes 记忆系统升级：从 9GClaw 偷师** | 技术分享 | [小红书](http://xhslink.com/o/2xEgrIPQyCK) | 研究 9GClaw 记忆系统设计，并将相关思路应用到 Hermes 记忆系统升级中。 |
+| 熊有饭 | **用 九格智能体平台 开发在线智能数据系统** | 实践案例 | [微信公众号](https://mp.weixin.qq.com/s/7p-A7TumCK2CEP3ouAmZsA) | 制造业真实落地案例，用 九格智能体平台 将纸质不合格报告与卡顿 Excel 改造为在线智能图表系统，并接入 AI 助手实现自然语言查询。 |
+| Agent 折腾日志 | **Hermes 记忆系统升级：从 九格智能体平台 偷师** | 技术分享 | [小红书](http://xhslink.com/o/2xEgrIPQyCK) | 研究 九格智能体平台 记忆系统设计，并将相关思路应用到 Hermes 记忆系统升级中。 |
 
 #### 🎙️ VoxCPM 特色案例
 
@@ -538,7 +538,7 @@ docker compose up -d --build
 
 感谢 OpenClaw、Claude Code、Codex、Cursor、Hermes 等 Agent OS 先行者的探索，为这一领域的发展提供了重要启发。
 
-9GClaw 的建设离不开以下优秀开源项目的支持：
+九格智能体平台 的建设离不开以下优秀开源项目的支持：
 
 - [ClawXRouter](https://github.com/OpenBMB/ClawXRouter) — 智能模型路由
 - [ClawXMemory](https://github.com/OpenBMB/ClawXMemory) — Agent 记忆系统
@@ -566,7 +566,7 @@ docker compose up -d --build
 
 ## ⭐ 支持我们
 
-如果您觉得 9GClaw 对您的工作或研究有帮助，请点亮一颗 Star 支持我们！
+如果您觉得 九格智能体平台 对您的工作或研究有帮助，请点亮一颗 Star 支持我们！
 
 ---
 

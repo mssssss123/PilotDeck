@@ -142,7 +142,7 @@ async function mutateConfigAndReload(mutate) {
 
 async function fetchJson(url) {
   const resp = await fetch(url, {
-    headers: { 'User-Agent': '9GClaw/1.0' },
+    headers: { 'User-Agent': '9gclaw/1.0' },
     signal: AbortSignal.timeout(15_000),
   });
   const text = await resp.text();
@@ -424,7 +424,7 @@ router.post('/weixin/qr-begin', async (_req, res) => {
       return res.json({
         ok: false,
         requestedAt,
-        error: '当前 gateway 不支持准备微信扫码登录，请重启 9GClaw 后重试',
+        error: '当前 gateway 不支持准备微信扫码登录，请重启 九格智能体平台 后重试',
       });
     }
 
@@ -433,7 +433,7 @@ router.post('/weixin/qr-begin', async (_req, res) => {
       return res.json({
         ok: false,
         requestedAt: result?.requestedAt || requestedAt,
-        error: '微信后台通道无法启动，请确认 9GClaw gateway 正在运行',
+        error: '微信后台通道无法启动，请确认 九格智能体平台 gateway 正在运行',
       });
     }
 

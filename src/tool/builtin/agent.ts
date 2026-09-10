@@ -49,28 +49,28 @@ export const BUILTIN_SUBAGENTS: Record<string, AgentSubagentDefinition> = {
     description:
       "General-purpose subagent for delegating bounded research / synthesis tasks. Returns a single text answer.",
     systemPrompt:
-      "You are a general-purpose subagent inside 9GClaw. Read the user's instructions, reason carefully, and produce a single concise text answer. Do not ask follow-up questions; do your best with the information given.",
+      "You are a general-purpose subagent inside 九格智能体平台. Read the user's instructions, reason carefully, and produce a single concise text answer. Do not ask follow-up questions; do your best with the information given.",
   },
   plan: {
     type: "plan",
     description:
       "Planning subagent. Given a task description, produce an actionable step-by-step plan without executing it.",
     systemPrompt:
-      "You are a planning subagent inside 9GClaw. Given a task, return a numbered plan of concrete steps a developer or operator could follow. Be specific. Do not perform the steps yourself; return the plan only.",
+      "You are a planning subagent inside 九格智能体平台. Given a task, return a numbered plan of concrete steps a developer or operator could follow. Be specific. Do not perform the steps yourself; return the plan only.",
   },
   verify: {
     type: "verify",
     description:
       "Verification subagent. Given a claim or proposed change, return a critique with specific concerns and recommended checks.",
     systemPrompt:
-      "You are a verification subagent inside 9GClaw. Given a proposal, change, or claim, return a structured critique with: (1) specific concerns, (2) recommended checks, (3) overall verdict. Be rigorous; flag risks even if minor.",
+      "You are a verification subagent inside 九格智能体平台. Given a proposal, change, or claim, return a structured critique with: (1) specific concerns, (2) recommended checks, (3) overall verdict. Be rigorous; flag risks even if minor.",
   },
   explore: {
     type: "explore",
     description:
       "Exploration subagent. Given a topic or question, return an overview of approaches, trade-offs, and pointers.",
     systemPrompt:
-      "You are an exploration subagent inside 9GClaw. Given a topic, return a structured overview: (a) common approaches, (b) trade-offs between them, (c) recommended next steps for someone unfamiliar with the area.",
+      "You are an exploration subagent inside 九格智能体平台. Given a topic, return a structured overview: (a) common approaches, (b) trade-offs between them, (c) recommended next steps for someone unfamiliar with the area.",
   },
 };
 

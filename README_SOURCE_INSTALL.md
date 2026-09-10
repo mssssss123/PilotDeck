@@ -1,10 +1,10 @@
 # Source Installation Guide
 
-This guide is for developers who want to run 9GClaw directly from source instead of using the one-line installer or Docker.
+This guide is for developers who want to run 九格智能体平台 directly from source instead of using the one-line installer or Docker.
 
 ## Prerequisites
 
-9GClaw requires:
+九格智能体平台 requires:
 
 - Node.js v22.13.0 or newer within the Node.js 22 line, with the built-in `node:sqlite` runtime.
 - Git.
@@ -123,7 +123,7 @@ Windows supports several source-deployment paths. You do **not** need to install
 | Path | Install on Windows | Best for |
 |---|---|---|
 | WSL2 Ubuntu | WSL2, Ubuntu, then Linux build tools inside Ubuntu | Source deployment and development |
-| Docker Desktop | Docker Desktop with WSL2 backend, Git for Windows | Running 9GClaw without local Node/native build setup |
+| Docker Desktop | Docker Desktop with WSL2 backend, Git for Windows | Running 九格智能体平台 without local Node/native build setup |
 | Native Windows | Node.js, Git LFS, Python, Visual Studio C++ Build Tools, ripgrep | PowerShell-only development |
 | Portable Node | Official Node.js zip, Git for Windows, Git LFS, ripgrep | Verifying deployment without changing system Node settings |
 
@@ -141,7 +141,7 @@ docker compose version
 wsl --status
 ```
 
-Missing commands mean the corresponding tool still needs to be installed or added to `PATH`. After installing tools, close and reopen PowerShell before checking again. Git for Windows includes Git Bash; 9GClaw uses Git Bash as the default Windows terminal shell when it is available, and falls back to PowerShell only when Git Bash cannot be found.
+Missing commands mean the corresponding tool still needs to be installed or added to `PATH`. After installing tools, close and reopen PowerShell before checking again. Git for Windows includes Git Bash; 九格智能体平台 uses Git Bash as the default Windows terminal shell when it is available, and falls back to PowerShell only when Git Bash cannot be found.
 
 #### WSL2 Ubuntu (recommended)
 
@@ -200,11 +200,11 @@ rg --version
 
 Native Windows source installs are tested on x64 Node.js. If `node -p "process.arch"` does not print `x64`, switch to the official x64 Node.js 22 zip or another x64 Node.js runtime before installing dependencies.
 
-Use separate PowerShell lines instead of Bash-style chained commands when following the prerequisite commands above. For 9GClaw's in-app terminal, Git Bash is preferred automatically after Git for Windows is installed. If PowerShell blocks `npm.ps1`, call `npm.cmd` instead of `npm`.
+Use separate PowerShell lines instead of Bash-style chained commands when following the prerequisite commands above. For 九格智能体平台's in-app terminal, Git Bash is preferred automatically after Git for Windows is installed. If PowerShell blocks `npm.ps1`, call `npm.cmd` instead of `npm`.
 
 #### Portable Node for verification
 
-If you want to test 9GClaw before installing Node.js globally, use the official Windows Node.js zip for the current terminal session only:
+If you want to test 九格智能体平台 before installing Node.js globally, use the official Windows Node.js zip for the current terminal session only:
 
 ```powershell
 $NodeVersion = '22.23.1'
@@ -232,8 +232,8 @@ With portable Node, keep using the source install commands below: `corepack pnpm
 Clone the source code without downloading large Git LFS demo media:
 
 ```bash
-GIT_LFS_SKIP_SMUDGE=1 git clone --branch feat/9gclaw https://github.com/mssssss123/PilotDeck.git 9GClaw
-cd 9GClaw
+GIT_LFS_SKIP_SMUDGE=1 git clone --branch feat/9gclaw https://github.com/mssssss123/PilotDeck.git 九格智能体平台
+cd 九格智能体平台
 ```
 
 If you need the demo videos/GIFs later, download them after cloning:
@@ -268,13 +268,13 @@ npm install -g clawhub
 clawhub --version
 ```
 
-On Windows, use `npm.cmd install -g clawhub` if PowerShell blocks `npm.ps1`. With Portable Node, this installs `clawhub` into the portable Node prefix, so keep that Node directory on `PATH` when running 9GClaw.
+On Windows, use `npm.cmd install -g clawhub` if PowerShell blocks `npm.ps1`. With Portable Node, this installs `clawhub` into the portable Node prefix, so keep that Node directory on `PATH` when running 九格智能体平台.
 
 ## First-Run Onboarding
 
-9GClaw reads `~/.pilotdeck/pilotdeck.yaml`. If the file is missing, start 9GClaw normally: the Web UI opens onboarding without starting the Gateway. After you save a real provider, API key, and model, 9GClaw writes the config and starts the Gateway automatically.
+九格智能体平台 reads `~/.pilotdeck/pilotdeck.yaml`. If the file is missing, start 九格智能体平台 normally: the Web UI opens onboarding without starting the Gateway. After you save a real provider, API key, and model, 九格智能体平台 writes the config and starts the Gateway automatically.
 
-## Start 9GClaw
+## Start 九格智能体平台
 
 Development mode with HMR:
 

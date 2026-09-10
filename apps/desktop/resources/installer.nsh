@@ -1,4 +1,4 @@
-; Custom NSIS include for 9GClaw
+; Custom NSIS include for 九格智能体平台
 
 ; Fix 1: Reload icon after UAC elevation to prevent title bar icon loss.
 !define MUI_CUSTOMFUNCTION_GUIINIT fixInstallerIcon

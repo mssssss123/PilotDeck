@@ -1,1 +1,1 @@
-"""9GClaw DOCX skill implementation."""
+"""九格智能体平台 DOCX skill implementation."""

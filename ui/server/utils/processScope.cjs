@@ -44,7 +44,7 @@ function attach(child, scope) {
   child.once('exit', (code, signal) => { if (!completed) report({ code: code || 1, signal }); });
 }
 function prepare(scope, spec) {
-  if (isClosing(scope.directory, scope.entry)) throw new Error('PilotDeck runtime is stopping');
+  if (isClosing(scope.directory, scope.entry)) throw new Error('九格智能体平台 runtime is stopping');
   const entry = randomUUID();
   const file = path.join(scope.directory, `${entry}.json`);
   writeRecord(file, { state: 'pending', parent: scope.entry || null, ...spec });
@@ -52,7 +52,7 @@ function prepare(scope, spec) {
   // marker. It cannot miss a command that has already started executing.
   if (isClosing(scope.directory, scope.entry)) {
     writeRecord(file, { state: 'done', parent: scope.entry || null });
-    throw new Error('PilotDeck runtime is stopping');
+    throw new Error('九格智能体平台 runtime is stopping');
   }
   return { directory: scope.directory, entry, file };
 }

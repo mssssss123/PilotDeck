@@ -94,7 +94,7 @@ test("send_attachment rejects symlinks that resolve into an internal work direct
     assert.equal(validation?.ok, false);
     await assert.rejects(
       () => tool.execute({ file_path: publishedAlias }, context(projectRoot, workDir)),
-      /inside 9GClaw's internal work directory/,
+      /inside 九格智能体平台's internal work directory/,
     );
   } finally {
     await rm(projectRoot, { recursive: true, force: true });

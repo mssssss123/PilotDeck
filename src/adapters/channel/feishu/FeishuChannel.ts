@@ -624,7 +624,7 @@ export class FeishuChannel implements ChannelAdapter {
           detail: createVisibleErrorStatusDetail({
             message: "Failed to process this message. Please retry.",
             code: "channel_submit_failed",
-            userHint: "9GClaw failed before this IM turn could finish. Retry the message; if it repeats, check the channel and gateway logs.",
+            userHint: "九格智能体平台 failed before this IM turn could finish. Retry the message; if it repeats, check the channel and gateway logs.",
             scope: "channel",
             source: "im_channel",
             detail: {

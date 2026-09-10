@@ -34,7 +34,7 @@ describe('commands routes', () => {
       body: JSON.stringify({
         commandName: '/hello',
         commandPath,
-        args: ['9GClaw'],
+        args: ['九格智能体平台'],
       }),
     });
 
@@ -42,7 +42,7 @@ describe('commands routes', () => {
     expect(result.body).toMatchObject({
       type: 'custom',
       command: '/hello',
-      content: 'Hello 9GClaw',
+      content: 'Hello 九格智能体平台',
     });
   });
 });

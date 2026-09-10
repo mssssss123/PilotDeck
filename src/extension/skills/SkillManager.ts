@@ -56,7 +56,7 @@ export type SkillManagerOptions = {
   /** Resolved `~/.pilotdeck` root. Required. */
   pilotHome: string;
   env?: Record<string, string | undefined>;
-  /** Read-only skills shipped with the active 9GClaw build. */
+  /** Read-only skills shipped with the active 九格智能体平台 build. */
   builtinSkillsRoot?: string;
   /**
    * "General chat" cwds we treat as not-a-real-project. Defaults to
@@ -73,7 +73,7 @@ export type SkillManagerOptions = {
  * owns the editable layouts under `~/.pilotdeck/skills/` (user scope) and
  * `<projectRoot>/.pilotdeck/skills/` (project scope). Legacy third-party skill
  * directories are intentionally not consulted — conflating them with
- * 9GClaw's layout caused the UI/agent skill drift the migration fixes.
+ * 九格智能体平台's layout caused the UI/agent skill drift the migration fixes.
  */
 export class SkillManager {
   private readonly pilotHome: string;

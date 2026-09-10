@@ -107,10 +107,10 @@ class RuntimeManager {
     this.logStream = fs.createWriteStream(this.logPath, { flags: "a" });
     publishRuntimeStatus({
       phase: "starting",
-      message: "Preparing 9GClaw runtime...",
+      message: "Preparing 九格智能体平台 runtime...",
       logPath: this.logPath,
     });
-    this.log(`9GClaw Desktop runtime starting from ${this.runtimeRoot}`);
+    this.log(`九格智能体平台 Desktop runtime starting from ${this.runtimeRoot}`);
     publishRuntimeStatus({
       phase: "config",
       message: "Checking local configuration...",
@@ -185,11 +185,11 @@ class RuntimeManager {
       runtimeRoot: this.runtimeRoot,
       logPath: this.logPath,
     };
-    this.log(`9GClaw Web UI ready: http://127.0.0.1:${serverPort}`);
+    this.log(`九格智能体平台 Web UI ready: http://127.0.0.1:${serverPort}`);
     if (!this.configurationState || this.configurationState.state !== "ready") {
       publishRuntimeStatus({
         phase: "awaiting_configuration",
-        message: "9GClaw is ready for model setup.",
+        message: "九格智能体平台 is ready for model setup.",
         logPath: this.logPath,
       });
     }
@@ -214,7 +214,7 @@ class RuntimeManager {
     this.serverProcess = null;
     this.gatewayProcess = null;
     this.gatewayStartPromise = null;
-    this.log("9GClaw Desktop runtime stopped");
+    this.log("九格智能体平台 Desktop runtime stopped");
     this.logStream?.end();
     this.logStream = null;
     this.info = null;
@@ -226,7 +226,7 @@ class RuntimeManager {
     this.gatewayState = { state: "stopped" };
     publishRuntimeStatus({
       phase: "stopped",
-      message: "9GClaw runtime stopped.",
+      message: "九格智能体平台 runtime stopped.",
       logPath: this.logPath,
     });
   }
@@ -237,7 +237,7 @@ class RuntimeManager {
       return [this.nodeBinary, builtEntry, "server"];
     }
     if (app.isPackaged || process.env.PILOTDECK_DESKTOP_RUNTIME_ROOT) {
-      throw new Error(`Compiled 9GClaw gateway entry not found: ${builtEntry}`);
+      throw new Error(`Compiled 九格智能体平台 gateway entry not found: ${builtEntry}`);
     }
     return [this.nodeBinary, "--import", "tsx", path.join(this.runtimeRoot, "src", "cli", "pilotdeck.ts"), "server"];
   }
@@ -319,7 +319,7 @@ class RuntimeManager {
           phase: "awaiting_configuration",
           message: runtimeMessage.configuration.state === "invalid"
             ? "Model configuration needs attention."
-            : "9GClaw is ready for model setup.",
+            : "九格智能体平台 is ready for model setup.",
           logPath: this.logPath,
         });
       }
@@ -388,7 +388,7 @@ class RuntimeManager {
       this.setGatewayState({ state: "ready" });
       publishRuntimeStatus({
         phase: "ready",
-        message: "9GClaw is ready.",
+        message: "九格智能体平台 is ready.",
         logPath: this.logPath,
       });
     } catch (error) {
@@ -506,7 +506,7 @@ async function createOrShowWindow(): Promise<void> {
     height: 900,
     minWidth: 960,
     minHeight: 640,
-    title: "9GClaw",
+    title: "九格智能体平台",
     ...(icon ? { icon } : {}),
     autoHideMenuBar: true,
     webPreferences: {
@@ -544,7 +544,7 @@ async function createOrShowWindow(): Promise<void> {
   });
 
   await mainWindow.webContents.session.clearCache();
-  await mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(renderLoadingHtml(readAppearance()))}`);
+  await mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(renderLoadingHtml(readAppearance(), readBrandLogo()))}`);
   if (lastRuntimeStatus) {
     sendRuntimeStatus(lastRuntimeStatus);
   }
@@ -610,7 +610,7 @@ async function startRuntimeAndLoad(): Promise<void> {
     const detail = error instanceof Error ? error.stack ?? error.message : String(error);
     publishRuntimeStatus({
       phase: "error",
-      message: "9GClaw failed to start.",
+      message: "九格智能体平台 failed to start.",
       logPath: runtime?.getLogPath(),
       error: detail,
     });
@@ -626,7 +626,7 @@ async function retryRuntime(): Promise<void> {
   if (!mainWindow || mainWindow.isDestroyed()) {
     await createOrShowWindow();
   } else {
-    await mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(renderLoadingHtml(readAppearance()))}`);
+    await mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(renderLoadingHtml(readAppearance(), readBrandLogo()))}`);
   }
   await startRuntimeAndLoad();
 }
@@ -773,7 +773,7 @@ function ensurePilotHome(log: (message: string) => void): { pilotHome: string } 
     ? path.resolve(process.env.PILOT_HOME)
     : path.join(os.homedir(), ".pilotdeck");
   fs.mkdirSync(pilotHome, { recursive: true });
-  log(`9GClaw home ready at ${pilotHome}`);
+  log(`九格智能体平台 home ready at ${pilotHome}`);
   return { pilotHome };
 }
 
@@ -860,7 +860,7 @@ function getUpdateController() {
   const network = createUpdateNetwork(updater.netSession, () => {
     const configService = require(path.join(resolveRuntimeRoot(), "ui/server/services/pilotdeckConfig.js"));
     const record = configService.readPilotDeckConfigFile();
-    if (record.parseError) throw new Error("Invalid 9GClaw proxy configuration");
+    if (record.parseError) throw new Error("Invalid 九格智能体平台 proxy configuration");
     return record.config.proxy;
   });
   updater.on("login", network.login);
@@ -901,6 +901,13 @@ for (const [channel, action] of Object.entries({
   "pilotdeck:update-cancel": () => getUpdateController().cancel(),
 })) {
   ipcMain.handle(channel, (event) => { requireUpdateSender(event); return action(); });
+}
+
+function readBrandLogo(): string {
+  const logoPath = app.isPackaged
+    ? path.join(process.resourcesPath, "icons", "icon.png")
+    : path.join(__dirname, "..", "resources", "icons", "icon.png");
+  return fs.readFileSync(logoPath).toString("base64");
 }
 
 function readAppearance(): DesktopAppearance {
@@ -955,7 +962,7 @@ app.whenReady()
     await runtime?.stop().catch(() => undefined);
     publishRuntimeStatus({
       phase: "error",
-      message: "9GClaw failed to start.",
+      message: "九格智能体平台 failed to start.",
       logPath: runtime?.getLogPath(),
       error: detail,
     });
@@ -974,7 +981,7 @@ app.on("activate", () => {
         const detail = error instanceof Error ? error.stack ?? error.message : String(error);
         publishRuntimeStatus({
           phase: "error",
-          message: "9GClaw failed to restore window.",
+          message: "九格智能体平台 failed to restore window.",
           logPath: runtime?.getLogPath(),
           error: detail,
         });
@@ -995,6 +1002,6 @@ app.on("before-quit", (event) => {
     stoppingForQuit = false;
     runtime = currentRuntime;
     isQuitting = false;
-    dialog.showErrorBox(startupText("9GClaw could not stop", readAppearance().language), String(error));
+    dialog.showErrorBox(startupText("九格智能体平台 could not stop", readAppearance().language), String(error));
   });
 });

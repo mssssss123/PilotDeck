@@ -22,7 +22,7 @@ const guard = setTimeout(() => { console.error('Network regression test timed ou
 app.whenReady().then(async () => {
   const payload = Buffer.from('verified update payload');
   const sha512 = createHash('sha512').update(payload).digest('base64');
-  const asset = { name: 'PilotDeck-test.zip', platform: 'darwin', arch: 'arm64', size: payload.length,
+  const asset = { name: '九格智能体平台-test.zip', platform: 'darwin', arch: 'arm64', size: payload.length,
     sha256: createHash('sha256').update(payload).digest('hex'), sha512 };
   const manifest = { schemaVersion: 1, repository: 'fixture/PilotDeck', tag: 'v2026.09.07', version: '2026.907.0', sourceSha: 'a'.repeat(40), assets: [asset] };
   const requests = [];

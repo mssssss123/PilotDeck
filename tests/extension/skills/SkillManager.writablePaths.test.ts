@@ -9,7 +9,7 @@ test("SkillManager rejects project scope for desktop runtime roots", async () =>
   const root = mkdtempSync(join(tmpdir(), "pilotdeck-skills-runtime-"));
   try {
     const pilotHome = join(root, "pilot-home");
-    const runtimeRoot = join(root, "Program Files", "9GClaw", "resources", "runtime");
+    const runtimeRoot = join(root, "Program Files", "九格智能体平台", "resources", "runtime");
     const manager = new SkillManager({
       pilotHome,
       env: { PILOTDECK_DESKTOP: "1" },

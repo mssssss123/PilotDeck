@@ -14,14 +14,14 @@ export function buildApplicationMenu(
   const separator: MenuItemConstructorOptions = { type: 'separator' };
   return [
     ...(mac ? [{
-      label: 'PilotDeck',
+      label: '九格智能体平台',
       submenu: [
-        item('about', '关于 PilotDeck', 'About PilotDeck'), separator,
+        item('about', '关于 九格智能体平台', 'About 九格智能体平台'), separator,
         item('services', '服务', 'Services'), separator,
-        item('hide', '隐藏 PilotDeck', 'Hide PilotDeck'),
+        item('hide', '隐藏 九格智能体平台', 'Hide 九格智能体平台'),
         item('hideOthers', '隐藏其他', 'Hide Others'),
         item('unhide', '显示全部', 'Show All'), separator,
-        item('quit', '退出 PilotDeck', 'Quit PilotDeck'),
+        item('quit', '退出 九格智能体平台', 'Quit 九格智能体平台'),
       ],
     }] : []),
     {

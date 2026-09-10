@@ -13,7 +13,7 @@ test("CI metadata keeps the unified tag, desktop version and source commit align
   for (const script of ["set-ci-version.mjs", "release-version.mjs"]) {
     copyFileSync(new URL(`./${script}`, import.meta.url), join(root, "scripts", script));
   }
-  writeFileSync(join(root, "package.json"), JSON.stringify({ name: "pilotdeck-desktop", version: "0.1.0" }));
+  writeFileSync(join(root, "package.json"), JSON.stringify({ name: "9gclaw-desktop", version: "0.1.0" }));
   const envFile = join(root, "github-env");
   const outputFile = join(root, "github-output");
   const sha = "1234567890abcdef1234567890abcdef12345678";

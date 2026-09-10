@@ -26,7 +26,7 @@ _example/
 
 1. 将 `plugins/` 下的插件目录链接到 `~/.pilotdeck/plugins/` 或项目级 `.pilotdeck/plugins/`
 2. 将 `config/pilotdeck.yaml` 合并到目标环境的配置
-3. 启动 9GClaw，插件自动发现并加载
+3. 启动 九格智能体平台，插件自动发现并加载
 
 ```bash
 # 示例：软链接插件到全局目录

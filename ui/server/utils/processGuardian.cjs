@@ -59,7 +59,7 @@ async function launch() {
     worker.on('message', message => { if (process.connected) process.send(message, () => {}); });
     process.on('disconnect', () => { if (worker.connected) worker.disconnect(); });
   }
-  worker.on('error', error => { process.stderr.write(`PilotDeck command failed: ${error.message}\n`); complete(1, null); });
+  worker.on('error', error => { process.stderr.write(`九格智能体平台 command failed: ${error.message}\n`); complete(1, null); });
   worker.on('exit', (value, signal) => complete(value, signal));
 }
 launch().catch(error => {

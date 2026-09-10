@@ -83,7 +83,7 @@ test("command shell never falls back to Windows PowerShell 5", () => {
     env: { PATH: "C:\\Windows\\System32" },
     existsSync: () => false,
     commandAvailable: () => false,
-  }), /No supported 9GClaw command shell/);
+  }), /No supported 九格智能体平台 command shell/);
 });
 
 test("command shell supports an explicit generic shell path", () => {

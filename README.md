@@ -1,9 +1,9 @@
-> **9GClaw** is a branding fork of [PilotDeck](https://github.com/OpenBMB/PilotDeck), based on upstream commit `8ba2eb04cefec52fd9068d46a1a0d18b47689bea` (2026-09-05). Original authorship, licenses, and historical demos below belong to the upstream project. See [branding notes](docs/9gclaw-branding.md) for compatibility details.
+> **九格智能体平台** is a branding fork of [PilotDeck](https://github.com/OpenBMB/PilotDeck), based on upstream commit `8ba2eb04cefec52fd9068d46a1a0d18b47689bea` (2026-09-05). Original authorship, licenses, and historical demos below belong to the upstream project. See [branding notes](docs/9gclaw-branding.md) for compatibility details.
 
 <p align="center">
-  <img src="ui/public/logo-256.png" alt="9GClaw" width="128"/>
+  <img src="ui/public/logo-256.png" alt="九格智能体平台" width="128"/>
 </p>
-<h1 align="center">9GClaw</h1>
+<h1 align="center">九格智能体平台</h1>
 
 <p align="center">
   Task-oriented AI Agent productivity platform — redefining operational boundaries and memory evolution, one WorkSpace at a time.
@@ -40,9 +40,9 @@
 
 ---
 
-## 💡 About 9GClaw
+## 💡 About 九格智能体平台
 
-**9GClaw** is an open-source agent operating system designed around the concept of "WorkSpace". Its upstream project, PilotDeck, is jointly developed and open-sourced by Tsinghua University [THUNLP](https://nlp.csai.tsinghua.edu.cn/), [ModelBest](https://modelbest.cn/), [OpenBMB](https://www.openbmb.cn/), and [AI9Stars](https://github.com/AI9Stars). Targeting general-purpose, multi-task scenarios, 9GClaw is built to be a true *productivity tool* for the Agent era.
+**九格智能体平台** is an open-source agent operating system designed around the concept of "WorkSpace". Its upstream project, PilotDeck, is jointly developed and open-sourced by Tsinghua University [THUNLP](https://nlp.csai.tsinghua.edu.cn/), [ModelBest](https://modelbest.cn/), [OpenBMB](https://www.openbmb.cn/), and [AI9Stars](https://github.com/AI9Stars). Targeting general-purpose, multi-task scenarios, 九格智能体平台 is built to be a true *productivity tool* for the Agent era.
 
 A wave of excellent AI Agent harnesses has emerged in recent years, each with its own focus: **Claude Code / Cursor / Trae Solo** brought model reasoning deep into the programming IDE; **Claude Cowork** introduced the notion of project-level isolation to desktop-side knowledge work; **WorkBuddy** connected agents to IM ecosystems such as WeCom and Feishu so AI is one message away.
 
@@ -53,7 +53,7 @@ When we shift the lens from "one-shot programming" or "immediate Q&A" to **long-
 - Can tasks of different difficulty **automatically be matched to different models**, instead of burning the flagship model on trivial calls?
 - When you step away from the keyboard, can the work keep moving? Can the agent **proactively discover what's worth doing, report progress, and land results as files on disk**?
 
-9GClaw is an incremental exploration around exactly these questions. It uses the WorkSpace as the fundamental unit — completely isolating files, memory and skills per project — and pairs it with three pillar capabilities: **White-box Memory**, **Smart Routing** and **Always-on**. The entire system natively supports the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) and behaves consistently across front-ends (Web / CLI / IM).
+九格智能体平台 is an incremental exploration around exactly these questions. It uses the WorkSpace as the fundamental unit — completely isolating files, memory and skills per project — and pairs it with three pillar capabilities: **White-box Memory**, **Smart Routing** and **Always-on**. The entire system natively supports the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) and behaves consistently across front-ends (Web / CLI / IM).
 
 ### ✨ Key Highlights
 
@@ -98,7 +98,7 @@ Task difficulty is auto-detected; complex calls go to flagship models (e.g. Clau
 
 **Always-on Background Execution**
 
-9GClaw breaks the "you ask, it answers" loop: after you sign off, the agent keeps discovering candidate tasks, running long-horizon monitors, and finally lands deliverables as local files with a summary report waiting for you.
+九格智能体平台 breaks the "you ask, it answers" loop: after you sign off, the agent keeps discovering candidate tasks, running long-horizon monitors, and finally lands deliverables as local files with a summary report waiting for you.
 
 <p align="center">
   <img src="assets/awo_en.gif" width="100%" alt="Always-on execution demo"/>
@@ -178,14 +178,14 @@ The research team benchmarked 7 complex tasks (multilingual podcast push, multi-
 
 #### 3. White-box Memory — layout & tone never bleed across projects
 
-In black-box agents, mixing tasks in a shared context pool inevitably pollutes memory. 9GClaw's WorkSpace-scoped white-box memory addresses this end-to-end:
+In black-box agents, mixing tasks in a shared context pool inevitably pollutes memory. 九格智能体平台's WorkSpace-scoped white-box memory addresses this end-to-end:
 
 <table width="100%">
 <thead>
 <tr>
   <th width="14%" align="left">Dimension</th>
   <th width="41%" align="left">Current AI Agents (black-box)</th>
-  <th width="45%" align="left">9GClaw (white-box)</th>
+  <th width="45%" align="left">九格智能体平台 (white-box)</th>
 </tr>
 </thead>
 <tbody>
@@ -221,7 +221,7 @@ In black-box agents, mixing tasks in a shared context pool inevitably pollutes m
 
 ## 🖥️ UI & Demo
 
-9GClaw ships an out-of-the-box Web UI with full WorkSpace management, white-box memory editing, and visualization of multi-agent collaboration.
+九格智能体平台 ships an out-of-the-box Web UI with full WorkSpace management, white-box memory editing, and visualization of multi-agent collaboration.
 
 ### Use Cases
 
@@ -320,7 +320,7 @@ You can also keep the official Node.js host as the primary source and opt in to 
 9gclaw status     # check runtime status
 ```
 
-To open 9GClaw again later on macOS / Linux, run `9gclaw` in a terminal and open the printed URL in your browser. If your shell has not picked up the PATH update yet, open a new terminal or source your shell profile first.
+To open 九格智能体平台 again later on macOS / Linux, run `9gclaw` in a terminal and open the printed URL in your browser. If your shell has not picked up the PATH update yet, open a new terminal or source your shell profile first.
 
 ```bash
 9gclaw
@@ -335,9 +335,9 @@ Run PowerShell as a normal user, then execute:
 powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/mssssss123/PilotDeck/feat/9gclaw/install.ps1 | iex"
 ```
 
-The PowerShell installer uses Windows-native paths under `%USERPROFILE%\.pilotdeck`, checks Node.js 22.13+ with `node:sqlite`, installs missing prerequisites with `winget` when available, builds 9GClaw, and creates a `pilotdeck.cmd` launcher in `%USERPROFILE%\.pilotdeck\bin`. Git LFS media assets are optional for the core app; if Git LFS is unavailable or times out, the installer continues without demo videos/GIFs.
+The PowerShell installer uses Windows-native paths under `%USERPROFILE%\.pilotdeck`, checks Node.js 22.13+ with `node:sqlite`, installs missing prerequisites with `winget` when available, builds 九格智能体平台, and creates a `pilotdeck.cmd` launcher in `%USERPROFILE%\.pilotdeck\bin`. Git LFS media assets are optional for the core app; if Git LFS is unavailable or times out, the installer continues without demo videos/GIFs.
 
-After installation, the script starts 9GClaw and prints the UI URL, usually `http://localhost:3001`. It does not automatically open a browser, so copy that URL into your browser to finish onboarding (provider + API key). You can also open it from PowerShell:
+After installation, the script starts 九格智能体平台 and prints the UI URL, usually `http://localhost:3001`. It does not automatically open a browser, so copy that URL into your browser to finish onboarding (provider + API key). You can also open it from PowerShell:
 
 ```powershell
 Start-Process http://localhost:3001
@@ -350,7 +350,7 @@ If this is your first install, open a new PowerShell window after the script upd
 9gclaw status     # check runtime status
 ```
 
-To open 9GClaw again later, run `9gclaw` from a new PowerShell window, then open the printed URL in your browser. If `9gclaw` is not yet on `PATH`, run the launcher directly:
+To open 九格智能体平台 again later, run `9gclaw` from a new PowerShell window, then open the printed URL in your browser. If `9gclaw` is not yet on `PATH`, run the launcher directly:
 
 ```powershell
 & "$HOME\.pilotdeck\bin\9gclaw.cmd"
@@ -391,22 +391,22 @@ GitHub may rate-limit repeated `raw.githubusercontent.com` requests from shared 
 > By default, skip large Git LFS demo media to keep the source install lightweight. If you need the demo videos/GIFs later, run `git lfs pull` after cloning.
 
 ```bash
-GIT_LFS_SKIP_SMUDGE=1 git clone --branch feat/9gclaw https://github.com/mssssss123/PilotDeck.git 9GClaw
-cd 9GClaw
+GIT_LFS_SKIP_SMUDGE=1 git clone --branch feat/9gclaw https://github.com/mssssss123/PilotDeck.git 九格智能体平台
+cd 九格智能体平台
 
 node --version          # must be v22.13.0 or newer, and below v23
 corepack enable         # enables the pinned pnpm version from package.json
 corepack pnpm install --frozen-lockfile --filter 9gclaw --filter 9gclaw-ui
 ```
 
-9GClaw uses the committed `pnpm-lock.yaml` for reproducible source installs. The filters keep Electron packaging dependencies out of Web-only installs. Prefer the `corepack pnpm ...` command above instead of `npm install`; on macOS, this also avoids unnecessary native rebuild fallbacks when matching prebuilt packages are available.
+九格智能体平台 uses the committed `pnpm-lock.yaml` for reproducible source installs. The filters keep Electron packaging dependencies out of Web-only installs. Prefer the `corepack pnpm ...` command above instead of `npm install`; on macOS, this also avoids unnecessary native rebuild fallbacks when matching prebuilt packages are available.
 
 **2. Configure a model provider**
 
-9GClaw reads `~/.pilotdeck/pilotdeck.yaml`. You can create it manually, **or just open the Web UI and configure providers visually in onboarding.**
+九格智能体平台 reads `~/.pilotdeck/pilotdeck.yaml`. You can create it manually, **or just open the Web UI and configure providers visually in onboarding.**
 Supported protocols include OpenAI, Anthropic, native Google Gemini, DeepSeek, Qwen, Kimi, MiniMax and other OpenAI-compatible endpoints.
 
-If the config file is missing, 9GClaw starts the Web UI without the Gateway and opens onboarding. Saving a valid provider, API key, and model writes the config and starts the Gateway automatically.
+If the config file is missing, 九格智能体平台 starts the Web UI without the Gateway and opens onboarding. Saving a valid provider, API key, and model writes the config and starts the Gateway automatically.
 
 ```yaml
 schemaVersion: 1
@@ -436,7 +436,7 @@ model:
         gemini-3.1-pro-preview: {}
 ```
 
-Local Ollama models can be configured without an API key. 9GClaw uses
+Local Ollama models can be configured without an API key. 九格智能体平台 uses
 Ollama's OpenAI-compatible `/v1/chat/completions` endpoint:
 
 ```bash
@@ -467,7 +467,7 @@ cd ui && npm run start   # production mode, visit http://localhost:3001
 
 ### Option C: Docker Compose
 
-If Docker is installed, you can start 9GClaw with:
+If Docker is installed, you can start 九格智能体平台 with:
 
 ```bash
 docker compose up -d --build
@@ -479,7 +479,7 @@ For full Docker configuration, see [README_DOCKER.md](README_DOCKER.md).
 
 ## 🛠️ Extension Protocol
 
-9GClaw has an open plugin architecture with a strict boundary between the open-source core and plugin customization. Extending the system is a `plugin.json` away:
+九格智能体平台 has an open plugin architecture with a strict boundary between the open-source core and plugin customization. Extending the system is a `plugin.json` away:
 
 - **MCP Servers** — first-class integration with any Model Context Protocol server.
 - **Tools & Skills** — register custom tools, or pull community skills via [ClawHub](https://www.npmjs.com/package/clawhub).
@@ -520,7 +520,7 @@ Workflow: **Fork → feature branch → PR**.
 
 We thank Agent OS pioneers such as OpenClaw, Claude Code, Codex, Cursor, and Hermes for their explorations that helped shape this field.
 
-9GClaw builds upon the following outstanding open-source projects:
+九格智能体平台 builds upon the following outstanding open-source projects:
 
 - [ClawXRouter](https://github.com/OpenBMB/ClawXRouter) — Intelligent model routing
 - [ClawXMemory](https://github.com/OpenBMB/ClawXMemory) — Agent memory system
@@ -546,7 +546,7 @@ The upstream PilotDeck project is jointly developed by Tsinghua University [THUN
 
 ## ⭐ Support Us
 
-If 9GClaw has been helpful in your work or research, please consider giving us a Star on GitHub!
+If 九格智能体平台 has been helpful in your work or research, please consider giving us a Star on GitHub!
 
 ---
 

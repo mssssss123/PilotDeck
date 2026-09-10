@@ -64,7 +64,7 @@ jobs:
         run: '"CSC_IDENTITY_AUTO_DISCOVERY=false" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append'
 
       - name: Build Windows x64 installer
-        run: pnpm --filter pilotdeck-desktop run dist:win
+        run: pnpm --filter 9gclaw-desktop run dist:win
 
       - name: Verify Windows artifact
         shell: pwsh
@@ -73,7 +73,7 @@ jobs:
           if (-not $installer) { throw 'Windows installer was not generated.' }
           if ($installer.Length -le 0) { throw 'Windows installer is empty.' }
           $env:ELECTRON_RUN_AS_NODE = '1'
-          & 'apps/desktop/dist-electron/win-unpacked/PilotDeck.exe' apps/desktop/scripts/verify-updater.cjs apps/desktop/dist-electron/win-unpacked/resources/app.asar | Out-Host
+          & 'apps/desktop/dist-electron/win-unpacked/九格智能体平台.exe' apps/desktop/scripts/verify-updater.cjs apps/desktop/dist-electron/win-unpacked/resources/app.asar | Out-Host
           if ($LASTEXITCODE -ne 0) { throw 'Packaged updater validation failed.' }
           Remove-Item Env:ELECTRON_RUN_AS_NODE
 
@@ -87,7 +87,7 @@ jobs:
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: pilotdeck-desktop-windows
+          name: 9gclaw-desktop-windows
           overwrite: true
           path: |
             apps/desktop/dist-electron/*-setup.exe

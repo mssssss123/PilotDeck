@@ -431,7 +431,7 @@ function Ensure-BrowserUseDependency {
 
   if ($env:PILOTDECK_SKIP_BROWSER_INSTALL -ne '0') {
     Write-Step 'Skipping Chrome for Testing download (default) to keep install fast.'
-    Write-Step '9GClaw core features are still available without this optional browser-use dependency.'
+    Write-Step '九格智能体平台 core features are still available without this optional browser-use dependency.'
     Write-Step "To enable browser-use later, run: Set-Location `"$InstallDir`"; npm run install:browser"
     Write-Step 'Or re-run the installer with PILOTDECK_SKIP_BROWSER_INSTALL=0.'
     return
@@ -475,7 +475,7 @@ function Install-AndBuild {
   $env:PILOTDECK_CONFIG_PATH = $ConfigPath
   Invoke-Npm -Arguments @('run', 'build') -WorkingDirectory $InstallDir
   Invoke-Npm -Arguments @('run', 'build') -WorkingDirectory (Join-Path $InstallDir 'ui')
-  Write-Ok '9GClaw built successfully'
+  Write-Ok '九格智能体平台 built successfully'
 }
 
 function Write-CmdLauncher {

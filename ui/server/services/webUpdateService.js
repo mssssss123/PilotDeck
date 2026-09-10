@@ -30,7 +30,7 @@ function updateError(reason, message = reason) {
 function matchesRepository(remote, repositoryUrl) {
   if (remote === repositoryUrl) return true;
   if (repositoryUrl !== OFFICIAL_URL) return false;
-  return /^(?:https:\/\/github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/)OpenBMB\/PilotDeck(?:\.git)?\/?$/i.test(remote);
+  return /^(?:https:\/\/github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/)mssssss123\/PilotDeck(?:\.git)?\/?$/i.test(remote);
 }
 
 export function createWebUpdateService({
@@ -215,7 +215,7 @@ export function createWebUpdateService({
 async function buildStagedWeb(root, progress, env) {
   const buildEnv = { ...env, PATH: `${path.dirname(process.execPath)}${path.delimiter}${env.PATH || ''}`, HUSKY: '0' };
   const run = (command, args) => runManagedCommand(command, args, { cwd: root, env: buildEnv, progress });
-  await run('pnpm', ['install', '--frozen-lockfile', '--filter', 'pilotdeck', '--filter', 'pilotdeck-ui']);
+  await run('pnpm', ['install', '--frozen-lockfile', '--filter', '9gclaw', '--filter', '9gclaw-ui']);
   await run('pnpm', ['run', 'build:web']);
 }
 

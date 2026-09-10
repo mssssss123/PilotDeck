@@ -21,7 +21,7 @@
  *   Cache is invalidated on reconnect.
  *
  * Errors raised by `callTool` / `listTools` always carry one of the
- * 9GClaw-style `mcp_*` error codes via the `code` field on the thrown
+ * 九格智能体平台-style `mcp_*` error codes via the `code` field on the thrown
  * error, so the caller can map them back to `PilotDeckToolErrorCode`.
  */
 

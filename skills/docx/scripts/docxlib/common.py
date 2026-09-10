@@ -149,7 +149,7 @@ def pilotdeck_work_dir() -> Path | None:
 
 
 def pilotdeck_workspace_root() -> Path:
-    """Return the workspace that owns the current 9GClaw task."""
+    """Return the workspace that owns the current 九格智能体平台 task."""
     for name in ("PILOTDECK_WORKSPACE_CWD", "PILOTDECK_PROJECT_ROOT"):
         configured = os.environ.get(name, "").strip()
         if configured:
@@ -171,7 +171,7 @@ def pilotdeck_workspace_root() -> Path:
             ):
                 return ancestor.parent.parent.resolve()
         # Standalone tests and manual CLI runs may provide an isolated work
-        # directory without 9GClaw's normal .pilotdeck/work hierarchy.
+        # directory without 九格智能体平台's normal .pilotdeck/work hierarchy.
         return work_dir.parent.resolve()
     return Path.cwd().resolve()
 

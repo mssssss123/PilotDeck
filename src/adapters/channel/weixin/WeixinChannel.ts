@@ -272,7 +272,7 @@ export class WeixinChannel implements ChannelAdapter {
     console.log("\n╔══════════════════════════════════════════════╗");
     console.log("║  微信 iLink 登录 — 请用微信扫描二维码        ║");
     console.log("╚══════════════════════════════════════════════╝\n");
-    console.log("[weixin] 等待扫码登录；9GClaw Web UI 已可继续使用。\n");
+    console.log("[weixin] 等待扫码登录；九格智能体平台 Web UI 已可继续使用。\n");
 
     this.loginPromise = this.runQrLogin(generation).finally(() => {
       if (this.startGeneration === generation) {
@@ -751,7 +751,7 @@ export class WeixinChannel implements ChannelAdapter {
         detail: createVisibleErrorStatusDetail({
           message: "Failed to process this message. Please retry.",
           code: "channel_submit_failed",
-          userHint: "9GClaw failed before this IM turn could finish. Retry the message; if it repeats, check the channel and gateway logs.",
+          userHint: "九格智能体平台 failed before this IM turn could finish. Retry the message; if it repeats, check the channel and gateway logs.",
           scope: "channel",
           source: "im_channel",
           detail: {

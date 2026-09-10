@@ -15,7 +15,7 @@ for (const platform of ['darwin', 'win32', 'linux'] as const) {
       for (const role of ['undo', 'redo', 'cut', 'copy', 'paste', 'selectAll', 'quit']) {
         expect(items.some(item => item.role === role)).toBe(true);
       }
-      expect(menu.some(item => item.label === 'PilotDeck')).toBe(platform === 'darwin');
+      expect(menu.some(item => item.label === '九格智能体平台')).toBe(platform === 'darwin');
     });
   }
 }

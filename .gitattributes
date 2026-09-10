@@ -30,7 +30,7 @@ ui/public/9gclaw-p-mark-compact.png !filter !diff !merge -text
 *.sh text eol=lf
 docker-entrypoint.sh text eol=lf
 
-# 9GClaw runtime branding must be available without Git LFS.
+# 九格智能体平台 runtime branding must be available without Git LFS.
 ui/public/logo*.png !filter !diff !merge -text
 ui/public/favicon.png !filter !diff !merge -text
 ui/public/icons/*.png !filter !diff !merge -text

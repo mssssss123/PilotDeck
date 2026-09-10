@@ -7,7 +7,7 @@ import os from 'node:os';
 import { describe, expect, it, vi } from 'vitest';
 import { createUpdateController, selectUpdateAssets, validateUpdateInfo, verifyDownloadedFile, type Release } from '../../../apps/desktop/src/updates';
 import { compareVersions } from './releaseService.js';
-const asset = (platform = 'darwin', arch = 'arm64') => ({ name: `PilotDeck-${platform}-${arch}${platform === 'darwin' ? '.zip' : '-setup.exe'}`,
+const asset = (platform = 'darwin', arch = 'arm64') => ({ name: `九格智能体平台-${platform}-${arch}${platform === 'darwin' ? '.zip' : '-setup.exe'}`,
   platform, arch, size: 5, sha256: 'a'.repeat(64), sha512: 'A'.repeat(86) + '==' });
 const releaseFor = (platform = 'darwin', arch = 'arm64'): Release => ({ version: '2026.907.1', tagName: 'v2026.09.07-r2', assets: [asset(platform, arch),
   { ...asset(platform, arch), name: `latest-${arch}${platform === 'darwin' ? '-mac' : ''}.yml` }] });
