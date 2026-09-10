@@ -59,7 +59,7 @@ def header_footer(canvas, doc) -> None:
     canvas.line(doc.leftMargin, 18 * mm, A4[0] - doc.rightMargin, 18 * mm)
     canvas.setFillColor(MUTED)
     canvas.setFont(doc.body_font, 8)
-    canvas.drawString(doc.leftMargin, 11 * mm, "9GClaw PDF starter")
+    canvas.drawString(doc.leftMargin, 11 * mm, "九格智能体平台 PDF starter")
     canvas.drawRightString(A4[0] - doc.rightMargin, 11 * mm, f"Page {doc.page}")
     canvas.restoreState()
 
@@ -74,8 +74,8 @@ def build_pdf(output: Path) -> None:
         leftMargin=20 * mm,
         topMargin=20 * mm,
         bottomMargin=25 * mm,
-        title="9GClaw PDF starter",
-        author="9GClaw",
+        title="九格智能体平台 PDF starter",
+        author="九格智能体平台",
     )
     doc.body_font = font_name
 

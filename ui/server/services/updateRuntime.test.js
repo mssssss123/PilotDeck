@@ -100,22 +100,22 @@ describe('update runtime resolution', () => {
   it('defaults Windows restarts to the built source server', async () => {
     const command = await resolveRestartCommand({
       platform: 'win32',
-      projectRoot: 'C:\\9GClaw',
+      projectRoot: 'C:\\九格智能体平台',
     });
 
     expect(command.command).toBe('cmd.exe');
-    expect(command.args.at(-1)).toContain('cd /d "C:\\9GClaw\\ui" && npm run start:built');
+    expect(command.args.at(-1)).toContain('cd /d "C:\\九格智能体平台\\ui" && npm run start:built');
   });
 
   it('keeps dev mode for Windows restarts when launched in dev mode', async () => {
     const command = await resolveRestartCommand({
       platform: 'win32',
       env: { PILOTDECK_RESTART_MODE: 'dev' },
-      projectRoot: 'C:\\9GClaw',
+      projectRoot: 'C:\\九格智能体平台',
     });
 
     expect(command.command).toBe('cmd.exe');
-    expect(command.args.at(-1)).toContain('cd /d "C:\\9GClaw" && npm run dev');
+    expect(command.args.at(-1)).toContain('cd /d "C:\\九格智能体平台" && npm run dev');
   });
 
   it('defaults non-Windows restarts to the built source server', async () => {

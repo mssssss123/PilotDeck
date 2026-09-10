@@ -8,7 +8,7 @@
  * - **S7**: drop the `<project-instructions>` block when `omitProjectInstructions: true`.
  * - **S8**: drop the `<git-status>` block when `omitGitStatus: true`.
  *
- * In 9GClaw the only "context blocks" we have today are encoded as XML-like
+ * In 九格智能体平台 the only "context blocks" we have today are encoded as XML-like
  * sections in the assembled system prompt (`PromptAssembler` output). We
  * implement S7/S8 by post-processing the system prompt string, since that's
  * the simplest cache-stable cut. If/when richer context structures land we'll

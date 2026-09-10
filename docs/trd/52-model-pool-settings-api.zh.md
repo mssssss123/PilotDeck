@@ -12,7 +12,7 @@
 
 | 方法 | 路径 | 用途 |
 |---|---|---|
-| GET | `/api/config` | 读取完整 9GClaw 配置 |
+| GET | `/api/config` | 读取完整 九格智能体平台 配置 |
 | PUT | `/api/config` | 保存 provider/model 配置并触发 reload |
 | POST | `/api/config/models` | 获取 provider 远端模型列表 |
 | POST | `/api/config/test-connection` | 单模型文字和图片探测 |

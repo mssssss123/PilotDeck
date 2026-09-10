@@ -1,15 +1,15 @@
 /**
- * 9GClaw bridge — the only chat-execution entry point in `ui/server/`.
+ * 九格智能体平台 bridge — the only chat-execution entry point in `ui/server/`.
  *
  *
- *   1. Connects to the standalone 9GClaw gateway server
+ *   1. Connects to the standalone 九格智能体平台 gateway server
  *      (`pilotdeck server`, default ws://127.0.0.1:18789/ws) as a
  *      WebSocket client. We never instantiate an in-process gateway
  *      here — that would create a second, divergent agent runtime that
  *      doesn't share `~/.pilotdeck/projects/<id>/chats/*.jsonl` writes
  *      and permission state with the CLI/TUI surfaces. One process, one
  *      gateway.
- *   2. Maps each old "sessionId" → 9GClaw "sessionKey" (1:1, generated
+ *   2. Maps each old "sessionId" → 九格智能体平台 "sessionKey" (1:1, generated
  *      on first turn and remembered for resume).
  *   3. Translates GatewayEvent → NormalizedMessage and writes back via
  *      `writer.send(...)` so the existing UI rendering pipeline stays
@@ -173,7 +173,7 @@ function isVisibleFailureAgentStatus(event) {
 
 /**
  * Default permission mode for sessions started from the Web UI. We use
- * `default` so 9GClaw's `Permission.decide()` fully evaluates rules
+ * `default` so 九格智能体平台's `Permission.decide()` fully evaluates rules
  * + tool semantics — read-only tools allow, side-effecting tools either
  * surface an interactive `permission_request` (resolved via the banner)
  * or short-circuit on an allow rule the user accumulated this session.
@@ -1469,9 +1469,9 @@ function sendBridgeStatusEvent(writer, statusEvent, sessionKey, provider) {
 }
 
 /**
- * Run a chat command through the 9GClaw gateway.
+ * Run a chat command through the 九格智能体平台 gateway.
  *
- * The frontend addresses sessions by the 9GClaw `sessionKey` itself
+ * The frontend addresses sessions by the 九格智能体平台 `sessionKey` itself
  * (`web:s_<uuid>`). On the first turn we mint a key and announce it via
  * a `session_created` frame; the frontend stores that and uses it on
  * every subsequent turn (and after page refresh, since the URL embeds
@@ -1684,7 +1684,7 @@ export async function runChatViaGateway(
         } else if (!sawTurnCompleted) {
             turnFinishReason = 'gateway_stream_ended';
             const message = 'Gateway stream ended before turn_completed; no final assistant response was received.';
-            const userHint = 'The model stream ended before 9GClaw received a final turn result. Please retry this message; if it repeats, check the gateway/model provider logs.';
+            const userHint = 'The model stream ended before 九格智能体平台 received a final turn result. Please retry this message; if it repeats, check the gateway/model provider logs.';
             const statusEvent = createBridgeFailureStatusEvent({
                 event: 'gateway_stream_ended_without_completion',
                 message,
@@ -1709,12 +1709,12 @@ export async function runChatViaGateway(
         if (gatewayUnavailable && gw) {
             resetGatewayConnection(gw);
         }
-        const message = gatewayUnavailable ? '9GClaw gateway is unavailable.' : rawMessage;
+        const message = gatewayUnavailable ? '九格智能体平台 gateway is unavailable.' : rawMessage;
         const statusEvent = gatewayUnavailable
             ? createBridgeFailureStatusEvent({
                 event: 'gateway_unavailable',
                 message,
-                userHint: 'Start or restart the 9GClaw gateway, then retry this message.',
+                userHint: 'Start or restart the 九格智能体平台 gateway, then retry this message.',
                 scope: 'preflight',
                 detail: {
                     gatewayUrl: GATEWAY_URL,
@@ -1971,7 +1971,7 @@ export function scheduleQueuedDispatchAfterActivityCheck(
 
 export async function enqueueInputViaGateway(sessionId, item, writer, provider = 'pilotdeck') {
     if (!isPilotDeckSessionKey(sessionId)) {
-        return { ok: false, error: 'A concrete 9GClaw session is required.' };
+        return { ok: false, error: 'A concrete 九格智能体平台 session is required.' };
     }
     const state = ensureSessionState(
         sessionId,
@@ -2240,7 +2240,7 @@ export async function abortViaGateway(sessionId, _provider = 'pilotdeck') {
 export async function replaceLastTurnViaGateway(sessionId, expectedTurnId, options = {}) {
     const gw = await ensureGateway();
     const sessionKey = isPilotDeckSessionKey(sessionId) ? sessionId : null;
-    if (!sessionKey) throw new Error('A normal 9GClaw session is required to edit a message.');
+    if (!sessionKey) throw new Error('A normal 九格智能体平台 session is required to edit a message.');
 
     const projectKey = options.projectPath || options.cwd || GENERAL_HOME;
     const result = await gw.replaceLastTurn({
@@ -2265,7 +2265,7 @@ export async function finalizeLastTurnReplacementViaGateway(
 ) {
     const gw = await ensureGateway();
     const sessionKey = isPilotDeckSessionKey(sessionId) ? sessionId : null;
-    if (!sessionKey) throw new Error('A normal 9GClaw session is required to finalize a message edit.');
+    if (!sessionKey) throw new Error('A normal 九格智能体平台 session is required to finalize a message edit.');
 
     const projectKey = options.projectPath || options.cwd || GENERAL_HOME;
     const result = await gw.finalizeLastTurnReplacement({

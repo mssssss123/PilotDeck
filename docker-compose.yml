@@ -5,7 +5,7 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      # Persist all 9GClaw state: generated config, auth DB, permissions,
+      # Persist all 九格智能体平台 state: generated config, auth DB, permissions,
       # sessions/projects, memory, skills/plugins, and router stats.
       - pilotdeck-home:/root/.pilotdeck
       # Optional: mount an existing config file instead of generating one from env vars.

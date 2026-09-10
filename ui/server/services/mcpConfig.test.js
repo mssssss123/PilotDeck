@@ -36,7 +36,7 @@ describe('MCP config writable paths', () => {
   });
 
   it('disables project MCP config for desktop runtime roots', async () => {
-    const runtimeRoot = join(root, 'Program Files', '9GClaw', 'resources', 'runtime');
+    const runtimeRoot = join(root, 'Program Files', '九格智能体平台', 'resources', 'runtime');
 
     const config = await readMcpConfigFile('project', runtimeRoot);
 

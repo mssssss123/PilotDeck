@@ -45,10 +45,10 @@ exportGitHubEnv({
 });
 exportGitHubOutput({ version, release_date: releaseDate, release_tag: releaseTag, commit_sha: commitSha });
 
-console.log(`9GClaw desktop version set to ${version}`);
-console.log(`9GClaw desktop release tag set to ${releaseTag}`);
-console.log(`9GClaw desktop commit set to ${commitSha}`);
-console.log(`9GClaw desktop build time set to ${buildTime}`);
+console.log(`九格智能体平台 desktop version set to ${version}`);
+console.log(`九格智能体平台 desktop release tag set to ${releaseTag}`);
+console.log(`九格智能体平台 desktop commit set to ${commitSha}`);
+console.log(`九格智能体平台 desktop build time set to ${buildTime}`);
 
 function resolveGitCommit() {
   try {

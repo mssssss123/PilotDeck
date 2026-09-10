@@ -143,7 +143,7 @@ import { createSessionWatchRegistry } from './session-watch-registry.js';
 import { isPathInsideOrEqual } from './utils/pathSafety.js';
 import { isVirtualProjectPath, resolvePilotHome } from './utils/pilotPaths.js';
 
-// 9GClaw-only mode: chat execution always goes through src/gateway via
+// 九格智能体平台-only mode: chat execution always goes through src/gateway via
 // cursor-cli, openai-codex, gemini-cli) has been removed.
 const VALID_PROVIDERS = ['pilotdeck'];
 
@@ -170,7 +170,7 @@ async function requireRealProjectFilesystem(req, res, next) {
 }
 
 // File-system watchers for the chat transcript root maintained by
-// 9GClaw. Provider-specific watchers (.pilotdeck) were dropped along with the four provider adapters.
+// 九格智能体平台. Provider-specific watchers (.pilotdeck) were dropped along with the four provider adapters.
 // .gemini) were dropped along with the four provider adapters.
 const PROVIDER_WATCH_PATHS = [
     {
@@ -608,7 +608,7 @@ app.use('/api/commands', authenticateToken, commandsRoutes);
 
 // Skills API Routes (protected) — list/edit/install skills surfaced in the
 // top-right Skills tab. Backed by bundled skills, ~/.pilotdeck/skills/, and
-// project-level .pilotdeck/skills/ via 9GClaw plugin runtime.
+// project-level .pilotdeck/skills/ via 九格智能体平台 plugin runtime.
 app.use('/api/skills', authenticateToken, skillsRoutes);
 app.use('/api/uploads', authenticateToken, uploadsRoutes);
 app.use('/api/models', authenticateToken, modelsRoutes);
@@ -616,7 +616,7 @@ app.use('/api/models', authenticateToken, modelsRoutes);
 // Settings API Routes (protected)
 app.use('/api/settings', authenticateToken, settingsRoutes);
 
-// 9GClaw unified YAML config routes (protected)
+// 九格智能体平台 unified YAML config routes (protected)
 app.use('/api/config', authenticateToken, configRoutes);
 
 // Versioned onboarding API. It remains behind the global /api API-key gate
@@ -632,7 +632,7 @@ app.use('/api/user', authenticateToken, userRoutes);
 // Plugins API Routes (protected)
 app.use('/api/plugins', authenticateToken, pluginsRoutes);
 
-// Unified session messages route (protected) — 9GClaw-only.
+// Unified session messages route (protected) — 九格智能体平台-only.
 const sessionModelHandlers = createSessionModelHandlers();
 app.get('/api/sessions/model', authenticateToken, sessionModelHandlers.get);
 app.put('/api/sessions/model', authenticateToken, sessionModelHandlers.set);
@@ -646,7 +646,7 @@ app.use('/api/agent', agentRoutes);
 app.use('/api/update', authenticateToken, updateRoutes);
 
 // Legacy four-provider config endpoints have been removed. The runtime
-// model is read from 9GClaw config; fall back to a static stub so any
+// model is read from 九格智能体平台 config; fall back to a static stub so any
 // older frontend code paths render without crashing.
 app.get('/api/agents/runtime-config', authenticateToken, (_req, res) => {
     const permSettings = readPermissionSettings();
@@ -659,7 +659,7 @@ app.get('/api/agents/runtime-config', authenticateToken, (_req, res) => {
     });
 });
 
-// Provider-specific endpoints removed by the 9GClaw-only migration.
+// Provider-specific endpoints removed by the 九格智能体平台-only migration.
 // Returning a structured error keeps any stragglers in the UI from
 // hanging on an unanswered fetch.
 const PROVIDER_REMOVED_PATHS = ['/api/cursor', '/api/codex', '/api/gemini', '/api/cli'];
@@ -667,12 +667,12 @@ for (const removedPrefix of PROVIDER_REMOVED_PATHS) {
     app.use(removedPrefix, (_req, res) => {
         res.status(410).json({
             error: 'endpoint_removed',
-            message: `Provider endpoint ${removedPrefix} was removed during the 9GClaw-only migration.`,
+            message: `Provider endpoint ${removedPrefix} was removed during the 九格智能体平台-only migration.`,
         });
     });
 }
 
-// 9GClaw routing dashboard. The `/api/ccr/*` URL family was kept for
+// 九格智能体平台 routing dashboard. The `/api/ccr/*` URL family was kept for
 // frontend back-compat (Dashboard tab + useRouterSettings) but the data
 // now comes from `src/router/stats/TokenStatsCollector` via the
 
@@ -804,7 +804,7 @@ app.get('/api/ccr/health', authenticateToken, (_req, res) => {
 
 app.get('/api/ccr/config', authenticateToken, (_req, res) => {
     // The legacy CCR YAML schema is no longer the source of truth for
-    // model routing — that lives in 9GClaw config now. Return null so
+    // model routing — that lives in 九格智能体平台 config now. Return null so
     // the legacy useRouterSettings hook simply renders the "no config"
     // empty state instead of a config editor.
     res.json(null);
@@ -836,14 +836,14 @@ app.post('/api/ccr/stats/reset', authenticateToken, (_req, res) => {
     // of silently no-oping.
     res.status(501).json({
         error: 'not_implemented',
-        message: 'Per-project router stats reset is not exposed yet; restart the 9GClaw server to clear in-memory state.',
+        message: 'Per-project router stats reset is not exposed yet; restart the 九格智能体平台 server to clear in-memory state.',
     });
 });
 
 app.put('/api/ccr/config', authenticateToken, (_req, res) => {
     res.status(501).json({
         error: 'not_implemented',
-        message: 'Routing configuration is owned by 9GClaw config (~/.pilotdeck/pilotdeck.yaml). Edit it directly via /api/config.',
+        message: 'Routing configuration is owned by 九格智能体平台 config (~/.pilotdeck/pilotdeck.yaml). Edit it directly via /api/config.',
     });
 });
 
@@ -868,7 +868,7 @@ app.use('/memory-dashboard', authenticateToken, express.static(MEMORY_DASHBOARD_
 
 // Hard 404 boundary: anything still asking for /memory-dashboard/* after the
 // static middleware is a missing asset. Without this, the request would fall
-// through to the SPA wildcard below and return the 9GClaw shell index.html,
+// through to the SPA wildcard below and return the 九格智能体平台 shell index.html,
 // which the MemoryPanel iframe then renders — recursively nesting the entire
 // app inside itself (see bug: "嵌套显示 + general memory 多次出现").
 app.use('/memory-dashboard', (_req, res) => {
@@ -909,7 +909,7 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
             return res.status(503).json({
                 error: {
                     code: 'gateway_unavailable',
-                    message: '9GClaw Gateway is restarting. Retry shortly.',
+                    message: '九格智能体平台 Gateway is restarting. Retry shortly.',
                 },
             });
         }
@@ -928,7 +928,7 @@ app.get('/api/projects/:projectName/sessions', authenticateToken, async (req, re
             return res.status(503).json({
                 error: {
                     code: 'gateway_unavailable',
-                    message: '9GClaw Gateway is restarting. Retry shortly.',
+                    message: '九格智能体平台 Gateway is restarting. Retry shortly.',
                 },
             });
         }
@@ -2496,7 +2496,7 @@ function handleChatConnection(ws, request) {
     const userId = request?.user?.id ?? request?.user?.userId ?? null;
     ws.__pilotdeckUserId = userId;
     connectedClients.add(ws);
-    // 9GClaw's cron manager lives inside `pilotdeck server`;
+    // 九格智能体平台's cron manager lives inside `pilotdeck server`;
     // no legacy daemon lease is needed.
     let cleanedUp = false;
 
@@ -2745,7 +2745,7 @@ function handleChatConnection(ws, request) {
                 const ids = getActiveSessionIdsViaGateway();
                 // Keep the four-provider keys so the legacy UI store does
                 // not need to change shape; everything routes through
-                // 9GClaw under the hood.
+                // 九格智能体平台 under the hood.
                 writer.send({
                     type: 'active-sessions',
                     sessions: { claude: ids, cursor: [], codex: [], gemini: [], pilotdeck: ids },
@@ -2863,7 +2863,7 @@ function handleShellConnection(ws) {
                 if (isPlainShell) {
                     welcomeMsg = `\x1b[36mStarting terminal in: ${projectPath}\x1b[0m\r\n`;
                 } else {
-                    const providerName = provider === 'pilotdeck' ? '9GClaw' : (provider === 'cursor' ? 'Cursor' : (provider === 'codex' ? 'Codex' : (provider === 'gemini' ? 'Gemini' : 'Claude')));
+                    const providerName = provider === 'pilotdeck' ? '九格智能体平台' : (provider === 'cursor' ? 'Cursor' : (provider === 'codex' ? 'Codex' : (provider === 'gemini' ? 'Gemini' : 'Claude')));
                     welcomeMsg = hasSession ?
                         `\x1b[36mResuming ${providerName} session ${sessionId} in: ${projectPath}\x1b[0m\r\n` :
                         `\x1b[36mStarting new ${providerName} session in: ${projectPath}\x1b[0m\r\n`;
@@ -3387,7 +3387,7 @@ app.get('/api/projects/:projectName/sessions/:sessionId/token-usage', authentica
         const { provider = 'pilotdeck' } = req.query;
         const homeDir = os.homedir();
 
-        // 9GClaw sessions use `web:s_<uuid>` keys; Windows-safe sessions
+        // 九格智能体平台 sessions use `web:s_<uuid>` keys; Windows-safe sessions
         // may use `web-s_<uuid>` because ':' is illegal in Windows filenames.
         if (provider === 'pilotdeck' || /^web[:_-]s_/.test(sessionId)) {
             return res.json(getSessionTokenBudget(sessionId));
@@ -3760,7 +3760,7 @@ async function startServer() {
                 const distIndexPath = path.join(__dirname, '../dist/index.html');
                 const isProduction = fs.existsSync(distIndexPath);
 
-                console.log(`${c.info('[INFO]')} Chat execution routed through 9GClaw gateway (src/gateway).`);
+                console.log(`${c.info('[INFO]')} Chat execution routed through 九格智能体平台 gateway (src/gateway).`);
                 console.log('');
 
                 if (isProduction) {
@@ -3784,7 +3784,7 @@ async function startServer() {
 
                     console.log('');
                     console.log(c.dim('═'.repeat(63)));
-                    console.log(`  ${c.bright('9GClaw Server - Ready')}`);
+                    console.log(`  ${c.bright('九格智能体平台 Server - Ready')}`);
                     console.log(c.dim('═'.repeat(63)));
                     console.log('');
                     console.log(`${c.info('[INFO]')} Server URL:  ${c.bright('http://' + DISPLAY_HOST + ':' + boundPort)}`);
@@ -3850,7 +3850,7 @@ async function startServer() {
                         stopChromeHealthCheck();
                         shutdownGlobalChrome();
                     } catch { /* Chrome may not have been started */ }
-                    // 9GClaw cron is owned by `pilotdeck server` and shuts
+                    // 九格智能体平台 cron is owned by `pilotdeck server` and shuts
                     // down with it; ui/server never spawns its own daemon.
                 } finally {
                     process.exit(0);

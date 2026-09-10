@@ -1,5 +1,5 @@
 /**
- * Unified session messages endpoint (9GClaw-only).
+ * Unified session messages endpoint (九格智能体平台-only).
  *
  * GET /api/sessions/:sessionId/messages?projectName=&projectPath=&limit=&offset=
  *
@@ -74,7 +74,7 @@ router.get('/:sessionId/messages', async (req, res) => {
       return res.status(503).json({
         error: {
           code: 'gateway_unavailable',
-          message: '9GClaw Gateway is restarting. Retry shortly.',
+          message: '九格智能体平台 Gateway is restarting. Retry shortly.',
         },
       });
     }
@@ -154,7 +154,7 @@ router.get('/:sessionId/subagent/:subagentId/messages', async (req, res) => {
       return res.status(503).json({
         error: {
           code: 'gateway_unavailable',
-          message: '9GClaw Gateway is restarting. Retry shortly.',
+          message: '九格智能体平台 Gateway is restarting. Retry shortly.',
         },
       });
     }

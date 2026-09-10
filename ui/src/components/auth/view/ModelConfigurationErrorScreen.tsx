@@ -18,7 +18,7 @@ export default function ModelConfigurationErrorScreen({
   return (
     <AuthScreenLayout
       title="Model configuration unavailable"
-      description="9GClaw could not validate the model configuration."
+      description="九格智能体平台 could not validate the model configuration."
       footerText="Fix the configuration, then retry."
       logo={(
         <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-destructive/10">

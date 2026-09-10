@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   compareVersions,
+  listDesktopReleases,
   isDesktopRelease,
   mapGitHubRelease,
   normalizeRepository,
@@ -27,6 +28,28 @@ describe('desktop release versions', () => {
     expect(parseVersionParts('desktop-v2026.01.02')).toEqual([2026, 102, 0]);
   });
 
+  it('compares Chinese product names and legacy product prefixes consistently', () => {
+    expect(parseVersionParts('九格智能体平台-v2026.903.0')).toEqual([2026, 903, 0]);
+    expect(compareVersions('九格智能体平台-v2026.903.0', '9GClaw-v2026.903.0')).toBe(0);
+    expect(compareVersions('九格智能体平台-v2026.903.0', 'PilotDeck-v2026.903.0')).toBe(0);
+  });
+
+  it('sends valid ASCII HTTP headers when checking releases for the Chinese product', async () => {
+    const fetchMock = vi.fn(async (_url, init) => {
+      const headers = new Headers(init.headers);
+      expect(headers.get('User-Agent')).toMatch(/^[\x20-\x7e]+$/);
+      return { ok: true, json: async () => [] };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const result = await listDesktopReleases({ env: {}, limit: 1 });
+      expect(result.releases).toEqual([]);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('recognizes only desktop release tags', () => {
     expect(isDesktopRelease({ tagName: 'desktop-v2026.09.02' })).toBe(true);
     expect(isDesktopRelease({ tagName: 'v1.2.3' })).toBe(false);
@@ -39,21 +62,21 @@ describe('desktop release versions', () => {
   it('selects the native macOS installer for the current architecture', () => {
     const release = {
       assets: [
-        { name: '9GClaw-2026.903.0-mac-x64.dmg' },
-        { name: '9GClaw-2026.903.0-mac-arm64.dmg' },
-        { name: '9GClaw-2026.903.0-mac-universal.dmg' },
+        { name: '九格智能体平台-2026.903.0-mac-x64.dmg' },
+        { name: '九格智能体平台-2026.903.0-mac-arm64.dmg' },
+        { name: '九格智能体平台-2026.903.0-mac-universal.dmg' },
       ],
     };
 
     expect(selectDesktopAsset(release, { platform: 'darwin', arch: 'arm64' })?.name)
-      .toBe('9GClaw-2026.903.0-mac-arm64.dmg');
+      .toBe('九格智能体平台-2026.903.0-mac-arm64.dmg');
     expect(selectDesktopAsset(release, { platform: 'darwin', arch: 'x64' })?.name)
-      .toBe('9GClaw-2026.903.0-mac-x64.dmg');
+      .toBe('九格智能体平台-2026.903.0-mac-x64.dmg');
   });
 
   it('never offers a macOS installer built only for another architecture', () => {
     const release = {
-      assets: [{ name: '9GClaw-2026.903.0-mac-x64.dmg' }],
+      assets: [{ name: '九格智能体平台-2026.903.0-mac-x64.dmg' }],
     };
 
     expect(selectDesktopAsset(release, { platform: 'darwin', arch: 'arm64' })).toBeNull();

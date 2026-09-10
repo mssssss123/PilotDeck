@@ -362,7 +362,7 @@ router.post('/apply', async (req, res) => {
 
 /**
  * POST /api/update/restart
- * Restart 9GClaw. In supervised source runtimes the outer supervisor
+ * Restart 九格智能体平台. In supervised source runtimes the outer supervisor
  * relaunches the full process group; direct server runs fall back to
  * self-respawn.
  */
@@ -439,7 +439,7 @@ export function createRestartHandler({
       const message = normalizeUpdateRuntimeError(caughtError);
       error(`[update] Restart failed: ${message}`);
       res.status(500).json({
-        error: 'Failed to restart 9GClaw',
+        error: 'Failed to restart 九格智能体平台',
         message,
       });
     }

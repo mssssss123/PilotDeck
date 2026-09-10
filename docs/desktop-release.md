@@ -1,6 +1,6 @@
 # Desktop build and release
 
-9GClaw keeps Web and desktop sources on `main`. The desktop application is a
+九格智能体平台 keeps Web and desktop sources on `main`. The desktop application is a
 thin Electron shell around the same gateway and Web UI; desktop-specific runtime
 behavior is enabled only when Electron sets `PILOTDECK_DESKTOP=1`.
 

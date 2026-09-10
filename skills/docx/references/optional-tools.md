@@ -28,10 +28,10 @@ Use `annotate` only when the request explicitly needs review markup. It accepts 
 ```json
 {
   "comments": [
-    {"match": "Target text", "text": "Review note", "author": "9GClaw", "occurrence": 1}
+    {"match": "Target text", "text": "Review note", "author": "九格智能体平台", "occurrence": 1}
   ],
   "tracked_replacements": [
-    {"match": "Old text", "replacement": "New text", "author": "9GClaw", "occurrence": 1}
+    {"match": "Old text", "replacement": "New text", "author": "九格智能体平台", "occurrence": 1}
   ]
 }
 ```

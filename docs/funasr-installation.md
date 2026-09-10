@@ -1,6 +1,6 @@
 # FunASR Local Runtime Installation
 
-9GClaw transcribes audio through an included Node stdio MCP that invokes the official FunASR llama.cpp SenseVoice CLI locally. It does not use Docker, Python, a container image, or a cloud ASR API.
+九格智能体平台 transcribes audio through an included Node stdio MCP that invokes the official FunASR llama.cpp SenseVoice CLI locally. It does not use Docker, Python, a container image, or a cloud ASR API.
 
 ## Supported Platforms
 
@@ -15,7 +15,7 @@ macOS x64 and Windows ARM64 are deliberately rejected until FunASR ships matchin
 
 ## Install or Verify
 
-Run this from the 9GClaw source checkout or installed app directory:
+Run this from the 九格智能体平台 source checkout or installed app directory:
 
 ```bash
 npm run install:asr
@@ -32,7 +32,7 @@ $PILOT_HOME/funasr/
   models/fsmn-vad.gguf
 ```
 
-When `PILOT_HOME` is unset, 9GClaw uses `~/.pilotdeck` (or the platform-equivalent user home).
+When `PILOT_HOME` is unset, 九格智能体平台 uses `~/.pilotdeck` (or the platform-equivalent user home).
 
 ## Failure Diagnostics
 
@@ -51,7 +51,7 @@ The MCP tool is `mcp__funasr__transcribe_audio`:
 }
 ```
 
-The audio path must resolve to a real regular file inside the current 9GClaw project. Project-relative paths are accepted. URLs, missing files, project-external paths, and symlinks that resolve outside the project are rejected. The tool returns transcript text and second-based timestamp segments.
+The audio path must resolve to a real regular file inside the current 九格智能体平台 project. Project-relative paths are accepted. URLs, missing files, project-external paths, and symlinks that resolve outside the project are rejected. The tool returns transcript text and second-based timestamp segments.
 
 The built-in plugin is enabled unless configured otherwise:
 

@@ -179,7 +179,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
           .then(() => handleAdapterHotReload(event.nextSnapshot.config))
           .catch((err) =>
             console.warn(
-              `[9gclaw] adapter hot-reload failed: ${err instanceof Error ? err.message : String(err)}`,
+              `[九格智能体平台] adapter hot-reload failed: ${err instanceof Error ? err.message : String(err)}`,
             ),
           );
       }
@@ -190,7 +190,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
         .then(() => handleSubsystemReload(aoChanged, cronChanged, event.nextSnapshot.config))
         .catch((err) =>
           console.warn(
-            `[9gclaw] subsystem reload failed: ${err instanceof Error ? err.message : String(err)}`,
+            `[九格智能体平台] subsystem reload failed: ${err instanceof Error ? err.message : String(err)}`,
           ),
         );
     });
@@ -243,7 +243,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
       const parts: string[] = [];
       if (aoChanged) parts.push(`always-on=${alwaysOn ? "started" : "stopped"}`);
       if (cronChanged) parts.push(`cron=${cron ? "started" : "stopped"}`);
-      console.log(`[9gclaw] Subsystem hot-reload complete: ${parts.join(", ")}`);
+      console.log(`[九格智能体平台] Subsystem hot-reload complete: ${parts.join(", ")}`);
     }
 
     // --- Channel state persistence ---
@@ -327,7 +327,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
       }
 
       if (parts.length) {
-        console.log(`[9gclaw] Adapter hot-reload complete: ${parts.join(", ")}`);
+        console.log(`[九格智能体平台] Adapter hot-reload complete: ${parts.join(", ")}`);
       }
     }
 
@@ -409,7 +409,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
     });
     bindServer(server);
     deferredBroadcast = (name, payload) => server.broadcastNotification(name, payload);
-    console.log(`9GClaw server listening: ${server.url}`);
+    console.log(`九格智能体平台 server listening: ${server.url}`);
     console.log(`WebSocket: ${server.wsUrl}`);
     if (server.tokenPath) {
       console.log(`Token: ${server.tokenPath}`);
@@ -493,14 +493,14 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
       await new TuiChannel({
         projectKey: process.cwd(),
         cwd: process.cwd(),
-        model: "9GClaw",
+        model: "九格智能体平台",
         probe: { url: probeUrl },
       }).start({ gateway: local });
     } catch (error) {
       await new TuiChannel({
         projectKey: process.cwd(),
         cwd: process.cwd(),
-        model: "9GClaw",
+        model: "九格智能体平台",
         probe: { url: probeUrl },
       }).start({ gateway: fallbackGateway });
     }
@@ -572,7 +572,7 @@ async function handleUpdateCommand(argv: string[]): Promise<void> {
 async function handleCronCommand(argv: string[]): Promise<void> {
   const gateway = await connectRemoteGatewayIfAvailable();
   if (!gateway) {
-    console.error("9gclaw cron requires a running 9gclaw server.");
+    console.error("9gclaw cron requires a running 九格智能体平台 server.");
     process.exitCode = 1;
     return;
   }
@@ -692,7 +692,7 @@ function parseSkillMigrationSources(value: string | undefined): Array<Exclude<Sk
 
 function printSkillMigrationReport(report: Awaited<ReturnType<typeof migrateSkillsToPilotDeck>>): void {
   const mode = report.mode === "execute" ? "EXECUTED" : "DRY RUN";
-  console.log(`9GClaw skills migration (${mode})`);
+  console.log(`九格智能体平台 skills migration (${mode})`);
   console.log(`Target: ${report.targetRoot}`);
   console.log(
     `Summary: migrated=${report.summary.migrated} would_migrate=${report.summary.would_migrate} ` +
@@ -772,7 +772,7 @@ function createFallbackGateway(): Gateway {
     yield {
       type: "error",
       code: "local_gateway_unavailable",
-      message: `No 9GClaw server is available and local config could not start session ${input.sessionKey}.`,
+      message: `No 九格智能体平台 server is available and local config could not start session ${input.sessionKey}.`,
       recoverable: false,
     };
   }

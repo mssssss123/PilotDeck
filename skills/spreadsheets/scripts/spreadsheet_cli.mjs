@@ -1671,7 +1671,7 @@ async function commandSelfTest(options) {
 }
 
 function printHelp() {
-  process.stdout.write(`9GClaw spreadsheets skill\n\nReview commands (optional):\n  validate --input book.xlsx [--details --out report.json]\n  recalculate --input candidate.xlsx --out recalculated.xlsx [--report report.json]\n  render --input book.xlsx --out-dir render [--pdf render.pdf]\n\nDelivery:\n  deliver --input candidate.xlsx --out final.xlsx [--source source.xlsx --replace-source]\n\nOther optional commands:\n  compare --before source.xlsx --after candidate.xlsx --out comparison.json\n  convert-legacy --input source.xls --out converted.xlsx\n  self-test [--out directory]\n`);
+  process.stdout.write(`九格智能体平台 spreadsheets skill\n\nReview commands (optional):\n  validate --input book.xlsx [--details --out report.json]\n  recalculate --input candidate.xlsx --out recalculated.xlsx [--report report.json]\n  render --input book.xlsx --out-dir render [--pdf render.pdf]\n\nDelivery:\n  deliver --input candidate.xlsx --out final.xlsx [--source source.xlsx --replace-source]\n\nOther optional commands:\n  compare --before source.xlsx --after candidate.xlsx --out comparison.json\n  convert-legacy --input source.xls --out converted.xlsx\n  self-test [--out directory]\n`);
 }
 
 async function main() {

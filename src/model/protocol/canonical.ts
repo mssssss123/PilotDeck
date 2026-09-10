@@ -195,7 +195,7 @@ export type CanonicalThinkingConfig = {
  *     payload is then read back from the assistant's `tool_use` block.
  *
  * Behaviour rationale: legacy `structured_output` is an SDK-side hook tool;
- * 9GClaw adopts provider-native enforcement. Tagged `intentional_difference`
+ * 九格智能体平台 adopts provider-native enforcement. Tagged `intentional_difference`
  * in the dual-parity table.
  */
 export type CanonicalOutputSchema = {

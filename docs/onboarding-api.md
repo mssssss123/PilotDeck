@@ -1,11 +1,11 @@
-# 9GClaw Onboarding 后端接口文档
+# 九格智能体平台 Onboarding 后端接口文档
 
 ## 1. 接口说明
 
 - Base URL：`http://127.0.0.1:{SERVER_PORT}/api/v1`
 - 默认本机端口：`3001`
 - 数据格式：`application/json`
-- 认证：`Authorization: Bearer <9GClaw JWT>`
+- 认证：`Authorization: Bearer <九格智能体平台 JWT>`
 - 可选实例鉴权：服务端配置 `API_KEY` 时还必须提供 `X-API-Key`
 - 时间格式：ISO 8601 UTC
 - OpenAPI：`docs/pilotdeck-onboarding-api.openapi.yaml`

@@ -161,7 +161,7 @@ reader.on("line", async (line) => {
         protocolVersion: request.params?.protocolVersion ?? "2024-11-05",
         capabilities: { tools: {} },
         serverInfo: { name: "pilotdeck-funasr-local", version: "0.2.0" },
-        instructions: "Use transcribe_audio only with an audio path inside the active 9GClaw project.",
+        instructions: "Use transcribe_audio only with an audio path inside the active 九格智能体平台 project.",
       });
     } else if (request.method === "tools/list") {
       result(request.id, { tools: [tool] });

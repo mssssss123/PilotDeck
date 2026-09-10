@@ -23,7 +23,7 @@ export default function AuthScreenLayout({
           <div className="text-center">
             <div className="mb-4 flex justify-center">
               {logo ?? (
-                <img src="/logo-256.png" alt="9GClaw" className="h-16 w-16 object-contain" />
+                <img src="/logo-256.png" alt="九格智能体平台" className="h-16 w-16 object-contain" />
               )}
             </div>
             <h1 className="text-2xl font-bold text-foreground">{title}</h1>
@@ -47,7 +47,7 @@ export default function AuthScreenLayout({
                 rel="noopener noreferrer"
                 className="text-xs text-muted-foreground/50 transition-colors hover:text-muted-foreground"
               >
-                9GClaw is open source
+                九格智能体平台 is open source
               </a>
             </div>
           )}

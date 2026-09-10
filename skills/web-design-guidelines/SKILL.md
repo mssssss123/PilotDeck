@@ -22,8 +22,8 @@ Use this skill after building or modifying web UI. It helps the agent review whe
 
 When reviewing, return: pass/fail summary, top issues, concrete fixes, and files/components likely affected.
 
-## 9GClaw Migration Note
+## 九格智能体平台 Migration Note
 
 - Source inspiration: Vercel Agent Skills web design guidance and common UI QA practice.
-- This is a 9GClaw-native draft, not a verbatim copy.
+- This is a 九格智能体平台-native draft, not a verbatim copy.
 

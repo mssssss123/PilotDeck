@@ -283,7 +283,7 @@ export function createAskUserQuestionTool(): PilotDeckToolDefinition<
     // No `checkPermissions` override: the elicitation channel itself IS the
     // user-consent gate (legacy behaviour — ask_user_question's `checkPermissions`
     // returns `behavior: "ask"` and the host renders the question UI directly).
-    // 9GClaw would otherwise add a redundant "approve to ask" step in front
+    // 九格智能体平台 would otherwise add a redundant "approve to ask" step in front
     // of the actual question dialog. The tool is read-only, so the runtime's
     // default mode allows it through.
     execute: async (input, context): Promise<PilotDeckToolExecutionOutput<AskUserQuestionOutput>> => {

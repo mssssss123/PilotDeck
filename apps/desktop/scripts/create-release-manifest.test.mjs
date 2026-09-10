@@ -12,9 +12,9 @@ test("release manifest records separate macOS architecture installers", () => {
   const assetsDir = mkdtempSync(join(tmpdir(), "pilotdeck-release-assets-"));
   try {
     for (const name of [
-      "9GClaw-2026.903.0-mac-arm64.dmg",
-      "9GClaw-2026.903.0-mac-x64.dmg",
-      "9GClaw-2026.903.0-win-x64-setup.exe",
+      "九格智能体平台-2026.903.0-mac-arm64.dmg",
+      "九格智能体平台-2026.903.0-mac-x64.dmg",
+      "九格智能体平台-2026.903.0-win-x64-setup.exe",
     ]) {
       writeFileSync(resolve(assetsDir, name), name);
     }
@@ -43,9 +43,9 @@ test("release manifest records separate macOS architecture installers", () => {
         .map(({ name, platform, arch }) => ({ name, platform, arch }))
         .sort((left, right) => left.name.localeCompare(right.name)),
       [
-        { name: "9GClaw-2026.903.0-mac-arm64.dmg", platform: "darwin", arch: "arm64" },
-        { name: "9GClaw-2026.903.0-mac-x64.dmg", platform: "darwin", arch: "x64" },
-        { name: "9GClaw-2026.903.0-win-x64-setup.exe", platform: "win32", arch: "x64" },
+        { name: "九格智能体平台-2026.903.0-mac-arm64.dmg", platform: "darwin", arch: "arm64" },
+        { name: "九格智能体平台-2026.903.0-mac-x64.dmg", platform: "darwin", arch: "x64" },
+        { name: "九格智能体平台-2026.903.0-win-x64-setup.exe", platform: "win32", arch: "x64" },
       ],
     );
   } finally {

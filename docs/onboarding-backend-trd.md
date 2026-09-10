@@ -1,19 +1,19 @@
-# 9GClaw Onboarding 后端 TRD
+# 九格智能体平台 Onboarding 后端 TRD
 
 ## 1. 文档信息
 
 | 项目 | 内容 |
 | --- | --- |
 | 文档状态 | Draft |
-| 原型交接 | `9GClaw-onboarding-code-api-handoff-2026-08-18-v2.zip` |
-| 适用版本 | 9GClaw Web UI Server / Local Gateway |
+| 原型交接 | `九格智能体平台-onboarding-code-api-handoff-2026-08-18-v2.zip` |
+| 适用版本 | 九格智能体平台 Web UI Server / Local Gateway |
 | 目标读者 | 后端、Gateway、前端联调和测试 |
 
 ## 2. 背景
 
 新的首次使用引导包含语言选择、模型服务商选择、模型连接与能力测试、工作区创建四个阶段。当前原型只模拟连接失败、图片能力人工确认和工作区创建，没有真实网络请求。
 
-9GClaw 已有以下基础能力：
+九格智能体平台 已有以下基础能力：
 
 - `ui/server` 提供 Express HTTP 服务、JWT 鉴权和静态资源托管。
 - `ui/server/routes/config.js` 已支持 OpenAI、OpenAI Responses、Anthropic 和 Google 协议的文本连通性测试。
@@ -29,7 +29,7 @@
 
 1. 提供原型所需的四个完整 HTTP 接口。
 2. 逐模型验证文本调用，并识别或人工确认图片输入能力。
-3. 只有通过连接测试的配置才能写入 9GClaw 配置。
+3. 只有通过连接测试的配置才能写入 九格智能体平台 配置。
 4. 创建或关联工作区，并注册到现有项目系统。
 5. 提供 OpenAPI、错误码和品牌资源清单，支持独立前端联调。
 6. 复用现有模型、配置和工作区实现，避免形成第二套运行时语义。
@@ -59,14 +59,14 @@ ui/server/index.js
 
 - `modelConnectionProbe`：协议请求构造、文本探测、图片探测和错误归一化。
 - `onboardingTestStore`：保存短期测试记录，校验用户归属和 TTL。
-- `onboardingConfigService`：校验通过记录，原子更新 9GClaw YAML。
+- `onboardingConfigService`：校验通过记录，原子更新 九格智能体平台 YAML。
 - `workspaceService`：复用路径验证、Git clone 和项目注册。
 
 现有 `/api/config/test-connection` 应与新接口共享底层文本探测代码，保留原接口的请求和响应行为。
 
 ## 6. 服务商解析
 
-预置服务商的协议和地址必须由服务端目录决定，忽略客户端传入的 `protocol` 和 `endpoint`。原型 ID 与 9GClaw 规范 ID 的映射如下：
+预置服务商的协议和地址必须由服务端目录决定，忽略客户端传入的 `protocol` 和 `endpoint`。原型 ID 与 九格智能体平台 规范 ID 的映射如下：
 
 | 原型 `providerId` | 规范 ID | 协议 |
 | --- | --- | --- |
@@ -171,7 +171,7 @@ webui:
 
 `POST /api/v1/workspaces` 复用 `validateWorkspacePath` 和 `addProjectManually`：
 
-- `existing`：路径必须存在、可访问且是目录，随后注册为 9GClaw 项目。
+- `existing`：路径必须存在、可访问且是目录，随后注册为 九格智能体平台 项目。
 - `new`：目标不能与已有非空目录冲突；创建目录后，可选执行无交互 `git clone`。
 - 提供 `githubUrl` 时，仅接受 HTTP(S) 或 SSH Git URL；clone 失败时清理本次创建的部分 clone 目录，不删除调用前已存在的目录。
 - clone 同时执行限制为每用户 1 个、进程全局 2 个，单次最长 5 分钟；客户端断开或超时时终止 Git 子进程并清理本次 staging 目录。

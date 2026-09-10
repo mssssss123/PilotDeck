@@ -680,7 +680,7 @@ export class InProcessGateway implements Gateway {
             event: "gateway_submit_failed",
             code: "gateway_submit_failed",
             message,
-            userHint: "9GClaw failed before the agent turn could finish. Retry this message; if it repeats, check the gateway logs.",
+            userHint: "九格智能体平台 failed before the agent turn could finish. Retry this message; if it repeats, check the gateway logs.",
           }));
           const gatewayEvent: GatewayEvent = {
             type: "error",
@@ -688,7 +688,7 @@ export class InProcessGateway implements Gateway {
             code: "gateway_submit_failed",
             message,
             recoverable: false,
-            userHint: "9GClaw failed before the agent turn could finish. Retry this message; if it repeats, check the gateway logs.",
+            userHint: "九格智能体平台 failed before the agent turn could finish. Retry this message; if it repeats, check the gateway logs.",
           };
           this.recordActiveTurnEvent(input.sessionKey, gatewayEvent);
           queue.enqueue(gatewayEvent);

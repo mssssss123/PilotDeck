@@ -100,10 +100,10 @@ class RuntimeManager {
     this.logStream = fs.createWriteStream(this.logPath, { flags: "a" });
     publishRuntimeStatus({
       phase: "starting",
-      message: "Preparing 9GClaw runtime...",
+      message: "Preparing 九格智能体平台 runtime...",
       logPath: this.logPath,
     });
-    this.log(`9GClaw Desktop runtime starting from ${this.runtimeRoot}`);
+    this.log(`九格智能体平台 Desktop runtime starting from ${this.runtimeRoot}`);
     publishRuntimeStatus({
       phase: "config",
       message: "Checking local configuration...",
@@ -178,11 +178,11 @@ class RuntimeManager {
       runtimeRoot: this.runtimeRoot,
       logPath: this.logPath,
     };
-    this.log(`9GClaw Web UI ready: http://127.0.0.1:${serverPort}`);
+    this.log(`九格智能体平台 Web UI ready: http://127.0.0.1:${serverPort}`);
     if (!this.configurationState || this.configurationState.state !== "ready") {
       publishRuntimeStatus({
         phase: "awaiting_configuration",
-        message: "9GClaw is ready for model setup.",
+        message: "九格智能体平台 is ready for model setup.",
         logPath: this.logPath,
       });
     }
@@ -202,7 +202,7 @@ class RuntimeManager {
       });
     }
     this.processes.length = 0;
-    this.log("9GClaw Desktop runtime stopped");
+    this.log("九格智能体平台 Desktop runtime stopped");
     this.logStream?.end();
     this.logStream = null;
     this.info = null;
@@ -214,7 +214,7 @@ class RuntimeManager {
     this.gatewayState = { state: "stopped" };
     publishRuntimeStatus({
       phase: "stopped",
-      message: "9GClaw runtime stopped.",
+      message: "九格智能体平台 runtime stopped.",
       logPath: this.logPath,
     });
   }
@@ -225,7 +225,7 @@ class RuntimeManager {
       return [this.nodeBinary, builtEntry, "server"];
     }
     if (app.isPackaged || process.env.PILOTDECK_DESKTOP_RUNTIME_ROOT) {
-      throw new Error(`Compiled 9GClaw gateway entry not found: ${builtEntry}`);
+      throw new Error(`Compiled 九格智能体平台 gateway entry not found: ${builtEntry}`);
     }
     return [this.nodeBinary, "--import", "tsx", path.join(this.runtimeRoot, "src", "cli", "pilotdeck.ts"), "server"];
   }
@@ -307,7 +307,7 @@ class RuntimeManager {
           phase: "awaiting_configuration",
           message: runtimeMessage.configuration.state === "invalid"
             ? "Model configuration needs attention."
-            : "9GClaw is ready for model setup.",
+            : "九格智能体平台 is ready for model setup.",
           logPath: this.logPath,
         });
       }
@@ -369,7 +369,7 @@ class RuntimeManager {
       this.setGatewayState({ state: "ready" });
       publishRuntimeStatus({
         phase: "ready",
-        message: "9GClaw is ready.",
+        message: "九格智能体平台 is ready.",
         logPath: this.logPath,
       });
     } catch (error) {
@@ -475,7 +475,7 @@ async function createOrShowWindow(): Promise<void> {
     height: 900,
     minWidth: 960,
     minHeight: 640,
-    title: "9GClaw",
+    title: "九格智能体平台",
     ...(icon ? { icon } : {}),
     autoHideMenuBar: true,
     webPreferences: {
@@ -567,7 +567,7 @@ async function startRuntimeAndLoad(): Promise<void> {
     const detail = error instanceof Error ? error.stack ?? error.message : String(error);
     publishRuntimeStatus({
       phase: "error",
-      message: "9GClaw failed to start.",
+      message: "九格智能体平台 failed to start.",
       logPath: runtime?.getLogPath(),
       error: detail,
     });
@@ -599,7 +599,7 @@ function renderLoadingHtml(): string {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>9GClaw</title>
+  <title>九格智能体平台</title>
   <style>
     :root { color-scheme: light dark; }
     * { box-sizing: border-box; }
@@ -711,11 +711,11 @@ function renderLoadingHtml(): string {
 </head>
 <body>
   <main>
-    <div class="brand"><img class="mark" src="${logoUrl}" alt="" /><div>9GClaw</div></div>
+    <div class="brand"><img class="mark" src="${logoUrl}" alt="" /><div>九格智能体平台</div></div>
     <section class="panel" id="panel">
       <div class="row">
         <div class="spinner" aria-hidden="true"></div>
-        <p id="message">Preparing 9GClaw runtime...</p>
+        <p id="message">Preparing 九格智能体平台 runtime...</p>
       </div>
       <pre id="detail"></pre>
       <div id="log"></div>
@@ -734,7 +734,7 @@ function renderLoadingHtml(): string {
     const openLog = document.getElementById("openLog");
 
     window.pilotdeckDesktop?.onRuntimeStatus((status) => {
-      message.textContent = status.message || "Starting 9GClaw...";
+      message.textContent = status.message || "Starting 九格智能体平台...";
       log.textContent = status.logPath ? "Log: " + status.logPath : "";
       if (status.phase === "error") {
         panel.classList.add("error");
@@ -892,7 +892,7 @@ function ensurePilotHome(log: (message: string) => void): { pilotHome: string } 
     ? path.resolve(process.env.PILOT_HOME)
     : path.join(os.homedir(), ".pilotdeck");
   fs.mkdirSync(pilotHome, { recursive: true });
-  log(`9GClaw home ready at ${pilotHome}`);
+  log(`九格智能体平台 home ready at ${pilotHome}`);
   return { pilotHome };
 }
 
@@ -1033,7 +1033,7 @@ app.whenReady()
     await runtime?.stop().catch(() => undefined);
     publishRuntimeStatus({
       phase: "error",
-      message: "9GClaw failed to start.",
+      message: "九格智能体平台 failed to start.",
       logPath: runtime?.getLogPath(),
       error: detail,
     });
@@ -1052,7 +1052,7 @@ app.on("activate", () => {
         const detail = error instanceof Error ? error.stack ?? error.message : String(error);
         publishRuntimeStatus({
           phase: "error",
-          message: "9GClaw failed to restore window.",
+          message: "九格智能体平台 failed to restore window.",
           logPath: runtime?.getLogPath(),
           error: detail,
         });

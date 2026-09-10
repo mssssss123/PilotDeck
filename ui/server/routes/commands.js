@@ -45,7 +45,7 @@ const BUNDLED_SKILL_STUBS = [
   {
     name: '/projects',
     description:
-      'List every 9GClaw project visible to the TUI, gateway, and UI.',
+      'List every 九格智能体平台 project visible to the TUI, gateway, and UI.',
     metadata: { type: 'bundled-skill' },
   },
   {
@@ -312,7 +312,7 @@ async function executeSearchCommand(args, context) {
 
 const builtInHandlers = {
   '/help': async (args, context) => {
-    const helpText = `# 9GClaw Commands
+    const helpText = `# 九格智能体平台 Commands
 
 ## Built-in Commands
 
@@ -733,7 +733,7 @@ Custom commands can be created in:
 
     const projectPath = context?.projectPath || null;
 
-    // 9GClaw's virtual "general" workspace roots at ~/.pilotdeck. It looks
+    // 九格智能体平台's virtual "general" workspace roots at ~/.pilotdeck. It looks
     // like a real projectPath but the user's mental model is general chat →
     // user/global scope. Force user scope with --global when needed.
     const GENERAL_CWD_PATHS = [path.resolve(resolvePilotHome(process.env))];

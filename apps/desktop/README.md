@@ -1,6 +1,6 @@
-# 9GClaw Desktop
+# 九格智能体平台 Desktop
 
-Electron desktop shell for the existing 9GClaw Web UI and local gateway runtime.
+Electron desktop shell for the existing 九格智能体平台 Web UI and local gateway runtime.
 
 ## Development
 
@@ -9,7 +9,7 @@ pnpm install --frozen-lockfile
 pnpm --filter 9gclaw-desktop dev
 ```
 
-The desktop process starts the existing 9GClaw gateway and UI server as local
+The desktop process starts the existing 九格智能体平台 gateway and UI server as local
 child processes, then opens the packaged Web UI inside an Electron window.
 
 ## Packaging

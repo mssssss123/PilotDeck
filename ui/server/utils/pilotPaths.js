@@ -26,7 +26,7 @@ function normalizeHomePath(p) {
 }
 
 /**
- * Resolve the active 9GClaw home directory. Honors `PILOT_HOME` so
+ * Resolve the active 九格智能体平台 home directory. Honors `PILOT_HOME` so
  * tests / multi-instance setups can isolate state. Defaults to
  * `~/.pilotdeck`.
  *
@@ -86,7 +86,7 @@ export function createCollisionResistantProjectId(projectRoot) {
  * unregistered workspaces.
  *
  * @param {string} projectRoot Absolute filesystem path.
- * @param {string} [pilotHome] Active 9GClaw home directory.
+ * @param {string} [pilotHome] Active 九格智能体平台 home directory.
  * @returns {string} Project directory name under `<pilotHome>/projects`.
  */
 export function resolveProjectStorageId(projectRoot, pilotHome = resolvePilotHome()) {

@@ -1081,7 +1081,7 @@ export default function SidebarV2({
         </button>
       ) : (
         <header className="sidebar-brand-row">
-          <span className="brand-lockup" role="img" aria-label="9GClaw">
+          <span className="brand-lockup" role="img" aria-label="九格智能体平台">
             <img
               alt=""
               aria-hidden="true"

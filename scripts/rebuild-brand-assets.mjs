@@ -1,4 +1,4 @@
-/** Rebuild 9GClaw branding from the exact supplied ui/public/logo-256.png. */
+/** Rebuild 九格智能体平台 branding from the exact supplied ui/public/logo-256.png. */
 import sharp from 'sharp';
 import { readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
@@ -21,7 +21,7 @@ for (const name of ['9gclaw-p-mark-compact', '9gclaw-p-mark-transparent', '9gcla
 }
 for (const name of ['9gclaw-logo', '9gclaw-logo-white']) await write(`ui/src/assets/${name}.png`, source);
 for (const [theme, color] of [['light', '#252238'], ['dark', '#f5f3ff']]) {
-  const wordmark = `<svg xmlns="http://www.w3.org/2000/svg" width="660" height="144"><image x="0" y="0" width="144" height="144" href="${embedded}"/><text x="166" y="103" font-family="Arial, sans-serif" font-size="96" font-weight="700" fill="${color}">9GClaw</text></svg>`;
+  const wordmark = `<svg xmlns="http://www.w3.org/2000/svg" width="660" height="144"><image x="0" y="0" width="144" height="144" href="${embedded}"/><text x="166" y="96" font-family="PingFang SC, Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="64" font-weight="700" fill="${color}">九格智能体平台</text></svg>`;
   const bytes = await sharp(Buffer.from(wordmark)).png().toBuffer();
   await write(`ui/src/assets/9gclaw-wordmark-${theme}.png`, bytes);
   if (theme === 'light') {
@@ -45,4 +45,4 @@ const header = Buffer.alloc(8);
 header.write('icns');
 header.writeUInt32BE(8 + chunks.reduce((sum, part) => sum + part.length, 0), 4);
 await write('apps/desktop/resources/icons/icon.icns', Buffer.concat([header, ...chunks]));
-console.log('Rebuilt all 9GClaw web, PWA, memory and desktop brand assets.');
+console.log('Rebuilt all 九格智能体平台 web, PWA, memory and desktop brand assets.');

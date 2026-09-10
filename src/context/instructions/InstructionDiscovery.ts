@@ -14,7 +14,7 @@
  *   5. Local       — <dir>/PILOTDECK.local.md  (private, not committed)
  *
  * Design mirrors the legacy upstream instruction-file discovery, adapted to
- * 9GClaw path conventions (~/.pilotdeck/, .pilotdeck/).
+ * 九格智能体平台 path conventions (~/.pilotdeck/, .pilotdeck/).
  */
 
 import { readFile, readdir } from "node:fs/promises";

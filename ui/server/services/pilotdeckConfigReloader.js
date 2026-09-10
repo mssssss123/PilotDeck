@@ -4,7 +4,7 @@ import { closeMemoryServices, startMemoryScheduler } from './memoryService.js';
 // Applies a validated config to every running subsystem (env, memory) and
 // returns a per-subsystem summary so the UI can show what actually reloaded.
 // CCR router / EdgeClaw IM gateway reload paths were removed — both retired
-// during the 9GClaw-only migration and the schema no longer carries them.
+// during the 九格智能体平台-only migration and the schema no longer carries them.
 export async function reloadPilotDeckConfig(config) {
   const result = {
     processEnv: { reloaded: false },

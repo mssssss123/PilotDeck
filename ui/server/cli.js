@@ -86,13 +86,13 @@ function applyOptions(options) {
 
 function showHelp() {
   console.log(`
-${c.bright('9gclaw - Command Line Tool')}
+${c.bright('九格智能体平台 - Command Line Tool')}
 
 Usage:
   9gclaw [command] [options]
 
 Commands:
-  start          Start the 9GClaw web UI (default)
+  start          Start the 九格智能体平台 web UI (default)
   status         Show configuration and data locations
   help           Show this help information
   version        Show version information
@@ -110,7 +110,7 @@ Examples:
   9gclaw status
 
 Configuration:
-  9GClaw reads ~/.pilotdeck/pilotdeck.yaml by default.
+  九格智能体平台 reads ~/.pilotdeck/pilotdeck.yaml by default.
   First run opens the onboarding UI if no usable config exists.
 `);
 }
@@ -133,7 +133,7 @@ function showStatus() {
   const record = readPilotDeckConfigFile();
   const dbPath = process.env.DATABASE_PATH || defaultDatabasePath();
 
-  console.log(`\n${c.bright('9gclaw - Status')}\n`);
+  console.log(`\n${c.bright('九格智能体平台 - Status')}\n`);
   console.log(c.dim('═'.repeat(60)));
   console.log(`\n${c.info('[INFO]')} Version: ${c.bright(packageJson.version)}`);
   console.log(`${c.info('[INFO]')} Installation Directory: ${c.dim(getInstallDir())}`);
@@ -193,7 +193,7 @@ async function startServer() {
   await assertPortAvailable(port, host);
   ensureFrontendBuild();
 
-  console.log(`\n${c.bright('9gclaw')} starting...\n`);
+  console.log(`\n${c.bright('九格智能体平台')} starting...\n`);
   console.log(`${c.info('[INFO]')} Config: ${c.dim(getPilotDeckConfigPath())}`);
   console.log(`${c.info('[INFO]')} Database: ${c.dim(process.env.DATABASE_PATH || defaultDatabasePath())}`);
   console.log(`${c.info('[INFO]')} Server: http://localhost:${port}\n`);

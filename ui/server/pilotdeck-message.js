@@ -1,5 +1,5 @@
 /**
- * 9GClaw-flavored chat message helper.
+ * 九格智能体平台-flavored chat message helper.
  *
  * Replaces the legacy `providers/types.js` module. The shape on the wire
  * is unchanged (frontend reads `kind`, `sessionId`, `provider`, `timestamp`,

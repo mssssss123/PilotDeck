@@ -137,12 +137,12 @@ export function createExecuteCodeTool(
   return {
     name: "execute_code",
     description:
-      "Run a local Python 3 script that can call a small allow-list of 9GClaw tools via `import pilotdeck_tools`. " +
+      "Run a local Python 3 script that can call a small allow-list of 九格智能体平台 tools via `import pilotdeck_tools`. " +
       "The script runs from the workspace cwd and inherits the same runtime environment as normal tools such as bash, including configured API, proxy, PATH, virtualenv, and conda variables; do not print secrets or dump the full environment. " +
       "Only the script's final stdout/stderr summary is returned to the model; intermediate tool results stay inside the script. " +
       `Available helper functions: ${availableHelpers.join(", ")}. ` +
       "Use normal Python control flow to orchestrate tools: loops for batch work, conditionals for branching, data structures for aggregation, and try/except around individual helper calls when one failure should not abort the whole script. Helper failures raise RuntimeError. You can chain helper results, e.g. grep -> read_file -> edit_file. Print only the concise final result needed by the agent. " +
-      "Before modifying an existing file, call read_file first so 9GClaw can verify freshness. Prefer edit_file for targeted changes and write_file for new files or complete rewrites. " +
+      "Before modifying an existing file, call read_file first so 九格智能体平台 can verify freshness. Prefer edit_file for targeted changes and write_file for new files or complete rewrites. " +
       "Notebook edits, agent, task tools, MCP tools, and execute_code itself are not available.",
     kind: "custom",
     inputSchema: {
@@ -152,7 +152,7 @@ export function createExecuteCodeTool(
       properties: {
         code: {
           type: "string",
-          description: "Python 3 source code to execute. Use `from pilotdeck_tools import ...` to call allowed 9GClaw tools.",
+          description: "Python 3 source code to execute. Use `from pilotdeck_tools import ...` to call allowed 九格智能体平台 tools.",
         },
         description: {
           type: "string",
@@ -164,7 +164,7 @@ export function createExecuteCodeTool(
         },
         max_tool_calls: {
           type: "integer",
-          description: "Maximum number of 9GClaw tool calls the script may make. Defaults to 50; maximum 50.",
+          description: "Maximum number of 九格智能体平台 tool calls the script may make. Defaults to 50; maximum 50.",
         },
       },
     },
@@ -664,7 +664,7 @@ def bash(command, timeout_ms=None, workdir=None):
 `;
 }
 
-const UDS_PYTHON_TRANSPORT_HEADER = `"""Auto-generated 9GClaw execute_code RPC helpers."""
+const UDS_PYTHON_TRANSPORT_HEADER = `"""Auto-generated 九格智能体平台 execute_code RPC helpers."""
 import json
 import os
 import shlex
@@ -689,7 +689,7 @@ def _call(tool_name, args):
     while True:
         chunk = conn.recv(65536)
         if not chunk:
-            raise RuntimeError("9GClaw RPC server disconnected")
+            raise RuntimeError("九格智能体平台 RPC server disconnected")
         chunks.append(chunk)
         if chunk.endswith(b"\\n"):
             break
@@ -699,7 +699,7 @@ def _call(tool_name, args):
     return response
 `;
 
-const TCP_PYTHON_TRANSPORT_HEADER = `"""Auto-generated 9GClaw execute_code RPC helpers."""
+const TCP_PYTHON_TRANSPORT_HEADER = `"""Auto-generated 九格智能体平台 execute_code RPC helpers."""
 import json
 import os
 import shlex
@@ -726,7 +726,7 @@ def _call(tool_name, args):
     while True:
         chunk = conn.recv(65536)
         if not chunk:
-            raise RuntimeError("9GClaw RPC server disconnected")
+            raise RuntimeError("九格智能体平台 RPC server disconnected")
         chunks.append(chunk)
         if chunk.endswith(b"\\n"):
             break

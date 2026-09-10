@@ -50,8 +50,8 @@ Notes
 
 - Use `blogwatcher <command> --help` to discover flags and options.
 
-## 9GClaw Migration Note
+## 九格智能体平台 Migration Note
 
 - Source: /var/folders/27/xyyzc_n172l3jjmnxgqmhhzh0000gn/T/tmp.AyWDWGKoS4/openclaw/skills/blogwatcher
-- Review status: candidate for 9GClaw native skills pack.
+- Review status: candidate for 九格智能体平台 native skills pack.
 - Platform-specific OpenClaw/Hermes metadata was removed or should be ignored during review.

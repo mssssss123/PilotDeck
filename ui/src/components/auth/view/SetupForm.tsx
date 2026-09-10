@@ -84,20 +84,20 @@ export default function SetupForm() {
 
   return (
     <AuthScreenLayout
-      title="Welcome to 9GClaw"
+      title="Welcome to 九格智能体平台"
       description="Set up your account to get started"
       footerText="This is a single-user system. Only one account can be created."
       logo={
         <div className="flex items-center justify-center gap-2">
           <img
             src={brandLogoLight}
-            alt="9GClaw"
+            alt="九格智能体平台"
             className="h-14 w-auto max-w-72 select-none object-contain dark:hidden"
             draggable={false}
           />
           <img
             src={brandLogoDark}
-            alt="9GClaw"
+            alt="九格智能体平台"
             className="hidden h-14 w-auto max-w-72 select-none object-contain dark:block"
             draggable={false}
           />

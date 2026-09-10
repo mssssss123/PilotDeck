@@ -87,7 +87,7 @@ export async function complete(
         if (attempt < maxRetries && isRetryableRequestError(error)) {
           const delayMs = retryBaseDelay * (attempt + 1);
           console.warn(
-            `[9GClaw] complete() retry: ${(error as Error).message} ` +
+            `[九格智能体平台] complete() retry: ${(error as Error).message} ` +
             `(attempt ${attempt + 1}/${maxRetries}, delay=${delayMs}ms)`,
           );
           await delay(delayMs, options.signal);
@@ -105,7 +105,7 @@ export async function complete(
       if (attempt < maxRetries && isRetryableRequestError(error)) {
         const delayMs = retryBaseDelay * (attempt + 1);
         console.warn(
-          `[9GClaw] complete() retry: ${(error as Error).message} ` +
+          `[九格智能体平台] complete() retry: ${(error as Error).message} ` +
           `(attempt ${attempt + 1}/${maxRetries}, delay=${delayMs}ms)`,
         );
         await delay(delayMs, options.signal);

@@ -1,5 +1,5 @@
 {
-  "brand": "9GClaw",
+  "brand": "九格智能体平台",
   "sidebar": {
     "kicker": "首次使用设置",
     "title": "准备好你的 AI 工作空间",
@@ -12,7 +12,7 @@
     "workspace": "工作区"
   },
   "language": {
-    "eyebrow": "欢迎使用 9GClaw",
+    "eyebrow": "欢迎使用 九格智能体平台",
     "title": "连接你的模型，开始真正的智能协作",
     "intro": "只需几步完成模型配置。之后你可以随时在设置中更换服务商、模型或密钥。",
     "legend": "选择界面语言",
@@ -28,7 +28,7 @@
   },
   "provider": {
     "title": "选择你的模型服务商",
-    "intro": "先选择一个服务商。9GClaw 会为你填好推荐的接口格式。",
+    "intro": "先选择一个服务商。九格智能体平台 会为你填好推荐的接口格式。",
     "customTitle": "自定义",
     "customHint": "OpenAI / Anthropic / Google"
   },
@@ -71,8 +71,8 @@
     "testNeedApiKey": "请先填写 API key，再测试连接。",
     "testNeedModel": "请至少选择一个模型 ID，再测试连接。",
     "testNeedConnection": "测试连接前请填写 Endpoint。",
-    "testHint": "9GClaw 将检测已选用模型的文本能力，并对 {{count}} 个未知模型检测图片能力，可能产生少量 API 费用。",
-    "testHintKnown": "9GClaw 将检测已选用模型的文本能力。图片能力来自内置能力表，不会额外探测。",
+    "testHint": "九格智能体平台 将检测已选用模型的文本能力，并对 {{count}} 个未知模型检测图片能力，可能产生少量 API 费用。",
+    "testHintKnown": "九格智能体平台 将检测已选用模型的文本能力。图片能力来自内置能力表，不会额外探测。",
     "testSuccess": "连接成功。",
     "testFailed": "连接失败",
     "manualTitle": "自动检测失败，请手动标记模型是否支持图片输入",

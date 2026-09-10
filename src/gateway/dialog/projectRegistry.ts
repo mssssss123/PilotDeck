@@ -16,7 +16,7 @@ export type DialogProjectRegistry = {
 };
 
 /**
- * Dialog APIs accept real registered projects plus 9GClaw's one virtual
+ * Dialog APIs accept real registered projects plus 九格智能体平台's one virtual
  * General workspace rooted at pilotHome. Keeping that exception here avoids
  * teaching the real-project enumerator about a UI/runtime-only workspace.
  */

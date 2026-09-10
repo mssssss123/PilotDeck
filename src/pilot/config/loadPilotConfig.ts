@@ -314,7 +314,7 @@ function validateTopLevel(rawConfig: PilotRawConfig, diagnostics: PilotConfigDia
     "cron",
     "tools",
     "proxy",
-    // Reserved namespace for ui/server (Web UI Express bridge). The 9GClaw
+    // Reserved namespace for ui/server (Web UI Express bridge). The 九格智能体平台
     // gateway does not parse `webui.*` itself but tolerates it so a single
     // ~/.pilotdeck/pilotdeck.yaml can carry both gateway-side and ui-side
     // config without producing diagnostic noise.

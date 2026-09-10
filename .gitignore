@@ -160,7 +160,7 @@ assets/result/ios_game_result.mp4
 # third-party
 third-party/
 
-# Project-local 9GClaw overrides (per-project .pilotdeck/pilotdeck.yaml etc)
+# Project-local 九格智能体平台 overrides (per-project .pilotdeck/pilotdeck.yaml etc)
 .pilotdeck/
 
 # Cursor IDE local rules, skills, and workspace metadata

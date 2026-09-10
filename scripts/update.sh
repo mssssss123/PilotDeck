@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 9GClaw self-update script.
+# 九格智能体平台 self-update script.
 # Pulls latest code, rebuilds, and signals the parent process to restart.
 #
 # Usage:
@@ -92,7 +92,7 @@ COMMIT_MSG="$(git log --oneline -1 HEAD)"
 log "Latest commit: $COMMIT_MSG"
 
 if [[ "$DO_RESTART" -eq 1 ]]; then
-  log "Restarting 9GClaw..."
+  log "Restarting 九格智能体平台..."
   if [[ -n "${PILOTDECK_PID:-}" ]] && kill -0 "$PILOTDECK_PID" 2>/dev/null; then
     kill -SIGUSR2 "$PILOTDECK_PID" 2>/dev/null || true
   fi

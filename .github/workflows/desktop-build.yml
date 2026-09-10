@@ -146,11 +146,11 @@ jobs:
           MACOS_ARCH: ${{ matrix.arch }}
           MACH_ARCH: ${{ matrix.binary_arch }}
         run: |
-          app_path="$(find apps/desktop/dist-electron -mindepth 2 -maxdepth 2 -type d -name '9GClaw.app' -print -quit)"
+          app_path="$(find apps/desktop/dist-electron -mindepth 2 -maxdepth 2 -type d -name '九格智能体平台.app' -print -quit)"
           dmg_path="$(find apps/desktop/dist-electron -maxdepth 1 -name "*-mac-${MACOS_ARCH}.dmg" -print -quit)"
           test -n "$app_path"
           test -n "$dmg_path"
-          test "$(lipo -archs "$app_path/Contents/MacOS/9GClaw")" = "$MACH_ARCH"
+          test "$(lipo -archs "$app_path/Contents/MacOS/九格智能体平台")" = "$MACH_ARCH"
           test "$(lipo -archs "$app_path/Contents/Resources/node/bin/node")" = "$MACH_ARCH"
           native_path="$(find "$app_path/Contents/Resources/runtime/node_modules/better-sqlite3" -name '*.node' -print -quit)"
           test -n "$native_path"
@@ -162,7 +162,7 @@ jobs:
         if: ${{ inputs.require_macos_signing }}
         shell: bash
         run: |
-          app_path="$(find apps/desktop/dist-electron -mindepth 2 -maxdepth 2 -type d -name '9GClaw.app' -print -quit)"
+          app_path="$(find apps/desktop/dist-electron -mindepth 2 -maxdepth 2 -type d -name '九格智能体平台.app' -print -quit)"
           test -n "$app_path"
           codesign -dv --verbose=4 "$app_path" 2>&1 | grep -q 'Authority=Developer ID Application:'
           xcrun stapler validate "$app_path"

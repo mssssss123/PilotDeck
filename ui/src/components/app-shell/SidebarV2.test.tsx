@@ -28,7 +28,7 @@ const general: Project = {
 
 const project: Project = {
   name: 'pilotdeck',
-  displayName: '9GClaw',
+  displayName: '九格智能体平台',
   fullPath: '/workspace/PilotDeck',
   sessions: [],
 };
@@ -77,7 +77,7 @@ describe('SidebarV2 layout', () => {
   it('shows brand text, quick actions, projects and conversations together', () => {
     renderSidebar(null);
 
-    const brand = screen.getByRole('img', { name: '9GClaw' });
+    const brand = screen.getByRole('img', { name: '九格智能体平台' });
     const brandSources = Array.from(brand.querySelectorAll('img')).map((image) =>
       image.getAttribute('src'),
     );
@@ -86,7 +86,7 @@ describe('SidebarV2 layout', () => {
     expect(brandSources[1]).toContain('9gclaw-wordmark-dark.png');
     expect(screen.getByRole('navigation', { name: /Quick actions|Primary actions/ })).toBeTruthy();
     expect(screen.getByText(/New conversation|新对话/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Start a new conversation in 9GClaw|在 9GClaw 中新建对话/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Start a new conversation in 九格智能体平台|在 九格智能体平台 中新建对话/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Start a general conversation|新建通用对话/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Create new project|创建新项目/ })).toBeTruthy();
     expect(screen.getByText('Skills')).toBeTruthy();
@@ -101,14 +101,14 @@ describe('SidebarV2 layout', () => {
 
     expect(screen.getByText('Projects')).toBeTruthy();
     expect(screen.getByText('Conversations')).toBeTruthy();
-    expect(screen.getByText('9GClaw')).toBeTruthy();
+    expect(screen.getByText('九格智能体平台')).toBeTruthy();
   });
 
-  it('shows the 9GClaw logo when the sidebar is compact', () => {
+  it('shows the 九格智能体平台 logo when the sidebar is compact', () => {
     localStorage.setItem('sidebar-v2-width', '76');
     renderSidebar(null);
 
-    expect(screen.queryByRole('img', { name: '9GClaw' })).toBeNull();
+    expect(screen.queryByRole('img', { name: '九格智能体平台' })).toBeNull();
     const mark = document.querySelector('.brand-mark');
     expect(mark).toBeInstanceOf(HTMLImageElement);
     expect((mark as HTMLImageElement).getAttribute('src')).toBe(
@@ -164,7 +164,7 @@ describe('SidebarV2 layout', () => {
     const onSelectProject = vi.fn();
     renderSidebar(null, { onSelectProject });
 
-    fireEvent.click(screen.getByRole('button', { name: /^9GClaw$/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^九格智能体平台$/ }));
 
     expect(onSelectProject).toHaveBeenCalledWith(project);
   });
@@ -176,16 +176,16 @@ describe('SidebarV2 layout', () => {
     const projectsHeading = screen.getByRole('button', { name: 'Collapse projects' }).closest('.tree-heading') as HTMLElement;
     const conversationsHeading = screen.getByRole('button', { name: 'Expand conversations' }).closest('.tree-heading') as HTMLElement;
 
-    expect(screen.getByText('9GClaw')).toBeTruthy();
+    expect(screen.getByText('九格智能体平台')).toBeTruthy();
     expect(within(projectsHeading).getByRole('button', { name: /Create new project|创建新项目/ })).toBeTruthy();
     expect(within(conversationsHeading).getByRole('button', { name: /Start a general conversation|新建通用对话/ })).toBeTruthy();
 
     fireEvent.click(screen.getByText('Projects'));
-    expect(screen.getByText('9GClaw')).toBeTruthy();
+    expect(screen.getByText('九格智能体平台')).toBeTruthy();
     fireEvent.click(within(projectsHeading).getByRole('button', { name: 'Collapse projects' }));
-    expect(screen.queryByText('9GClaw')).toBeNull();
+    expect(screen.queryByText('九格智能体平台')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Expand projects' }));
-    expect(screen.getByText('9GClaw')).toBeTruthy();
+    expect(screen.getByText('九格智能体平台')).toBeTruthy();
 
     fireEvent.click(screen.getByText('Conversations'));
     expect(within(conversationsHeading).getByRole('button', { name: 'Expand conversations' })).toBeTruthy();
@@ -204,7 +204,7 @@ describe('SidebarV2 layout', () => {
 
     expect(screen.getByRole('button', { name: 'Expand conversations' })).toBeTruthy();
     expect(screen.queryByText('hello world')).toBeNull();
-    expect(screen.getByText('9GClaw')).toBeTruthy();
+    expect(screen.getByText('九格智能体平台')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Expand conversations' }));
     expect(screen.getByText('hello world')).toBeTruthy();
@@ -231,7 +231,7 @@ describe('SidebarV2 layout', () => {
     renderSidebar(null, { onStartNewSession });
 
     fireEvent.click(screen.getByRole('button', {
-      name: /Start a new conversation in 9GClaw|在 9GClaw 中新建对话/,
+      name: /Start a new conversation in 九格智能体平台|在 九格智能体平台 中新建对话/,
     }));
     expect(onStartNewSession).toHaveBeenLastCalledWith(project);
 

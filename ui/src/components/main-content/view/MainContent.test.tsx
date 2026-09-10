@@ -107,7 +107,7 @@ class ResizeObserverMock {
 
 const project: Project = {
   name: 'pilotdeck',
-  displayName: '9GClaw',
+  displayName: '九格智能体平台',
   fullPath: '/workspace/PilotDeck',
 };
 
