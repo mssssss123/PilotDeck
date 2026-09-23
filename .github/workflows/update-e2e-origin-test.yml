@@ -1,0 +1,123 @@
+name: Origin macOS Update Test
+
+on:
+  push:
+    branches:
+      - codex/update-e2e-origin-test
+
+permissions:
+  contents: write
+
+concurrency:
+  group: origin-macos-update-test
+  cancel-in-progress: false
+
+env:
+  PILOTDECK_UPDATE_REPOSITORY: ${{ github.repository }}
+  PILOTDECK_RELEASE_DATE: "2026-09-23"
+  PILOTDECK_DESKTOP_REQUIRE_SIGNING: "1"
+  APPLE_ID: ${{ secrets.APPLE_ID }}
+  APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+  APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+jobs:
+  build-and-publish:
+    if: github.repository == 'mssssss123/PilotDeck'
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.1
+          cache: pnpm
+
+      - name: Select isolated test revision
+        shell: bash
+        run: |
+          case "$(cat .github/update-test-revision)" in
+            0|1) ;;
+            *) echo "Only the two planned test revisions are allowed" >&2; exit 1 ;;
+          esac
+          echo "PILOTDECK_RELEASE_REVISION=$(cat .github/update-test-revision)" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set test build version and origin repository
+        run: node apps/desktop/scripts/set-ci-version.mjs
+
+      - name: Import Developer ID certificate
+        shell: bash
+        env:
+          CERTIFICATE_PATH: ${{ runner.temp }}/developer-id-application.p12
+          KEYCHAIN_PATH: ${{ runner.temp }}/pilotdeck-signing.keychain-db
+          CERTIFICATE_BASE64: ${{ secrets.MACOS_DEVELOPER_ID_APPLICATION_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_DEVELOPER_ID_APPLICATION_PASSWORD }}
+          KEYCHAIN_PASSWORD_SECRET: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+        run: |
+          if [ -z "$CERTIFICATE_BASE64" ] || [ -z "$CERTIFICATE_PASSWORD" ]; then
+            echo "macOS Developer ID certificate secrets are required" >&2
+            exit 1
+          fi
+          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
+            echo "Apple notarization secrets are required" >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+          Path(os.environ["CERTIFICATE_PATH"]).write_bytes(base64.b64decode(os.environ["CERTIFICATE_BASE64"]))
+          PY
+          keychain_password="${KEYCHAIN_PASSWORD_SECRET:-pilotdeck-ci-keychain}"
+          security create-keychain -p "$keychain_password" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$keychain_password" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+          echo "CSC_KEYCHAIN=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+          echo "CSC_IDENTITY_AUTO_DISCOVERY=true" >> "$GITHUB_ENV"
+
+      - name: Build signed macOS arm64 test app
+        run: pnpm --filter pilotdeck-desktop run dist:mac:arm64
+
+      - name: Verify test app and prepare feed
+        shell: bash
+        run: |
+          app_path="$(find apps/desktop/dist-electron -mindepth 2 -maxdepth 2 -type d -name 'PilotDeck-Test.app' -print -quit)"
+          test -n "$app_path"
+          test "$(lipo -archs "$app_path/Contents/MacOS/PilotDeck-Test")" = arm64
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app_path/Contents/Info.plist")" = cn.pilotdeck.desktop.update-test
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          xcrun stapler validate "$app_path"
+          spctl --assess --type execute --verbose=2 "$app_path"
+          test -s apps/desktop/dist-electron/latest-mac.yml
+          test -s apps/desktop/dist-electron/PilotDeck-Test-*-mac-arm64.zip
+          test -s apps/desktop/dist-electron/PilotDeck-Test-*-mac-arm64.dmg
+          mkdir release-assets
+          cp apps/desktop/dist-electron/PilotDeck-Test-*-mac-arm64.zip release-assets/
+          cp apps/desktop/dist-electron/PilotDeck-Test-*-mac-arm64.dmg release-assets/
+          cp apps/desktop/dist-electron/latest-mac.yml release-assets/latest-arm64-mac.yml
+
+      - name: Create release manifest
+        run: node apps/desktop/scripts/create-release-manifest.mjs release-assets
+
+      - name: Publish isolated test Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$PILOTDECK_RELEASE_TAG" release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "PilotDeck-Test $PILOTDECK_RELEASE_TAG" \
+            --notes "Isolated macOS arm64 update test. Installs as PilotDeck-Test with separate app data." \
+            --latest

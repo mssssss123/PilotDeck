@@ -57,7 +57,7 @@ let lastRuntimeStatus: RuntimeStatus | null = null;
 let updateOrigin: string | null = null;
 let desktopTray: ReturnType<typeof createDesktopTray> | null = null;
 
-const APP_ID = "cn.pilotdeck.desktop";
+const APP_ID = "cn.pilotdeck.desktop.update-test";
 const EXTERNAL_NAVIGATION_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 const PLAYWRIGHT_BROWSER_DIR = "playwright-browsers";
 const DEFAULT_UPDATE_REPOSITORY = "OpenBMB/PilotDeck";
@@ -795,7 +795,7 @@ function readBuildMetadata(): BuildMetadata {
 function ensurePilotHome(log: (message: string) => void): { pilotHome: string } {
   const pilotHome = process.env.PILOT_HOME
     ? path.resolve(process.env.PILOT_HOME)
-    : path.join(os.homedir(), ".pilotdeck");
+    : path.join(os.homedir(), ".pilotdeck-update-test");
   fs.mkdirSync(pilotHome, { recursive: true });
   log(`PilotDeck home ready at ${pilotHome}`);
   return { pilotHome };

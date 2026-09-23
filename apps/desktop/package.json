@@ -30,8 +30,8 @@
     "typescript": "^5.9.3"
   },
   "build": {
-    "appId": "cn.pilotdeck.desktop",
-    "productName": "PilotDeck",
+    "appId": "cn.pilotdeck.desktop.update-test",
+    "productName": "PilotDeck-Test",
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "compression": "maximum",
     "directories": {
