@@ -111,6 +111,15 @@ jobs:
       - name: Create release manifest
         run: node apps/desktop/scripts/create-release-manifest.mjs release-assets
 
+      - name: Preserve signed test installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: pilotdeck-update-test-${{ env.PILOTDECK_RELEASE_TAG }}
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
       - name: Publish isolated test Release
         shell: bash
         env:
