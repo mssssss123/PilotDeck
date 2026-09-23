@@ -1,5 +1,5 @@
 {
-  "name": "pilotdeck-desktop",
+  "name": "pilotdeck-update-test",
   "version": "0.1.0",
   "private": true,
   "description": "Cross-platform Electron shell for PilotDeck.",
