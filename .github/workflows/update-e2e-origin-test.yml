@@ -41,8 +41,8 @@ jobs:
         shell: bash
         run: |
           case "$(cat .github/update-test-revision)" in
-            0|1) ;;
-            *) echo "Only the two planned test revisions are allowed" >&2; exit 1 ;;
+            0|1|2|3) ;;
+            *) echo "Only the planned test revisions are allowed" >&2; exit 1 ;;
           esac
           echo "PILOTDECK_RELEASE_REVISION=$(cat .github/update-test-revision)" >> "$GITHUB_ENV"
 

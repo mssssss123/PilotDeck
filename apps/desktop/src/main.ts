@@ -58,6 +58,10 @@ let updateOrigin: string | null = null;
 let desktopTray: ReturnType<typeof createDesktopTray> | null = null;
 
 const APP_ID = "cn.pilotdeck.desktop.update-test";
+// Keep Chromium storage and logs separate from the installed production app.
+const TEST_USER_DATA = path.join(app.getPath("appData"), "pilotdeck-update-test");
+fs.mkdirSync(TEST_USER_DATA, { recursive: true });
+app.setPath("userData", TEST_USER_DATA);
 const EXTERNAL_NAVIGATION_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 const PLAYWRIGHT_BROWSER_DIR = "playwright-browsers";
 const DEFAULT_UPDATE_REPOSITORY = "OpenBMB/PilotDeck";
