@@ -1,4 +1,4 @@
-name: Origin macOS Update Test
+name: Origin Cross-Platform Update Test
 
 on:
   push:
@@ -9,19 +9,19 @@ permissions:
   contents: write
 
 concurrency:
-  group: origin-macos-update-test
+  group: origin-cross-platform-update-test
   cancel-in-progress: false
 
 env:
   PILOTDECK_UPDATE_REPOSITORY: ${{ github.repository }}
-  PILOTDECK_RELEASE_DATE: "2026-09-23"
+  PILOTDECK_RELEASE_DATE: "2026-09-24"
   PILOTDECK_DESKTOP_REQUIRE_SIGNING: "1"
   APPLE_ID: ${{ secrets.APPLE_ID }}
   APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
   APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
 jobs:
-  build-and-publish:
+  build-macos:
     if: github.repository == 'mssssss123/PilotDeck'
     runs-on: macos-latest
     timeout-minutes: 90
@@ -41,7 +41,7 @@ jobs:
         shell: bash
         run: |
           case "$(cat .github/update-test-revision)" in
-            0|1|2|3|4|5) ;;
+            0|1|2|3) ;;
             *) echo "Only the planned test revisions are allowed" >&2; exit 1 ;;
           esac
           echo "PILOTDECK_RELEASE_REVISION=$(cat .github/update-test-revision)" >> "$GITHUB_ENV"
@@ -108,17 +108,115 @@ jobs:
           cp apps/desktop/dist-electron/PilotDeck-Test-*-mac-arm64.dmg release-assets/
           cp apps/desktop/dist-electron/latest-mac.yml release-assets/latest-arm64-mac.yml
 
-      - name: Create release manifest
-        run: node apps/desktop/scripts/create-release-manifest.mjs release-assets
-
       - name: Preserve signed test installers
         uses: actions/upload-artifact@v4
         with:
-          name: pilotdeck-update-test-${{ env.PILOTDECK_RELEASE_TAG }}
+          name: pilotdeck-update-test-macos
           path: release-assets/*
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
+
+  build-windows:
+    if: github.repository == 'mssssss123/PilotDeck'
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.1
+          cache: pnpm
+
+      - name: Select isolated test revision
+        shell: bash
+        run: |
+          case "$(cat .github/update-test-revision)" in
+            0|1|2|3) ;;
+            *) echo "Only the planned test revisions are allowed" >&2; exit 1 ;;
+          esac
+          echo "PILOTDECK_RELEASE_REVISION=$(cat .github/update-test-revision)" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set test build version and origin repository
+        run: node apps/desktop/scripts/set-ci-version.mjs
+
+      - name: Disable Windows signing
+        shell: pwsh
+        run: '"CSC_IDENTITY_AUTO_DISCOVERY=false" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append'
+
+      - name: Build Windows x64 test installer
+        run: pnpm --filter pilotdeck-update-test run dist:win
+
+      - name: Verify test app and prepare feed
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem 'apps/desktop/dist-electron/PilotDeck-Test-*-win-x64-setup.exe' | Select-Object -First 1
+          if (-not $installer -or $installer.Length -le 0) { throw 'Windows test installer was not generated.' }
+          $app = 'apps/desktop/dist-electron/win-unpacked/PilotDeck-Test.exe'
+          if (-not (Test-Path $app)) { throw 'Isolated Windows test app is missing.' }
+          if (-not (Test-Path 'apps/desktop/dist-electron/win-unpacked/resources/elevate.exe')) { throw 'Update elevation helper is missing.' }
+          $env:ELECTRON_RUN_AS_NODE = '1'
+          & $app apps/desktop/scripts/verify-updater.cjs apps/desktop/dist-electron/win-unpacked/resources/app.asar | Out-Host
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged updater validation failed.' }
+          Remove-Item Env:ELECTRON_RUN_AS_NODE
+          if (-not (Test-Path 'apps/desktop/dist-electron/latest.yml')) { throw 'Windows update feed was not generated.' }
+          New-Item -ItemType Directory -Path release-assets | Out-Null
+          Copy-Item $installer.FullName release-assets/
+          Copy-Item apps/desktop/dist-electron/latest.yml release-assets/latest-x64.yml
+
+      - name: Preserve Windows test installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: pilotdeck-update-test-windows
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  publish:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.1
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pilotdeck-update-test-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Resolve release metadata
+        shell: bash
+        run: |
+          export PILOTDECK_RELEASE_REVISION="$(cat .github/update-test-revision)"
+          node apps/desktop/scripts/set-ci-version.mjs
+
+      - name: Create release manifest and checksums
+        run: node apps/desktop/scripts/create-release-manifest.mjs release-assets
+
+      - name: Verify complete test release
+        shell: bash
+        run: |
+          find release-assets -maxdepth 1 -name 'PilotDeck-Test-*-mac-arm64.dmg' -print -quit | grep -q .
+          find release-assets -maxdepth 1 -name 'PilotDeck-Test-*-mac-arm64.zip' -print -quit | grep -q .
+          find release-assets -maxdepth 1 -name 'PilotDeck-Test-*-win-x64-setup.exe' -print -quit | grep -q .
+          test -s release-assets/latest-arm64-mac.yml
+          test -s release-assets/latest-x64.yml
+          test -s release-assets/release.json
+          test -s release-assets/SHA256SUMS.txt
 
       - name: Publish isolated test Release
         shell: bash
@@ -129,5 +227,5 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "PilotDeck-Test $PILOTDECK_RELEASE_TAG" \
-            --notes "Isolated macOS arm64 update test. Installs as PilotDeck-Test with separate app data." \
+            --notes "Isolated macOS arm64 and Windows x64 update test. Installs as PilotDeck-Test with separate app data." \
             --latest
